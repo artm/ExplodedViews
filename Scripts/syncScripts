@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if [ ! -d "Assets" ] ; then
+  echo "No Assets found, wrong working directory"
+  exit 1
+fi
+
+if [ -z "$1" ] ; then
+  echo "Usage: $(basename $0) target"
+  exit 1
+fi
+
+TARGET="$1"
+
+if [ ! -d "$TARGET/Assets" ] ; then
+  echo "No $TARGET/Assets found, wrong target"
+  exit 1
+fi
+
+rsync -avu "Assets/Standard Assets" "$TARGET/Assets/"
+if [ -d Scripts ] ; then
+  rsync -avu "Scripts" "$TARGET/"
+fi
