@@ -1,0 +1,10 @@
+Assembly*
+Library
+Bin
+*.sln
+Temp
+*.unitypackage
+*.zip
+*.prefab
+*.anim
+*.userprefs
