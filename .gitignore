@@ -8,3 +8,6 @@ Temp
 *.prefab
 *.anim
 *.userprefs
+*.asset
+*.mat
+*.GUISkin
