@@ -7,7 +7,9 @@ public class Navigator : MonoBehaviour {
 	public float walkSpeed = 1;
 	public float walkSpeedExp = 2;
 	public float turnSpeed = 1;
-	
+	public float CogForwardScaling = 0.001f; /* to meters */
+	public float CogSidewaysScaling = 0.001f; /* to meters */
+
 	public float strafeThreshold = 1;
 	
 	public float gravity = -10;
@@ -15,23 +17,22 @@ public class Navigator : MonoBehaviour {
 	CharacterController pill;
 	float fallSpeed = 0;
 	Vector3 velocity = new Vector3(0,0,0);
+	Vector3 nulVector = new Vector3(0,0,0);
 	
 	void Start () {
 		pill = GetComponent<CharacterController>();
 	}
 	
-	void Update()
+	void UpdateWithCog(Vector3 cog)
 	{
 		float forward = Input.GetAxis("Vertical");
 		float sideways = Input.GetAxis("Horizontal");
 		
-		/*
-		 * To support navigation from sensors change forward/sideways values under here.
-		 * This way joystick/mouse/keyboard can be used when there is no input form the sensors.
-		 */
-		
-		// ...
-		
+		forward += cog.x * CogForwardScaling;
+		sideways += cog.y * CogSidewaysScaling;
+				
+		//Debug.Log("f: " + forward + ", s: " + sideways);
+
 		// now scale with speeds
 		// ... we sneak in second gamepad's joystick here, clever us
 		
@@ -67,5 +68,15 @@ public class Navigator : MonoBehaviour {
 		}
 
 		pill.Move( direction * Time.deltaTime );
+	}
+	
+	void Update()
+	{
+		UpdateWithCog(nulVector);
+	}
+	
+	void BlobsCenterOfGravity(Vector3 cog)
+	{
+		UpdateWithCog(cog);
 	}
 }
