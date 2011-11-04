@@ -1,10 +1,9 @@
 using UnityEngine;
 using System.IO;
 using System.Collections;
+using Math = System.Math;
 
-/// <summary>
-/// Provides access to bin files that contain compact versions of the original clouds.
-/// </summary>
+// Provides access to bin files that contain compact versions of the original clouds.
 public class CloudStream
 {
     // floats are x,y,z
@@ -53,6 +52,12 @@ public class CloudStream
         public Reader(Stream stream) : base(stream)
         {
         }
+		
+		public bool Eof {
+			get {
+				return (BaseStream.Position == BaseStream.Length);
+			}
+		}
 
         public void ReadPoint(out Vector3 v, out Color c)
         {
@@ -89,12 +94,8 @@ public class CloudStream
 			}
 		}
 
-		/// <summary>
-		/// Copy a slice from this cloud to the one pointed to by writer. Writer should be positioned 
-		/// at the right offset already.
-		/// </summary>
-
-		
+		// Copy a slice from this cloud to the one pointed to by writer. Writer should be positioned 
+		// at the right offset already.
 		public void CopySlice(int sliceOffset, int sliceLength, CloudStream.Writer writer)
 		{
 			SeekPoint(sliceOffset, SeekOrigin.Begin);
@@ -112,55 +113,40 @@ public class CloudStream
 		
 		public void ReadPoints(Vector3[] v, Color[] c)
 		{
-			int bytesize = PrepareToRead(v, c, 1f);
+			int bytesize = PrepareToRead(v, c, 0, 1f);
 			Read(chbuffer, 0, bytesize);
-			DecodePoints(v, c, 1f);
+			DecodePoints(v, c, 0, 1f, bytesize/pointRecSize);
 		}
 		
 		byte[] chbuffer = null;
 		Reader mem = null;
-        public IEnumerator ReadPointsAsync(Vector3[] v, Color[] c)
+		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride)
 		{
-			return ReadPointsAsync(v,c,1f);
-		}
-
-        public IEnumerator ReadPointsAsync(Vector3[] v, Color[] c, float stride)
-        {
-        	int bytesize = PrepareToRead(v, c, stride);
+			Vector3[] v = buffer.vBuffer;
+			Color[] c = buffer.cBuffer;
+        	int bytesize = PrepareToRead (v, c, buffer.Offset, stride);
    
-            System.IAsyncResult asyncRes = BaseStream.BeginRead(chbuffer, 0, bytesize, null, null);
+			System.IAsyncResult asyncRes = BaseStream.BeginRead (chbuffer, 0, bytesize, null, null);
         	// wait for the read to finish, but let the engine go
         	while (!asyncRes.IsCompleted)
         		yield return null;
-        	BaseStream.EndRead(asyncRes);
-   
-			DecodePoints(v, c, stride);
+			
+			BaseStream.EndRead(asyncRes);
+			buffer.Offset = DecodePoints(v, c, buffer.Offset, stride, bytesize/pointRecSize);
         }
-
+		
 		#region Guts
-		/// <summary>
-		/// Check parameters for sanity, allocate memory buffer if necessary.
-		/// </summary>
-		/// <param name="v">
-		/// A <see cref="Vector3[]"/> to put vertices in.
-		/// </param>
-		/// <param name="c">
-		/// A <see cref="Color[]"/> for the colors.
-		/// </param>
-		/// <param name="stride">
-		/// A <see cref="System.Single"/> average step between consequtively read points.
-		/// </param>
-		/// <returns>
-		/// A <see cref="System.Int32"/> size of the allocated buffer in bytes
-		/// </returns>
-		int PrepareToRead(Vector3[] v, Color[] c, float stride)
+		// Check parameters for sanity, allocate memory buffer if necessary.
+		int PrepareToRead(Vector3[] v, Color[] c, int offset, float stride)
 		{
 			if (v.Length != c.Length)
 				throw new Pretty.AssertionFailed("Vertex and color arrays should be of the same size");
 			if (stride < 1f)
 				throw new Pretty.AssertionFailed("Strides less then 1.0 make no sense");
 			
-			int bytesize = Mathf.CeilToInt(stride * (v.Length - 1) + 1) * pointRecSize;
+			int bytesize = Math.Min(Mathf.CeilToInt(stride * (v.Length - offset - 1) + 1) * pointRecSize,
+			                        (int)(BaseStream.Length - BaseStream.Position));
+			
 			if (chbuffer == null || chbuffer.Length < bytesize) {
 				chbuffer = new byte[bytesize];
 				mem = new Reader(new MemoryStream(chbuffer));
@@ -169,28 +155,20 @@ public class CloudStream
 			return bytesize;
 		}
 		
-		/// <summary>
-		/// Read the points from memory buffer into the arrays
-		/// </summary>
-		/// <param name="v">
-		/// A <see cref="Vector3[]"/> to put vertices in.
-		/// </param>
-		/// <param name="c">
-		/// A <see cref="Color[]"/> for the colors.
-		/// </param>
-		/// <param name="stride">
-		/// A <see cref="System.Single"/> average step between consequtively read points.
-		/// </param>
-		void DecodePoints(Vector3[] v, Color[] c, float stride)
+		// Read the points from memory buffer into the arrays
+		int DecodePoints(Vector3[] v, Color[] c, int offset, float stride, int pointsRead)
 		{
 			// decode the buffer into arrays
-			for(int i = 0; i < v.Length; ++i) {
+			int i = offset, limit = Math.Min(v.Length,offset+pointsRead);
+			
+			for(; i < limit; ++i) {
 				int seekPos = Mathf.FloorToInt(stride * i);
 				if (mem.BaseStream.Position != seekPos) {
 					mem.SeekPoint(seekPos, SeekOrigin.Begin);
 				}
 				mem.ReadPointRef(ref v[i], ref c[i]);
 			}
+			return i;
 		}
 		#endregion
 	}

@@ -60,16 +60,31 @@ public class CloudMeshPool : MonoBehaviour {
 		singleton.freeMeshes.Push(go);
 	}
 	public static Material GetMaterial() { return singleton.material; }
+	
 	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go) {
 		return ReadFrom( reader, go, 1f);
 	}
 	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go, float stride) {
-		Mesh mesh = go.GetComponent<MeshFilter>().sharedMesh;
-		yield return singleton.StartCoroutine(
-			reader.ReadPointsAsync(singleton.generator.vBuffer, singleton.generator.cBuffer, stride) );
-		singleton.generator.Convert(mesh);
+		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride )); 
+		singleton.generator.Convert(go.GetComponent<MeshFilter>().sharedMesh);
 	}
+
+	// filling the buffer...
+	public static IEnumerator ReadFrom(CloudStream.Reader reader, float stride) {
+		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride )); 
+	}
+	
+	public static GameObject PopBuffer() {
+		GameObject go = Get();
+		singleton.generator.ClearAfterOffset();
+		singleton.generator.Convert(go.GetComponent<MeshFilter>().sharedMesh);
+		singleton.generator.Offset = 0;
+		go.active = true;
+		return go;
+	}
+	
 	public static int Capacity { get { return singleton.capacity; } }
 	public static int PointCapacity { get { return singleton.capacity * pointsPerMesh; } }
+	public static bool BufferFull { get { return singleton.generator.Full; } }
 	#endregion
 }

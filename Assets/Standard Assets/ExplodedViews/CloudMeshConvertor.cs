@@ -27,16 +27,23 @@ public class CloudMeshConvertor
 
 	Vector3[] _vBuffer;
 	Color[] _cBuffer;
+	int offset = 0;
 	public Vector3[] vBuffer { get {return _vBuffer;} }
 	public Color[] cBuffer { get {return _cBuffer;} }
 	
-	/// <summary>
+	public bool Full {
+		get {
+			return offset == vBuffer.Length;
+		}
+	}
+	
+	public int Offset { 
+		get { return offset; } 
+		set { offset = value; }
+	}
+	
 	/// Allocate arrays given the cloud size. Among others preallocates input arrays
 	/// so they can be given to a cloud reader.
-	/// </summary>
-	/// <param name="size">
-	/// A <see cref="System.Int32"/> cloud size.
-	/// </param>
     public CloudMeshConvertor(int size) {
 		this.size = size;
 
@@ -83,7 +90,14 @@ public class CloudMeshConvertor
             mesh.colors = c;
             mesh.uv = uv;
             mesh.triangles = tri;
-
+	}
+	
+	public void ClearAfterOffset()
+	{
+		for(int i = offset; i<_vBuffer.Length; ++i) {
+			_vBuffer[i].x = _vBuffer[i].y = _vBuffer[i].z = 0;
+			_cBuffer[i].a = _cBuffer[i].r = _cBuffer[i].g = _cBuffer[i].b = 0;
+		}
 	}
 	
 	/// <summary>

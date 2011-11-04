@@ -289,9 +289,6 @@ public class ImportedCloud : MonoBehaviour
 	{
 		StopWatch sw = new StopWatch ();
 
-		int loaded = 0;
-		Vector3 accum = Vector3.zero;
-
 		// how large is selection in points?
 		int lstPointCount = 0;
 		foreach (Slice slice in lst) {
@@ -303,31 +300,27 @@ public class ImportedCloud : MonoBehaviour
 				Pretty.Count (CloudMeshPool.PointCapacity), 
 				stride));
 
-		foreach (Slice slice in lst) {
+		for(int i = 0; i < lst.Count; i++) {
+			Slice slice = lst[i];
 			guiMessage = slice.name + "...";
-			int left = slice.size;
-			binReader.SeekPoint(slice.offset, SeekOrigin.Begin);
-			GameObject sub;
+			binReader.SeekPoint (slice.offset, SeekOrigin.Begin);
 
-			int readChunkSize = (int)(stride * (float)CloudMeshPool.pointsPerMesh);
-			while ((left > readChunkSize) && (sub = CloudMeshPool.Get())) {
+			while (!binReader.Eof && CloudMeshPool.HasFreeMeshes) {
 				// load chunk ...
-				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, sub, stride));
-				ProceduralUtils.InsertHere(sub.transform, detailBranch.transform);
-				sub.active = true;
-				left -= readChunkSize;
-				loaded += CloudMeshPool.pointsPerMesh;
-				loadProgress = (float)loaded / (float)CloudMeshPool.PointCapacity;
-				accum += sub.renderer.bounds.center;
-				yield return null;
-			}
+				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
 				
+				if (CloudMeshPool.BufferFull || (binReader.Eof && i==lst.Count)) {
+					ProceduralUtils.InsertHere(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
+					loadProgress = (float)detailBranch.transform.childCount / (float)CloudMeshPool.Capacity;
+					// FIXME, do we have to skip one here?
+					// yield return null;
+				}
+			}
 		}
 
-		guiMessage = string.Format("Loaded in {0}", Pretty.Seconds(sw.elapsed));
-		yield break;
+		guiMessage = string.Format ("Loaded in {0}", Pretty.Seconds (sw.elapsed));
 	}
-
+	
 	Dictionary<Transform, Slice> _sliceByTransform = null;
 	Dictionary<Transform, Slice> sliceByTransform {
 		get {
