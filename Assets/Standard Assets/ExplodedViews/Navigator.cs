@@ -10,6 +10,7 @@ public class Navigator : MonoBehaviour {
 	public float CogForwardScaling = 0.001f; /* to meters */
 	public float CogSidewaysScaling = 0.001f; /* to meters */
 
+	public bool  strafeWhenSlow = false;
 	public float strafeThreshold = 1;
 	
 	public float gravity = -10;
@@ -42,7 +43,7 @@ public class Navigator : MonoBehaviour {
 		
 		Vector3 walk = new Vector3( 0, 0, forward );
 		
-		float strafe_t = 1.0f - Mathf.Min( Mathf.Abs(walk.z) / strafeThreshold, 1 );
+		float strafe_t = strafeWhenSlow ? 1.0f - Mathf.Min( Mathf.Abs(walk.z) / strafeThreshold, 1 ) : 0f;
 		// ... and even the third! 
 		walk.x = (strafe_t * sideways + Input.GetAxis("ThirdHorizontal")) * walkSpeed;
 		
