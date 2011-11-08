@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 
 // Maintains metadata of the original cloud and implements cloud finetuning GUI.
@@ -64,10 +65,10 @@ public class ImportedCloud : MonoBehaviour
 
 	class BoxHelper {
 		Matrix4x4 cloud2box;
-		CloudStream.Writer writer;
+		CloudStream.Writer writer = null;
+		string path = null;
 		int count;
-		string path;
-		Transform transform;
+		Transform transform, cloud;
 		
 		public string Path {
 			get { return path; }
@@ -75,15 +76,29 @@ public class ImportedCloud : MonoBehaviour
 		public Transform Transform {
 			get { return transform; }
 		}
+		public CloudStream.Writer Writer {
+			get { return writer; }
+		}
 		
 		public BoxHelper (Transform box, Transform cloud, string path)
 		{
 			writer = new CloudStream.Writer (new FileStream (path, FileMode.Create));
 			this.path = path;
+			setup(box, cloud);
+		}
+
+		public BoxHelper (Transform box, Transform cloud)
+		{
+			setup(box, cloud);
+		}
+
+		void setup(Transform box, Transform cloud)
+		{
 			// find a matrix to convert cloud vertex coordinate into box coordinate...
 			cloud2box = box.worldToLocalMatrix * cloud.localToWorldMatrix;
 			count = 0;
 			transform = box;
+			this.cloud = cloud;
 		}
 		
 		public void Finish()
@@ -94,16 +109,27 @@ public class ImportedCloud : MonoBehaviour
 		// return true if point belongs in this box
 		public bool saveIfBelongs (Vector3 cloudPoint, Color color)
 		{
+			return saveIfBelongs(cloudPoint, color, writer);
+		}
+
+		public bool saveIfBelongs (Vector3 cloudPoint, Color color, CloudStream.Writer writer)
+		{
 			Vector3 point = cloud2box.MultiplyPoint3x4 (cloudPoint);
 			if (Mathf.Abs (point.x) < 0.5f && Mathf.Abs (point.y) < 0.5f && Mathf.Abs (point.z) < 0.5f) {
-				save (cloudPoint, color);
+				save (cloudPoint, color, writer);
 				return true;
 			}
 			return false;
 		}
 		
-		void save(Vector3 point, Color color)
+		void save(Vector3 point, Color color, CloudStream.Writer writer)
 		{
+			if (this.writer == null) {
+				// this is a shadow box - drop the point...
+				point = cloud.TransformPoint(point);
+				point.y = 0;
+				point = cloud.InverseTransformPoint(point);
+			}
 			writer.WritePoint(point, color);
 			count++;
 		}
@@ -587,23 +613,35 @@ public class ImportedCloud : MonoBehaviour
 		UpdateSelectionSize();
 		
 		Transform boxes = transform.FindChild ("CutBoxes");
-		if (boxes && boxes.childCount > 0) {
+
+		List<Transform> cutBoxes = new List<Transform>();
+		List<Transform> shadowBoxes = new List<Transform>();
+
+		if (boxes) {
+			foreach(Transform box in boxes) {
+				// anything without a "shadow" in its name is a cut box!
+				if (box.name.ToLower().Contains("shadow"))
+					shadowBoxes.Add(box);
+				else
+					cutBoxes.Add(box);
+			}
+		}
+
+		if (cutBoxes.Count > 0) {
 			// where to add cut clouds?
 			Transform container = transform.parent;
-			if (boxes.childCount > 1) {
+			if (cutBoxes.Count > 1) {
 				GameObject location = new GameObject (name + "--loc");
 				ProceduralUtils.InsertHere (location.transform, container);
 				container = location.transform;
 			}
 			
 			// using linked list so we can change order on the fly
-			LinkedList<BoxHelper> box_helpers = new LinkedList<BoxHelper> ();
-			// create box helpers
-			foreach (Transform box_tr in boxes)
-			{
-				box_helpers.AddLast (new BoxHelper (box_tr, transform, BoxBinPath (box_tr.name)));
-			}
-			
+			LinkedList<BoxHelper>
+				cutBoxHelpers = new LinkedList<BoxHelper>( cutBoxes.Select( box => new BoxHelper(box, transform, BoxBinPath(box.name)) ) ),
+				// shadow boxes have no own writer
+				shadowBoxHelpers = new LinkedList<BoxHelper>( shadowBoxes.Select( box => new BoxHelper(box, transform)));
+
 			// sort the points in selection
 			int done = 0;
 			Vector3 v = new Vector3 (0, 0, 0);
@@ -617,13 +655,26 @@ public class ImportedCloud : MonoBehaviour
 					while (binReader.BaseStream.Position < slice_end)
 					{
 						binReader.ReadPointRef (ref v, ref c);
-						LinkedListNode<BoxHelper> iter = box_helpers.First;
+						LinkedListNode<BoxHelper> iter = cutBoxHelpers.First;
 						do {
 							if (iter.Value.saveIfBelongs (v, c)) {
-								if (iter != box_helpers.First) {
-									box_helpers.Remove (iter);
-									box_helpers.AddFirst (iter);
+								if (iter != cutBoxHelpers.First) {
+									cutBoxHelpers.Remove (iter);
+									cutBoxHelpers.AddFirst (iter);
 								}
+
+								// check if the point is in a shadow box as well
+								LinkedListNode<BoxHelper> shIter = shadowBoxHelpers.First;
+								do {
+									if (shIter.Value.saveIfBelongs( v, c, iter.Value.Writer )) {
+										if (shIter != shadowBoxHelpers.First) {
+											shadowBoxHelpers.Remove(shIter);
+											shadowBoxHelpers.AddFirst(shIter);
+										}
+										break;
+									}
+								} while((shIter = shIter.Next) != null);
+
 								break;
 							}
 						} while ((iter = iter.Next) != null);
@@ -636,14 +687,14 @@ public class ImportedCloud : MonoBehaviour
 			} finally {
 				prog.Done ();
 				// close all writers
-				foreach (BoxHelper box in box_helpers) 
+				foreach (BoxHelper box in cutBoxHelpers) 
 				{
 					box.Finish ();
 				}
 			}
 
 			// continue only if wasn't cancelled
-			foreach (BoxHelper box in box_helpers) 
+			foreach (BoxHelper box in cutBoxHelpers) 
 			{
 				BinMesh bm = WrapBinMesh (box.Path, container, box.Transform);
 				if (box.Count < CloudMeshPool.pointsPerMesh) {
@@ -651,7 +702,7 @@ public class ImportedCloud : MonoBehaviour
 					bm.RefreshMinMesh();
 				}
 
-				if (boxes.childCount == 1) {
+				if (cutBoxes.Count == 1) {
 					GenerateCamTriggers( bm.transform );
 				}
 				
@@ -661,7 +712,7 @@ public class ImportedCloud : MonoBehaviour
 						Path.GetFileNameWithoutExtension (box.Path)));
 			}
 
-			if (boxes.childCount > 1)
+			if (cutBoxes.Count > 1)
 				GenerateCamTriggers(  container );
 
 		} else {
