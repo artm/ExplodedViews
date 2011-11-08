@@ -491,6 +491,11 @@ public class ImportedCloud : MonoBehaviour
 		bm.Shuffle();
 		bm.RefreshMinMesh();
 		bm.GenerateMaterial();
+		bm.transform.parent = parent;
+		bm.transform.position = transform.position;
+		bm.transform.rotation = transform.rotation;
+		bm.transform.localScale = transform.localScale;
+		
 		if (box == null) {
 			bm.GenerateColliderBox();
 		}
@@ -502,11 +507,6 @@ public class ImportedCloud : MonoBehaviour
 			box_tr.GetComponent<BoxCollider>().center = box.GetComponent<BoxCollider>().center;
 			box_tr.GetComponent<BoxCollider>().size = box.GetComponent<BoxCollider>().size;
 		}
-		
-		bm.transform.parent = parent;
-		bm.transform.position = transform.position;
-		bm.transform.rotation = transform.rotation;
-		bm.transform.localScale = transform.localScale;
 		
 		// disable itself
 		gameObject.SetActiveRecursively(false);
