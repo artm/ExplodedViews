@@ -491,7 +491,6 @@ public class ImportedCloud : MonoBehaviour
 		bm.Shuffle();
 		bm.RefreshMinMesh();
 		bm.GenerateMaterial();
-		bm.GenerateCamTriggers();
 		if (box == null) {
 			bm.GenerateColliderBox();
 		}
@@ -522,14 +521,70 @@ public class ImportedCloud : MonoBehaviour
 		
 		return bm;
 	}
-	
+
+	public void GenerateCamTriggers(Transform location)
+	{
+		// find cams.txt
+		string cams_fname = string.Format ("cams/{0}/cams.txt", Path.GetFileNameWithoutExtension (binPath));
+		Debug.Log (string.Format ("Will look for cams in {0}", cams_fname));
+		TextReader tr;
+		try {
+			tr = new StreamReader (cams_fname);
+		} catch (DirectoryNotFoundException) {
+			Debug.LogWarning ("cam.txt not found :(");
+			return;
+		}
+
+		try {
+			Transform cameraStandIn = AssetDatabase.LoadAssetAtPath ("Assets/Prefabs/CamTriggerTemplate.prefab",
+				typeof(Transform)) as Transform;
+
+			string line;
+			while ((line = tr.ReadLine ()) != null) {
+				string[] words = line.Split (' ');
+				// find corresponding slice
+				Slice foundSlice = null;
+				foreach (Slice slice in slices) {
+					if (slice.name.Contains (words[0])) {
+						if (foundSlice == null)
+							foundSlice = slice;
+						else
+							throw new Pretty.Exception ("Ambiguous cam name: {0}, matches slices {1} and {2}", 
+								words[0], foundSlice.name, slice.name);
+					}
+				}
+				if (foundSlice != null) {
+					// do the do
+					if (foundSlice.selectedForCamview) {
+						// only add a CamTriggers node if have something to add to it
+
+						Transform trigger = Object.Instantiate (cameraStandIn) as Transform;
+						trigger.name = words[0];
+						ProceduralUtils.InsertHere (trigger, location);
+						trigger.localPosition = new Vector3 (float.Parse (words[1]), -float.Parse (words[2]), float.Parse (words[3]));
+						
+						Transform ps = trigger.Find ("Particle System");
+						// force is in world coordinates
+						ps.GetComponent<ParticleAnimator> ().force = ps.TransformDirection (
+							new Vector3 (float.Parse (words[4]), -float.Parse (words[5]), float.Parse (words[6])));
+					}
+				} else {
+					Debug.LogWarning (string.Format ("Can't find a slice for camera {0} in ImportedCloud {1}", 
+							words[0], name));
+				}
+			}
+		} finally {
+			tr.Close();
+		}
+	}
+
 	// Export selected slices to a compact bin (or several if there are CutBoxes).
 	// Shuffle the compact bin(s).
 	// Create a location prefab that references compact bin(s) via StreamingClouds.
 	[ContextMenu("Export")]
 	public void Export ()
 	{
-		UpdateSelectionSize ();
+		UpdateSelectionSize();
 		
 		Transform boxes = transform.FindChild ("CutBoxes");
 		if (boxes && boxes.childCount > 0) {
@@ -595,12 +650,19 @@ public class ImportedCloud : MonoBehaviour
 					bm.minMeshSize = box.Count;
 					bm.RefreshMinMesh();
 				}
+
+				if (boxes.childCount == 1) {
+					GenerateCamTriggers( bm.transform );
+				}
 				
 				Debug.Log (string.Format (
 						"Saved {0} points to {1}", 
 						box.Count, 
 						Path.GetFileNameWithoutExtension (box.Path)));
 			}
+
+			if (boxes.childCount > 1)
+				GenerateCamTriggers(  container );
 
 		} else {
 			string compactPath = BoxBinPath ("compact");
@@ -618,7 +680,9 @@ public class ImportedCloud : MonoBehaviour
 				prog.Done ();
 			}
 			
-			WrapBinMesh( compactPath, transform.parent );
+			BinMesh bm = WrapBinMesh( compactPath, transform.parent );
+
+			GenerateCamTriggers( bm.transform );
 		}
 	}
 	
