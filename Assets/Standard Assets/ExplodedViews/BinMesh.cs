@@ -16,6 +16,8 @@ public class BinMesh : MonoBehaviour
 	
 	public Material material = null;
 	public ImportedCloud importedCloud = null;
+
+	public int exporterVersion = 0;
 	
 	CloudStream.Reader binReader;
 	

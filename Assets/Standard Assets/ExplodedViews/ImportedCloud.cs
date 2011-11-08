@@ -11,6 +11,11 @@ using System.IO;
 [AddComponentMenu("Exploded Views/Autoadded/Imported cloud")]
 public class ImportedCloud : MonoBehaviour
 {
+	static int exporterVersion = 1;
+	public static int ExporterVersion {
+		get { return exporterVersion; }
+	}
+
 	[System.Serializable]
 	public class Slice
 	{
@@ -514,6 +519,7 @@ public class ImportedCloud : MonoBehaviour
 		go.transform.localScale = transform.localScale;
 		BinMesh bm = go.GetComponent<BinMesh>();
 		bm.importedCloud = this;
+		bm.exporterVersion = exporterVersion;
 		bm.Shuffle();
 		bm.RefreshMinMesh();
 		bm.GenerateMaterial();
