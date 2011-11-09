@@ -11,11 +11,6 @@ using System.IO;
 [AddComponentMenu("Exploded Views/Autoadded/Imported cloud")]
 public class ImportedCloud : MonoBehaviour
 {
-	static int exporterVersion = 1;
-	public static int ExporterVersion {
-		get { return exporterVersion; }
-	}
-
 	[System.Serializable]
 	public class Slice
 	{
@@ -143,6 +138,11 @@ public class ImportedCloud : MonoBehaviour
 	}
 
 	#region Data fields
+	static int exporterVersion = 2;
+	public static int ExporterVersion {
+		get { return exporterVersion; }
+	}
+	
 	public int previewSliceSize = 500;
 	public Material previewMaterial;
 
@@ -593,7 +593,9 @@ public class ImportedCloud : MonoBehaviour
 						Transform trigger = Object.Instantiate (cameraStandIn) as Transform;
 						trigger.name = words[0];
 						ProceduralUtils.InsertHere (trigger, location);
-						trigger.localPosition = new Vector3 (float.Parse (words[1]), -float.Parse (words[2]), float.Parse (words[3]));
+						trigger.localPosition = new Vector3(float.Parse (words[1]), 
+							-float.Parse (words[2]), 
+							float.Parse (words[3]));
 						
 						Transform ps = trigger.Find ("Particle System");
 						// force is in world coordinates
@@ -618,6 +620,18 @@ public class ImportedCloud : MonoBehaviour
 	{
 		UpdateSelectionSize();
 		
+		// where to add cut clouds?
+		string loc_name = name + "--loc";
+		// find location node ...
+		GameObject location_go = GameObject.Find(loc_name);
+		if (!location_go) {
+			// ... or create if none found
+			location_go = new GameObject(loc_name);
+			ProceduralUtils.InsertHere (location_go.transform, transform.parent);
+		}
+		Transform location = location_go.transform;
+
+		#region setup cut/shadow boxes
 		Transform boxes = transform.FindChild ("CutBoxes");
 
 		List<Transform> cutBoxes = new List<Transform>();
@@ -633,29 +647,34 @@ public class ImportedCloud : MonoBehaviour
 			}
 		}
 
-		if (cutBoxes.Count > 0) {
-			// where to add cut clouds?
-			Transform container = transform.parent;
-			if (cutBoxes.Count > 1) {
-				GameObject location = new GameObject (name + "--loc");
-				ProceduralUtils.InsertHere (location.transform, container);
-				container = location.transform;
-			}
-			
-			// using linked list so we can change order on the fly
-			LinkedList<BoxHelper>
-				cutBoxHelpers = new LinkedList<BoxHelper>( cutBoxes.Select( box => new BoxHelper(box, transform, BoxBinPath(box.name)) ) ),
-				// shadow boxes have no own writer
-				shadowBoxHelpers = new LinkedList<BoxHelper>( shadowBoxes.Select( box => new BoxHelper(box, transform)));
+		// using linked list so we can change order on the fly
+		LinkedList<BoxHelper>
+			cutBoxHelpers = new LinkedList<BoxHelper>( 
+				cutBoxes.Select( box => new BoxHelper(box, transform, BoxBinPath(box.name)) ) ),
+			// shadow boxes have no own writer
+			shadowBoxHelpers = new LinkedList<BoxHelper>( 
+				shadowBoxes.Select( box => new BoxHelper(box, transform)));
+		
+		// sort the points in selection
+		Vector3 v = new Vector3 (0, 0, 0);
+		Color c = new Color (0, 0, 0);
+		#endregion
+		
+		#region setup no-cutboxes version
+		string compactPath = null;
+		CloudStream.Writer writer = null;
+		if (cutBoxes.Count == 0) {
+			compactPath = BoxBinPath("compact");
+			writer = new CloudStream.Writer (new FileStream (compactPath, FileMode.Create));
+		}
+		#endregion
 
-			// sort the points in selection
-			int done = 0;
-			Vector3 v = new Vector3 (0, 0, 0);
-			Color c = new Color (0, 0, 0);
-			Progressor prog = new Progressor ("Exporting cloud selection");
-			try {
-				foreach (Slice slice in Selection ()) {
-					
+		int done = 0;
+		Progressor prog = new Progressor ("Exporting cloud selection");
+		try {
+			foreach (Slice slice in Selection ()) {
+				if (cutBoxes.Count > 0) {
+					#region sort points of this slice
 					binReader.SeekPoint (slice.offset);
 					int slice_end = (slice.offset + slice.size) * CloudStream.pointRecSize;
 					while (binReader.BaseStream.Position < slice_end)
@@ -687,61 +706,46 @@ public class ImportedCloud : MonoBehaviour
 						done++;
 						prog.Progress ((float)done / selectionSize, "Sorting {0}, ETA: {eta}", slice.name);
 					}
-				}
-			} catch (Progressor.Cancel) {
-				return;
-			} finally {
-				prog.Done ();
-				// close all writers
-				foreach (BoxHelper box in cutBoxHelpers) 
-				{
-					box.Finish ();
+					#endregion
+				} else {
+					#region dump the whole slice
+					prog.Progress ((float)done / selectionSize, "Saved {0}, ETA: {eta}", slice.name);
+					binReader.CopySlice (slice.offset, slice.size, writer);
+					done += slice.size;
+					#endregion
 				}
 			}
-
-			// continue only if wasn't cancelled
+		} catch (Progressor.Cancel) {
+			return;
+		} finally {
+			prog.Done ();
+			// close all writers
 			foreach (BoxHelper box in cutBoxHelpers) 
-			{
-				BinMesh bm = WrapBinMesh (box.Path, container, box.Transform);
+				box.Finish ();
+			if (writer != null)
+				writer.Close();
+		}
+		
+		if (cutBoxes.Count > 0) {
+			// continue only if wasn't cancelled
+			foreach (BoxHelper box in cutBoxHelpers) {
+				BinMesh bm = WrapBinMesh (box.Path, location, box.Transform);
 				if (box.Count < CloudMeshPool.pointsPerMesh) {
 					bm.minMeshSize = box.Count;
 					bm.RefreshMinMesh();
 				}
-
-				if (cutBoxes.Count == 1) {
-					GenerateCamTriggers( bm.transform );
-				}
 				
 				Debug.Log (string.Format (
-						"Saved {0} points to {1}", 
-						box.Count, 
-						Path.GetFileNameWithoutExtension (box.Path)));
+					"Saved {0} points to {1}", 
+					box.Count, 
+					Path.GetFileNameWithoutExtension (box.Path)));
 			}
-
-			if (cutBoxes.Count > 1)
-				GenerateCamTriggers(  container );
-
-		} else {
-			string compactPath = BoxBinPath ("compact");
-			Progressor prog = new Progressor ("Exporting cloud selection");
-			int done = 0;
-			CloudStream.Writer writer = new CloudStream.Writer (new FileStream (compactPath, FileMode.Create));
-			try {
-				foreach (Slice slice in Selection ()) {
-					prog.Progress ((float)done / selectionSize, "Saved {0}, ETA: {eta}", slice.name);
-					binReader.CopySlice (slice.offset, slice.size, writer);
-					done += slice.size;
-				}
-			} finally {
-				writer.Close ();
-				prog.Done ();
-			}
-			
-			BinMesh bm = WrapBinMesh( compactPath, transform.parent );
-
-			GenerateCamTriggers( bm.transform );
-		}
+		} else
+			WrapBinMesh( compactPath, location );
+		
+		GenerateCamTriggers(  location );
 	}
+	
 	
 	#endregion
 	
