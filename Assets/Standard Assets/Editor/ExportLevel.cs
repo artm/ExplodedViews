@@ -14,7 +14,7 @@ public class ExportLevel : EditorWindow {
 	void OnGUI () {
 		GUILayout.Label("Exploded View", EditorStyles.boldLabel);
 		GUILayout.Label(string.Format("Exporter version: {0}", ImportedCloud.ExporterVersion));
-		onlyActive = GUILayout.Toggle(onlyActive,"Only export active origs?");
+		onlyActive = GUILayout.Toggle(onlyActive,"Only export active origs");
 		if (GUILayout.Button("Export Level")) {
 			// take current scene's Clouds
 			Transform root = GameObject.Find("Clouds").transform;
