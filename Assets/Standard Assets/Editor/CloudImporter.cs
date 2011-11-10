@@ -2,17 +2,15 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.IO;
 
-/// <summary>
-/// Creates a preview cloud mesh for each original .ply cloud.
-/// 
-/// Actually it imports .cloud files which in turn refer to .bin files with actual data and contain references to the 
-/// original .ply files. Imported clouds become prefabs in CloudImporter.prefabsDir ("Assets/CloudPrefabs").
-/// </summary>
 public class CloudImporter : AssetPostprocessor
 {
     static string prefabsDir = "Assets/CloudPrefabs";
+	static string compactPrefabsDir = "Assets/CompactPrefabs";
+	static string soundsDir = "Assets/sounds";
 
     static void OnPostprocessAllAssets (
         string[] importedAssets,
@@ -23,6 +21,11 @@ public class CloudImporter : AssetPostprocessor
         foreach (string path in importedAssets) {
 			string baseName = Path.GetFileNameWithoutExtension(path);
             if (Path.GetExtension (path) == ".cloud") {
+				#region ... import cloud ...
+				// Creates a preview cloud mesh for each original .ply cloud.
+				//
+				// Actually it imports .cloud files which in turn refer to .bin files with actual data and contain references to the
+				// original .ply files. Imported clouds become prefabs in CloudImporter.prefabsDir ("Assets/CloudPrefabs").
 				GameObject root;
 				// make sure links persist when reimporting...
 				string prefabPath = Path.Combine(prefabsDir, baseName + ".prefab");
@@ -30,14 +33,14 @@ public class CloudImporter : AssetPostprocessor
 				if (!prefab) {
 					prefab = EditorUtility.CreateEmptyPrefab (prefabPath);
 					
-					/* create the hierarchy */
+					// create the hierarchy
 					root = new GameObject(baseName, typeof(ImportedCloud));
 					GameObject preview = new GameObject("Preview");
 					preview.transform.parent = root.transform;
 					GameObject boxes = new GameObject("CutBoxes");
 					boxes.transform.parent = root.transform;
 				} else {
-					/* load the hierarchy form prefab (to keep settings) */
+					// load the hierarchy form prefab (to keep settings)
 					root = EditorUtility.InstantiatePrefab(prefab) as GameObject;
 				}
 				
@@ -45,14 +48,122 @@ public class CloudImporter : AssetPostprocessor
 				iCloud.prefabPath = prefabPath;
 				iCloud.cloudPath = path;
 				iCloud.Sample();
-				
-				// save the branch into the prefab
-				EditorUtility.ReplacePrefab (root, prefab);
-				// get rid of the temporary object (otherwise it stays over in scene)
-				Object.DestroyImmediate (root);
-				// if root was loaded from existing prefab it remains in scene. the following makes it disappear.
-				EditorUtility.UnloadUnusedAssets();
-            }
+
+				StoreAndDestroy(root, prefab);
+				#endregion
+            } else if (Regex.IsMatch(path,prefabsDir+".*\\.prefab")) {
+				#region ... refresh play-time cloud ...
+				// Load the original
+				ImportedCloud orig = null;
+				Object prefab = null;
+				#region ... init orig ...
+				{
+					prefab = AssetDatabase.LoadAssetAtPath(path, typeof(GameObject));
+					if (!prefab)
+						continue;
+					GameObject orig_go = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+					orig = orig_go.GetComponent<ImportedCloud>();
+					if (!orig)
+						continue;
+				}
+				#endregion
+
+				#region ... load or create output prefab ...
+				string locationPath =
+					Path.Combine(compactPrefabsDir,
+					             Path.GetFileNameWithoutExtension( path ) + "--loc.prefab");
+				GameObject location;
+				prefab = AssetDatabase.LoadAssetAtPath(locationPath, typeof(GameObject));
+				if (!prefab) {
+					prefab = EditorUtility.CreateEmptyPrefab(locationPath);
+					location = new GameObject( Path.GetFileNameWithoutExtension(locationPath), typeof(ExplodedLocation) );
+				} else {
+					location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+				}
+				#endregion
+
+				#region ... export ...
+				ExplodedLocation exlo = location.GetComponent<ExplodedLocation>();
+
+				#region ... place location at the same position as orig ...
+				location.transform.localPosition = orig.transform.localPosition;
+				location.transform.localRotation = orig.transform.localRotation;
+				location.transform.localScale = orig.transform.localScale;
+				#endregion
+
+				// decide if cutting is necessary
+				#region ... cut to boxes ...
+				if ( exlo.SelectionChanged(orig) || exlo.BoxesChanged(orig) || !exlo.HasBoxChildren() ) {
+					try {
+						orig.CutToBoxes( exlo.transform );
+					} catch (ImportedCloud.CutError ex) {
+						// FIXME duplication of cleanup
+						Debug.LogWarning( ex.Message );
+						Object.DestroyImmediate(orig.gameObject);
+						Object.DestroyImmediate(location);
+						FileUtil.DeleteFileOrDirectory(locationPath);
+						EditorUtility.UnloadUnusedAssets();
+						continue;
+					}
+
+					// update saved selection / boxes
+					exlo.SaveSelectionAndBoxes(orig);
+				} else
+					Debug.Log("Neither selection nor boxes changed - don't have to recut");
+				#endregion
+
+				#region ... fix subclouds ...
+				Dictionary<string,Material> materials = new Dictionary<string,Material>();
+				foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(locationPath)) {
+					Material m = obj as Material;
+					if (m) {
+						materials[m.name] = m;
+					}
+				}
+
+				foreach(BinMesh bm in location.GetComponentsInChildren<BinMesh>()) {
+					if (materials.ContainsKey(bm.name)) {
+						bm.material = materials[bm.name];
+					} else {
+						bm.GenerateMaterial();
+						AssetDatabase.AddObjectToAsset(bm.material, prefab);
+					}
+				}
+				#endregion
+
+				#region ... attach sound ...
+				/*
+				string sndPath = Path.Combine(soundsDir,baseName+".aiff");
+				AudioImporter ai = AudioImporter.GetAtPath(sndPath) as AudioImporter;
+				if (ai != null) {
+					Debug.Log("Found audio importer at " + sndPath,ai);
+					ai.threeD = true;
+					ai.loadType = AudioImporterLoadType.StreamFromDisc;
+
+					if (location.audio == null)
+						location.AddComponent<AudioSource>();
+					location.audio.clip =
+				}
+				*/
+				#endregion
+
+				#endregion
+
+				// save and clean up
+				Object.DestroyImmediate(orig.gameObject);
+				StoreAndDestroy(location, prefab);
+				Debug.Log("Saved exported cloud to "+ locationPath +" (click to see)", prefab);
+				#endregion
+			}
         }
     }
+
+	static void StoreAndDestroy(GameObject obj, Object prefab) {
+		// save the branch into the prefab
+		EditorUtility.ReplacePrefab(obj, prefab);
+		// get rid of the temporary object (otherwise it stays over in scene)
+		Object.DestroyImmediate(obj);
+		// if root was loaded from existing prefab it remains in scene. the following makes it disappear.
+		EditorUtility.UnloadUnusedAssets();
+	}
 }

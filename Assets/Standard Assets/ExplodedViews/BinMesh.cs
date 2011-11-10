@@ -1,8 +1,7 @@
 using UnityEngine;
-using UnityEditor;
 using System.Collections;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 
 // Utilities for dealing with bin clouds (authoring tool)
 // - shuffle bin
@@ -13,26 +12,15 @@ public class BinMesh : MonoBehaviour
 	public string bin;
 	// How many points in the minimal mesh.
 	public int minMeshSize = 1000;
-	
 	public Material material = null;
-	public ImportedCloud importedCloud = null;
-
-	public int exporterVersion = 0;
-	
 	CloudStream.Reader binReader;
-	
 	int pointCount = 0;
+
 	public long PointsLeft {
 		get {
 			return (binReader.BaseStream.Length - binReader.BaseStream.Position) / CloudStream.pointRecSize;
 		}
 	}
-	
-	// distance -> LOD
-	public float[] lodBreakDistances = new float[] { 100, 15, 7};
-	
-	public float distanceFromCamera = 0;
-	public int lod = 0;
 	
 	public int DetailMeshCount {
 		get {
@@ -107,12 +95,72 @@ public class BinMesh : MonoBehaviour
 		material.SetFloat("_SubLod", distanceFromCamera > 0 ? lod_t - Mathf.Floor(lod_t) : 1);
 		UpdateMaterial();
 	}
+
+	#region LOD management hooks
+	// distance -> LOD
+	public float[] lodBreakDistances = new float[] { 100, 15, 7};
+	public float distanceFromCamera = 0;
+	public int lod = 0;
 	
+	public IEnumerator LoadOne(GameObject go)
+	{
+		Transform detailBranch = transform.FindChild("Detail");
+		yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, go));
+		ProceduralUtils.InsertHere(go.transform, detailBranch);
+		go.active = true;
+		if (material)
+			go.renderer.sharedMaterial = material;
+		
+	}
+	
+	public void ReturnDetails(int count)
+	{
+		Transform detail = transform.FindChild("Detail");
+		for(int i = 0; i < count && detail.childCount > 0; i++) {
+			// remove the last child
+			CloudMeshPool.Return(detail.GetChild(detail.childCount - 1).gameObject);
+			// rewind the reader
+			binReader.SeekPoint(-16128, SeekOrigin.Current);
+		}
+	}
+	#endregion
+
+	#region Material Animation
+	public float turbulenceAmplitude = 0;
+	float _lastTurbulenceAmplitude = -1;
+	
+	public float turbulenceFrequency = 5;
+	float _lastTurbulenceFrequency = -1;
+	
+	public float turbulenceCurliness = 0;
+	float _lastTurbulenceCurliness = -1;
+	
+	void UpdateMaterialProperty(float value, ref float oldValue, string property)
+	{
+		if (value != oldValue) {
+			material.SetFloat(property, value);
+			oldValue = value;
+		}
+	}
+	
+	void UpdateMaterial()
+	{
+		if (!material)
+			return;
+		
+		UpdateMaterialProperty(turbulenceAmplitude, ref _lastTurbulenceAmplitude, "_TurbulenceAmplitude");
+		UpdateMaterialProperty(turbulenceFrequency, ref _lastTurbulenceFrequency, "_TurbulenceFrequency");
+		UpdateMaterialProperty(turbulenceCurliness, ref _lastTurbulenceCurliness, "_TurbulenceCurliness");
+	}
+	#endregion
+
+#if UNITY_EDITOR
 	[ContextMenu("Generate material")]
 	public void GenerateMaterial()
 	{
 		Shader shader = Shader.Find("Exploded Views/Trilling Opaque Point");
 		if (shader) {
+			Debug.Log("Updating the material for " + name);
 			material = new Material(shader);
 			material.name = name;
 		} else {
@@ -138,16 +186,6 @@ public class BinMesh : MonoBehaviour
 		}
 	}
 	
-	/// <summary>
-	/// Actual shuffle implementation
-	/// </summary>
-	/// <param name="stream">
-	/// A <see cref="FileStream"/> of the cloud bin.
-	/// </param>
-	/// <param name="prog">
-	/// A <see cref="Progressor"/> for progress indication. Supplied by the caller to 
-	/// accomodate integration into longer processes.
-	/// </param>
 	public void Shuffle(FileStream stream, Progressor prog)
 	{
 		int byteCount = pointCount * CloudStream.pointRecSize;
@@ -221,60 +259,6 @@ public class BinMesh : MonoBehaviour
 		node.localScale = bounds.size;
 		node.parent = transform;
 	}
-
-	public IEnumerator LoadOne(GameObject go)
-	{
-		Transform detailBranch = transform.FindChild("Detail");
-		yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, go));
-		ProceduralUtils.InsertHere(go.transform, detailBranch);
-		go.active = true;
-		if (material)
-			go.renderer.sharedMaterial = material;
-		
-	}
-	
-	public void ReturnDetails(int count)
-	{
-		Transform detail = transform.FindChild("Detail");
-		for(int i = 0; i < count && detail.childCount > 0; i++) {
-			// remove the last child
-			CloudMeshPool.Return(detail.GetChild(detail.childCount - 1).gameObject);
-			// rewind the reader
-			binReader.SeekPoint(-16128, SeekOrigin.Current);
-		}
-	}
-	
-	#region Photocams
-	
-	#endregion
-	
-	#region Material Animation
-	public float turbulenceAmplitude = 0;
-	float _lastTurbulenceAmplitude = -1;
-	
-	public float turbulenceFrequency = 5;
-	float _lastTurbulenceFrequency = -1;
-	
-	public float turbulenceCurliness = 0;
-	float _lastTurbulenceCurliness = -1;
-	
-	void UpdateMaterialProperty(float value, ref float oldValue, string property)
-	{
-		if (value != oldValue) {
-			material.SetFloat(property, value);
-			oldValue = value;
-		}
-	}
-	
-	void UpdateMaterial()
-	{
-		if (!material)
-			return;
-		
-		UpdateMaterialProperty(turbulenceAmplitude, ref _lastTurbulenceAmplitude, "_TurbulenceAmplitude");
-		UpdateMaterialProperty(turbulenceFrequency, ref _lastTurbulenceFrequency, "_TurbulenceFrequency");
-		UpdateMaterialProperty(turbulenceCurliness, ref _lastTurbulenceCurliness, "_TurbulenceCurliness");
-	}
-	#endregion
+#endif
 }
 

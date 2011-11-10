@@ -1,9 +1,12 @@
-using UnityEditor;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 // Maintains metadata of the original cloud and implements cloud finetuning GUI.
 // 
@@ -138,11 +141,6 @@ public class ImportedCloud : MonoBehaviour
 	}
 
 	#region Data fields
-	static int exporterVersion = 2;
-	public static int ExporterVersion {
-		get { return exporterVersion; }
-	}
-	
 	public int previewSliceSize = 500;
 	public Material previewMaterial;
 
@@ -176,17 +174,7 @@ public class ImportedCloud : MonoBehaviour
 	GameObject detailBranch = null;
 	CloudStream.Reader _binReader = null;
 	
-	public string BoxBinPath(string boxName)
-	{
-		return "Bin/" + name + "--" + boxName + ".bin";
-	}
-	
-	public string BoxBinPath (Transform box)
-	{
-		return BoxBinPath(box.name);
-	}
-	
-	CloudStream.Reader binReader 
+	CloudStream.Reader binReader
 	{
 		get {
 			if (_binReader == null) {
@@ -198,7 +186,43 @@ public class ImportedCloud : MonoBehaviour
 	}
 	
 	const string defaultMaterialPath = "Assets/Materials/FastPoint.mat";
+
+		void UpdateSelectionSize()
+	{
+		selectionSize = 0;
+		foreach(Slice slice in Selection)
+			selectionSize += slice.size;		
+	}
+	
+	public IEnumerable<Slice> Selection
+	{
+		get {
+			foreach(Slice slice in slices)
+				if (slice.selected)
+					yield return slice;
+		}
+	}
+	
+	public IEnumerable<Slice> SelectionForCamview
+	{
+		get {
+			foreach(Slice slice in slices)
+				if (slice.selectedForCamview)
+					yield return slice;
+		}
+	}
+
 	#endregion
+	
+	public string BoxBinPath(string boxName)
+	{
+		return "Bin/" + name + "--" + boxName + ".bin";
+	}
+	
+	public string BoxBinPath (Transform box)
+	{
+		return BoxBinPath(box.name);
+	}
 	
 	#region Start/Stop
 	void Start() {
@@ -216,10 +240,6 @@ public class ImportedCloud : MonoBehaviour
 
 		guiMessage = "";
 		orbit = Object.FindObjectOfType(typeof(MouseOrbit)) as MouseOrbit;
-		if (!skin) {
-			skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",
-				typeof(GUISkin)) as GUISkin;
-		}
 
 		Bounds b = new Bounds(Vector3.zero, Vector3.zero);
 		foreach(Transform child in transform.Find("Preview")) {
@@ -248,6 +268,7 @@ public class ImportedCloud : MonoBehaviour
 	 */
 	void OnApplicationQuit ()
 	{
+#if UNITY_EDITOR
 		if (!enabled)
 			return;
 		
@@ -261,6 +282,7 @@ public class ImportedCloud : MonoBehaviour
 		Debug.Log("Selection or transform changed, saving");
 		StopAllCoroutines();
 		UpdatePrefab();
+#endif
 	}
 	#endregion
 
@@ -502,36 +524,137 @@ public class ImportedCloud : MonoBehaviour
 	}
 	#endregion
 	
+//#if UNITY_EDITOR
 	#region Export
-	BinMesh WrapBinMesh (string compactPath, Transform parent)
+    public class CutError : Pretty.Exception
+    {
+        public CutError(string format, params object[] args) : base(format,args) { }
+    }
+
+	public void CutToBoxes( Transform location )
 	{
-		return WrapBinMesh (compactPath, parent, null);
+		UpdateSelectionSize();
+		
+		/*
+		 * TODO
+		 * before starting to sort the points check if the export is really due 
+		 * and may be which portions must be exported this time around
+		 */
+		
+		#region setup cut/shadow boxes
+		Transform boxes = transform.FindChild ("CutBoxes");
+
+		List<Transform> cutBoxes = new List<Transform>();
+		List<Transform> shadowBoxes = new List<Transform>();
+
+		if (boxes) {
+			foreach(Transform box in boxes) {
+				// anything without a "shadow" in its name is a cut box!
+				if (box.name.ToLower().Contains("shadow"))
+					shadowBoxes.Add(box);
+				else
+					cutBoxes.Add(box);
+			}
+		}
+
+		// using linked list so we can change order on the fly
+		LinkedList<BoxHelper>
+			cutBoxHelpers = new LinkedList<BoxHelper>( 
+				cutBoxes.Select( box => new BoxHelper(box, transform, BoxBinPath(box.name)) ) ),
+			// shadow boxes have no own writer
+			shadowBoxHelpers = new LinkedList<BoxHelper>( 
+				shadowBoxes.Select( box => new BoxHelper(box, transform)));
+		
+		// sort the points in selection
+		Vector3 v = new Vector3 (0, 0, 0);
+		Color c = new Color (0, 0, 0);
+		#endregion
+		
+		if (cutBoxes.Count < 1) {
+			throw new CutError("No cut boxes defined for {0}, skipping", name);
+		}
+
+		int done = 0;
+		Progressor prog = new Progressor ("Cutting " + name + " according to boxes");
+		try {
+			foreach (Slice slice in Selection) {
+				#region sort points of this slice
+				binReader.SeekPoint (slice.offset);
+				int slice_end = (slice.offset + slice.size) * CloudStream.pointRecSize;
+				while (binReader.BaseStream.Position < slice_end)
+				{
+					binReader.ReadPointRef (ref v, ref c);
+					LinkedListNode<BoxHelper> iter = cutBoxHelpers.First;
+					do {
+						if (iter.Value.saveIfBelongs (v, c)) {
+							if (iter != cutBoxHelpers.First) {
+								cutBoxHelpers.Remove (iter);
+								cutBoxHelpers.AddFirst (iter);
+							}
+
+							// check if the point is in a shadow box as well
+							LinkedListNode<BoxHelper> shIter = shadowBoxHelpers.First;
+							do {
+								if (shIter.Value.saveIfBelongs( v, c, iter.Value.Writer )) {
+									if (shIter != shadowBoxHelpers.First) {
+										shadowBoxHelpers.Remove(shIter);
+										shadowBoxHelpers.AddFirst(shIter);
+									}
+									break;
+								}
+							} while((shIter = shIter.Next) != null);
+
+							break;
+						}
+					} while ((iter = iter.Next) != null);
+					done++;
+					prog.Progress ((float)done / selectionSize, "Sorting {0}, ETA: {eta}", slice.name);
+				}
+				#endregion
+			}
+		} catch (Progressor.Cancel) {
+			return;
+		} finally {
+			prog.Done ();
+			// close all writers
+			foreach (BoxHelper box in cutBoxHelpers) 
+				box.Finish ();
 	}
-	
-	BinMesh WrapBinMesh(string compactPath, Transform parent, Transform box) 
+		
+		// continue only if wasn't cancelled
+		foreach (BoxHelper box in cutBoxHelpers)
+			WrapBinMesh (box.Path, location, box.Transform, box.Count);
+	}
+
+	void WrapBinMesh(string compactPath, Transform location, Transform box, int pointCount)
 	{
+		#region ... load and instantiate the template ...
 		Object template = AssetDatabase.LoadAssetAtPath("Assets/Prefabs/BinMesh.prefab", typeof(GameObject));
 		GameObject go = (GameObject)EditorUtility.InstantiatePrefab(template);
 		go.name = Path.GetFileNameWithoutExtension( compactPath );
 		go.GetComponent<BinMesh>().bin = go.name;
-		go.transform.position = transform.position;
-		go.transform.rotation = transform.rotation;
-		go.transform.localScale = transform.localScale;
 		BinMesh bm = go.GetComponent<BinMesh>();
-		bm.importedCloud = this;
-		bm.exporterVersion = exporterVersion;
+		#endregion
+
+		#region ... remove old version / attach new ...
+		Transform old = location.FindChild(go.name);
+		if (old != null)
+			Object.DestroyImmediate(old.gameObject);
+		go.transform.parent = location;
+		#endregion
+
+		#region ... init BinMesh ...
 		bm.Shuffle();
+		if (pointCount < CloudMeshPool.pointsPerMesh)
+			bm.minMeshSize = pointCount;
 		bm.RefreshMinMesh();
-		bm.GenerateMaterial();
-		bm.transform.parent = parent;
-		bm.transform.position = transform.position;
-		bm.transform.rotation = transform.rotation;
-		bm.transform.localScale = transform.localScale;
-		
+		#endregion
+
+		#region ... generate or copy collider box ...
 		if (box == null) {
+			Debug.LogWarning("This is obsolete code, shouldn't have been called");
 			bm.GenerateColliderBox();
-		}
-		else {
+		} else {
 			Transform box_tr = bm.transform.Find("Box");
 			box_tr.position = box.position;
 			box_tr.rotation = box.rotation;
@@ -539,22 +662,10 @@ public class ImportedCloud : MonoBehaviour
 			box_tr.GetComponent<BoxCollider>().center = box.GetComponent<BoxCollider>().center;
 			box_tr.GetComponent<BoxCollider>().size = box.GetComponent<BoxCollider>().size;
 		}
-		
-		// disable itself
-		gameObject.SetActiveRecursively(false);
-		
-		// Save into a prefab
-		string prefabPath = Path.Combine("Assets/CompactPrefabs", go.name + ".prefab");
-		Object prefab = AssetDatabase.LoadAssetAtPath (prefabPath, typeof(GameObject));
-		if (!prefab) prefab = EditorUtility.CreateEmptyPrefab (prefabPath);
-		EditorUtility.ReplacePrefab (go, prefab, ReplacePrefabOptions.ConnectToPrefab);
-		// See CloudImporter.OnPostprocessAllAssets() for details on removing newly created 
-		// hierarchy from the scene.
-		
-		return bm;
+		#endregion
 	}
 
-	public void GenerateCamTriggers(Transform location)
+	void GenerateCamTriggers(Transform location)
 	{
 		// find cams.txt
 		string cams_fname = string.Format ("cams/{0}/cams.txt", Path.GetFileNameWithoutExtension (binPath));
@@ -612,144 +723,12 @@ public class ImportedCloud : MonoBehaviour
 		}
 	}
 
-	// Export selected slices to a compact bin (or several if there are CutBoxes).
-	// Shuffle the compact bin(s).
-	// Create a location prefab that references compact bin(s) via StreamingClouds.
-	[ContextMenu("Export")]
-	public void Export ()
-	{
-		UpdateSelectionSize();
-		
-		// where to add cut clouds?
-		string loc_name = name + "--loc";
-		// find location node ...
-		GameObject location_go = GameObject.Find(loc_name);
-		if (!location_go) {
-			// ... or create if none found
-			location_go = new GameObject(loc_name);
-			ProceduralUtils.InsertHere (location_go.transform, transform.parent);
-		}
-		Transform location = location_go.transform;
 
-		#region setup cut/shadow boxes
-		Transform boxes = transform.FindChild ("CutBoxes");
-
-		List<Transform> cutBoxes = new List<Transform>();
-		List<Transform> shadowBoxes = new List<Transform>();
-
-		if (boxes) {
-			foreach(Transform box in boxes) {
-				// anything without a "shadow" in its name is a cut box!
-				if (box.name.ToLower().Contains("shadow"))
-					shadowBoxes.Add(box);
-				else
-					cutBoxes.Add(box);
-			}
-		}
-
-		// using linked list so we can change order on the fly
-		LinkedList<BoxHelper>
-			cutBoxHelpers = new LinkedList<BoxHelper>( 
-				cutBoxes.Select( box => new BoxHelper(box, transform, BoxBinPath(box.name)) ) ),
-			// shadow boxes have no own writer
-			shadowBoxHelpers = new LinkedList<BoxHelper>( 
-				shadowBoxes.Select( box => new BoxHelper(box, transform)));
-		
-		// sort the points in selection
-		Vector3 v = new Vector3 (0, 0, 0);
-		Color c = new Color (0, 0, 0);
-		#endregion
-		
-		#region setup no-cutboxes version
-		string compactPath = null;
-		CloudStream.Writer writer = null;
-		if (cutBoxes.Count == 0) {
-			compactPath = BoxBinPath("compact");
-			writer = new CloudStream.Writer (new FileStream (compactPath, FileMode.Create));
-		}
-		#endregion
-
-		int done = 0;
-		Progressor prog = new Progressor ("Exporting cloud selection");
-		try {
-			foreach (Slice slice in Selection ()) {
-				if (cutBoxes.Count > 0) {
-					#region sort points of this slice
-					binReader.SeekPoint (slice.offset);
-					int slice_end = (slice.offset + slice.size) * CloudStream.pointRecSize;
-					while (binReader.BaseStream.Position < slice_end)
-					{
-						binReader.ReadPointRef (ref v, ref c);
-						LinkedListNode<BoxHelper> iter = cutBoxHelpers.First;
-						do {
-							if (iter.Value.saveIfBelongs (v, c)) {
-								if (iter != cutBoxHelpers.First) {
-									cutBoxHelpers.Remove (iter);
-									cutBoxHelpers.AddFirst (iter);
-								}
-
-								// check if the point is in a shadow box as well
-								LinkedListNode<BoxHelper> shIter = shadowBoxHelpers.First;
-								do {
-									if (shIter.Value.saveIfBelongs( v, c, iter.Value.Writer )) {
-										if (shIter != shadowBoxHelpers.First) {
-											shadowBoxHelpers.Remove(shIter);
-											shadowBoxHelpers.AddFirst(shIter);
-										}
-										break;
-									}
-								} while((shIter = shIter.Next) != null);
-
-								break;
-							}
-						} while ((iter = iter.Next) != null);
-						done++;
-						prog.Progress ((float)done / selectionSize, "Sorting {0}, ETA: {eta}", slice.name);
-					}
-					#endregion
-				} else {
-					#region dump the whole slice
-					prog.Progress ((float)done / selectionSize, "Saved {0}, ETA: {eta}", slice.name);
-					binReader.CopySlice (slice.offset, slice.size, writer);
-					done += slice.size;
-					#endregion
-				}
-			}
-		} catch (Progressor.Cancel) {
-			return;
-		} finally {
-			prog.Done ();
-			// close all writers
-			foreach (BoxHelper box in cutBoxHelpers) 
-				box.Finish ();
-			if (writer != null)
-				writer.Close();
-		}
-		
-		if (cutBoxes.Count > 0) {
-			// continue only if wasn't cancelled
-			foreach (BoxHelper box in cutBoxHelpers) {
-				BinMesh bm = WrapBinMesh (box.Path, location, box.Transform);
-				if (box.Count < CloudMeshPool.pointsPerMesh) {
-					bm.minMeshSize = box.Count;
-					bm.RefreshMinMesh();
-				}
-				
-				Debug.Log (string.Format (
-					"Saved {0} points to {1}", 
-					box.Count, 
-					Path.GetFileNameWithoutExtension (box.Path)));
-			}
-		} else
-			WrapBinMesh( compactPath, location );
-		
-		GenerateCamTriggers(  location );
-	}
-	
-	
 	#endregion
-	
+//#endif
+
 	#region Utils
+#if UNITY_EDITOR
 	// create preview meshes per original slice
 	[ContextMenu("Re-sample")]
 	public void Sample ()
@@ -832,20 +811,6 @@ public class ImportedCloud : MonoBehaviour
 		}
 	}
 	
-	void UpdateSelectionSize()
-	{
-		selectionSize = 0;
-		foreach(Slice slice in Selection())
-			selectionSize += slice.size;		
-	}
-	
-	IEnumerable<Slice> Selection()
-	{
-		foreach(Slice slice in slices)
-			if (slice.selected)
-				yield return slice;
-	}
-	
 	void ReadCloudMap ()
 	{
 		List<Slice> lst = new List<Slice> ();
@@ -893,5 +858,6 @@ public class ImportedCloud : MonoBehaviour
 		Object prefab = EditorUtility.GetPrefabParent (gameObject);
 		EditorUtility.ReplacePrefab (gameObject, prefab);
 	}
+#endif
 	#endregion
 }
