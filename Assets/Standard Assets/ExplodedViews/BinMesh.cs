@@ -45,11 +45,16 @@ public class BinMesh : MonoBehaviour
 		
 		/*
 		 * Clone the shader object, so that we can change it's maxiumLOD 
-		 * independently of other materials using the same shader
+		 * independently of other materials using the same shader.
+		 *
+		 * Since we started to save material in prefab, we need to clone
+		 * material first, otherwise it loses the shader
 		 */
-		if (material)
+		if (material) {
+			material = Object.Instantiate( material ) as Material;
 			material.shader = Object.Instantiate( material.shader ) as Shader;
-		
+		}
+
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
 	}
 	
