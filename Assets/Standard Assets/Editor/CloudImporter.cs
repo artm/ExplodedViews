@@ -9,8 +9,7 @@ using System.IO;
 public class CloudImporter : AssetPostprocessor
 {
     static string prefabsDir = "Assets/CloudPrefabs";
-	static string compactPrefabsDir = "Assets/CompactPrefabs";
-	static string soundsDir = "Assets/sounds";
+	static string locationsDir = "Assets/CompactPrefabs";
 
     static void OnPostprocessAllAssets (
         string[] importedAssets,
@@ -69,14 +68,14 @@ public class CloudImporter : AssetPostprocessor
 				#endregion
 
 				#region ... load or create output prefab ...
-				string locationPath =
-					Path.Combine(compactPrefabsDir,
+				string locPath =
+					Path.Combine(locationsDir,
 					             Path.GetFileNameWithoutExtension( path ) + "--loc.prefab");
 				GameObject location;
-				prefab = AssetDatabase.LoadAssetAtPath(locationPath, typeof(GameObject));
+				prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
 				if (!prefab) {
-					prefab = EditorUtility.CreateEmptyPrefab(locationPath);
-					location = new GameObject( Path.GetFileNameWithoutExtension(locationPath), typeof(ExplodedLocation) );
+					prefab = EditorUtility.CreateEmptyPrefab(locPath);
+					location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
 				} else {
 					location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
 				}
@@ -101,7 +100,7 @@ public class CloudImporter : AssetPostprocessor
 						Debug.LogWarning( ex.Message );
 						Object.DestroyImmediate(orig.gameObject);
 						Object.DestroyImmediate(location);
-						FileUtil.DeleteFileOrDirectory(locationPath);
+						FileUtil.DeleteFileOrDirectory(locPath);
 						EditorUtility.UnloadUnusedAssets();
 						continue;
 					}
@@ -114,7 +113,7 @@ public class CloudImporter : AssetPostprocessor
 
 				#region ... fix subclouds ...
 				Dictionary<string,Material> materials = new Dictionary<string,Material>();
-				foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(locationPath)) {
+				foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(locPath)) {
 					Material m = obj as Material;
 					if (m) {
 						materials[m.name] = m;
@@ -131,32 +130,66 @@ public class CloudImporter : AssetPostprocessor
 				}
 				#endregion
 
-				#region ... attach sound ...
-				/*
-				string sndPath = Path.Combine(soundsDir,baseName+".aiff");
-				AudioImporter ai = AudioImporter.GetAtPath(sndPath) as AudioImporter;
-				if (ai != null) {
-					Debug.Log("Found audio importer at " + sndPath,ai);
-					ai.threeD = true;
-					ai.loadType = AudioImporterLoadType.StreamFromDisc;
-
-					if (location.audio == null)
-						location.AddComponent<AudioSource>();
-					location.audio.clip =
-				}
-				*/
-				#endregion
-
 				#endregion
 
 				// save and clean up
 				Object.DestroyImmediate(orig.gameObject);
 				StoreAndDestroy(location, prefab);
-				Debug.Log("Saved exported cloud to "+ locationPath +" (click to see)", prefab);
+				Debug.Log("Saved exported cloud to "+ locPath +" (click to see)", prefab);
 				#endregion
 			}
         }
     }
+
+	void OnPreprocessAudio()
+	{
+		AudioImporter ai = assetImporter as AudioImporter;
+		if (ai) {
+			ai.threeD = true;
+			ai.loadType = AudioImporterLoadType.StreamFromDisc;
+		}
+	}
+
+	void OnPostprocessAudio (AudioClip clip)
+	{
+		// find clip's cloud
+		string locPath = Path.Combine(locationsDir,
+		                              Path.GetFileNameWithoutExtension(assetPath) + "--loc.prefab");
+
+		// try to load
+		Object prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
+		if (!prefab) {
+			LogWarning("No location prefab for sound", clip);
+			return;
+		}
+		GameObject location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+		if (!location) {
+			LogError("Can't open asset", prefab);
+			return;
+		}
+		Transform sound = location.transform.FindChild("Sound");
+		if (!sound) {
+			sound = new GameObject("Sound", typeof(AudioSource)).transform;
+			sound.parent = location.transform;
+		}
+		sound.audio.clip = clip;
+		sound.audio.minDistance = 3;
+		sound.audio.maxDistance = 100;
+		sound.audio.loop = true;
+
+		sound.position = new Vector3(0,0,0);
+		int meshCount = 0;
+		foreach(MeshRenderer mr in GameObject.FindObjectsOfType(typeof(MeshRenderer)) as MeshRenderer[]) {
+			if (!mr.transform.IsChildOf(location.transform))
+				continue;
+			sound.position += mr.bounds.center;
+			meshCount ++;
+		}
+		sound.position = sound.position / (float)meshCount;
+
+		StoreAndDestroy(location, prefab);
+		Debug.Log("Added sound to "+ locPath +" (click to see)", prefab);
+	}
 
 	static void StoreAndDestroy(GameObject obj, Object prefab) {
 		// save the branch into the prefab
