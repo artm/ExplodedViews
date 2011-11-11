@@ -523,7 +523,7 @@ public class ImportedCloud : MonoBehaviour
 		// don't care to reshow
 	}
 	#endregion
-	
+
 #if UNITY_EDITOR
 	#region Export
     public class CutError : Pretty.Exception
@@ -718,12 +718,13 @@ public class ImportedCloud : MonoBehaviour
 		Object prefab = null;
 		string locPath = Path.Combine("Assets/CompactPrefabs", name + "--loc.prefab");
 		GameObject location;
+
+
 		prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
 		if (!prefab) {
 			prefab = EditorUtility.CreateEmptyPrefab(locPath);
 			location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
 		} else {
-			Debug.LogWarning("This shouldn't have happened.");
 			location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
 		}
 		#endregion
@@ -736,11 +737,11 @@ public class ImportedCloud : MonoBehaviour
 		} catch (ImportedCloud.CutError ex) {
 			Debug.LogWarning( ex.Message );
 			FileUtil.DeleteFileOrDirectory(locPath);
+			AssetDatabase.Refresh();
 		} finally {
 			Object.DestroyImmediate(location);
 			EditorUtility.UnloadUnusedAssets();
 		}
-
 	}
 
 	public void RefreshCompact(GameObject location, string locPath, Object prefab)
@@ -769,10 +770,17 @@ public class ImportedCloud : MonoBehaviour
 
 		#region ... fix subclouds ...
 		Dictionary<string,Material> materials = new Dictionary<string,Material>();
+		Dictionary<string,Mesh> meshes = new Dictionary<string,Mesh>();
+
 		foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(locPath)) {
 			Material m = obj as Material;
 			if (m) {
 				materials[m.name] = m;
+				continue;
+			}
+			Mesh mesh = obj as Mesh;
+			if (mesh) {
+				meshes[mesh.name] = mesh;
 			}
 		}
 
@@ -782,6 +790,10 @@ public class ImportedCloud : MonoBehaviour
 			} else {
 				bm.GenerateMaterial();
 				AssetDatabase.AddObjectToAsset(bm.material, prefab);
+			}
+			if (!meshes.ContainsKey(bm.name + "-miniMesh")) {
+				Mesh mini = bm.RefreshMinMesh();
+				AssetDatabase.AddObjectToAsset(mini, prefab);
 			}
 		}
 		#endregion

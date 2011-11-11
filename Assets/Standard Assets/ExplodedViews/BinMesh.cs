@@ -160,7 +160,6 @@ public class BinMesh : MonoBehaviour
 	#endregion
 
 #if UNITY_EDITOR
-	[ContextMenu("Generate material")]
 	public void GenerateMaterial()
 	{
 		Shader shader = Shader.Find("Exploded Views/Trilling Opaque Point");
@@ -173,7 +172,6 @@ public class BinMesh : MonoBehaviour
 		}
 	}
 	
-	[ContextMenu("Shuffle the bin")]
 	public void Shuffle()
 	{
 		string fname = CloudStream.FindBin(bin + ".bin");
@@ -226,7 +224,7 @@ public class BinMesh : MonoBehaviour
 	}
 	
 	[ContextMenu("Refresh Minimal Mesh")]
-	public void RefreshMinMesh()
+	public Mesh RefreshMinMesh()
 	{
 		Transform minMeshNode = transform.FindChild("MinMesh");
 		if (!minMeshNode)
@@ -244,14 +242,14 @@ public class BinMesh : MonoBehaviour
 			reader.ReadPoints(conv.vBuffer, conv.cBuffer);
 			conv.Convert(mesh);
 			minMeshFilter.mesh = mesh;
-			mesh.name = bin;
+			mesh.name = name + "-miniMesh";
+			return mesh;
 		} finally {
-		
 			reader.Close();
 		}
+		return null;
 	}
 	
-	[ContextMenu("Generate collider box")]
 	public void GenerateColliderBox ()
 	{
 		if (transform.Find("Box")!=null) {
