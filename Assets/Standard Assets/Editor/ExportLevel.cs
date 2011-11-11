@@ -11,24 +11,17 @@ public class ExportLevel : EditorWindow {
 
 	void OnGUI () {
 		GUILayout.Label("Exploded View", EditorStyles.boldLabel);
+
+		CloudImporter.autoCompact = GUILayout.Toggle(CloudImporter.autoCompact, "Auto compact");
+
 		if (GUILayout.Button("Export Level")) {
 			Export();
 		}
 	}
 
-
 	void Export()
 	{
-		// find all ImportedCloud's
-		ImportedCloud[] origs = this.FindObjectsOfTypeIncludingAssets(typeof(ImportedCloud)) as ImportedCloud[];
-
-		Debug.Log(string.Format("Found {0} original clouds",origs.Length));
-		foreach(ImportedCloud orig in origs) {
-			// in their exporters see, if export is necessary
-			// that would mean instead of creating nodes - first try to find them in the scene
-			Debug.Log(string.Format("Should we export {0} ?", orig.name));
-			//orig.Export();
-		}
+		Debug.LogError("This button does nothing at the moment :(");
 	}
 }
 
