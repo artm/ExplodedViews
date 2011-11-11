@@ -11,8 +11,6 @@ public class CloudImporter : AssetPostprocessor
     static string prefabsDir = "Assets/CloudPrefabs";
 	static string locationsDir = "Assets/CompactPrefabs";
 
-	static public bool autoCompact = false;
-
     static void OnPostprocessAllAssets (
         string[] importedAssets,
         string[] deletedAssets,
@@ -53,7 +51,7 @@ public class CloudImporter : AssetPostprocessor
 				StoreAndDestroy(root, prefab);
 				#endregion
             } else if (Regex.IsMatch(path,prefabsDir+".*\\.prefab")) {
-				if (autoCompact)
+				if (!ExplodedView.AutoCompact)
 					continue;
 
 				#region ... refresh play-time cloud ...
@@ -63,18 +61,15 @@ public class CloudImporter : AssetPostprocessor
 					Path.Combine(locationsDir,
 					             Path.GetFileNameWithoutExtension( path ) + "--loc.prefab");
 
-				if (File.Exists(locPath)) {
-					continue;
-				}
-
+				bool newLoc = true;
 				GameObject location;
 				prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
 				if (!prefab) {
 					prefab = EditorUtility.CreateEmptyPrefab(locPath);
 					location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
 				} else {
-					Debug.LogWarning("This shouldn't have happened.");
 					location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+					newLoc = false;
 				}
 				#endregion
 
