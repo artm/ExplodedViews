@@ -524,7 +524,7 @@ public class ImportedCloud : MonoBehaviour
 	}
 	#endregion
 	
-//#if UNITY_EDITOR
+#if UNITY_EDITOR
 	#region Export
     public class CutError : Pretty.Exception
     {
@@ -711,9 +711,84 @@ public class ImportedCloud : MonoBehaviour
 		}
 	}
 
+	[ContextMenu("Make compact")]
+	void MakeCompact()
+	{
+		#region ... load or create output prefab ...
+		Object prefab = null;
+		string locPath = Path.Combine("Assets/CompactPrefabs", name + "--loc.prefab");
+		GameObject location;
+		prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
+		if (!prefab) {
+			prefab = EditorUtility.CreateEmptyPrefab(locPath);
+			location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
+		} else {
+			Debug.LogWarning("This shouldn't have happened.");
+			location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+		}
+		#endregion
+
+		try {
+			RefreshCompact(location, locPath, prefab);
+			// save the branch into the prefab
+			EditorUtility.ReplacePrefab(location, prefab);
+			Debug.Log("Saved exported cloud to "+ locPath +" (click to see)", prefab);
+		} catch (ImportedCloud.CutError ex) {
+			Debug.LogWarning( ex.Message );
+			FileUtil.DeleteFileOrDirectory(locPath);
+		} finally {
+			Object.DestroyImmediate(location);
+			EditorUtility.UnloadUnusedAssets();
+		}
+
+	}
+
+	public void RefreshCompact(GameObject location, string locPath, Object prefab)
+	{
+		#region ... place location at the same position as orig ...
+		location.transform.localPosition = transform.localPosition;
+		location.transform.localRotation = transform.localRotation;
+		location.transform.localScale = transform.localScale;
+		#endregion
+
+		// decide if cutting is necessary
+		#region ... cut to boxes ...
+		ExplodedLocation exlo = location.GetComponent<ExplodedLocation>();
+		if ( exlo.SelectionChanged(this) || exlo.BoxesChanged(this) || !exlo.HasBoxChildren() ) {
+			CutToBoxes( exlo.transform );
+			// update saved selection / boxes
+			exlo.SaveSelectionAndBoxes(this);
+
+			Debug.Log("Memory used before collection: " + Pretty.Count(System.GC.GetTotalMemory(false)));
+			System.GC.Collect();
+			Debug.Log("Memory used after collection: " + Pretty.Count(System.GC.GetTotalMemory(false)));
+
+		} else
+			Debug.Log("Neither selection nor boxes changed - don't have to recut");
+		#endregion
+
+		#region ... fix subclouds ...
+		Dictionary<string,Material> materials = new Dictionary<string,Material>();
+		foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(locPath)) {
+			Material m = obj as Material;
+			if (m) {
+				materials[m.name] = m;
+			}
+		}
+
+		foreach(BinMesh bm in location.GetComponentsInChildren<BinMesh>()) {
+			if (materials.ContainsKey(bm.name)) {
+				bm.material = materials[bm.name];
+			} else {
+				bm.GenerateMaterial();
+				AssetDatabase.AddObjectToAsset(bm.material, prefab);
+			}
+		}
+		#endregion
+	}
 
 	#endregion
-//#endif
+#endif
 
 	#region Utils
 #if UNITY_EDITOR

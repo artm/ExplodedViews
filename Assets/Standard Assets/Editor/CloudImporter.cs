@@ -51,86 +51,55 @@ public class CloudImporter : AssetPostprocessor
 				StoreAndDestroy(root, prefab);
 				#endregion
             } else if (Regex.IsMatch(path,prefabsDir+".*\\.prefab")) {
-				#region ... refresh play-time cloud ...
-				// Load the original
-				ImportedCloud orig = null;
-				Object prefab = null;
-				#region ... init orig ...
-				{
-					prefab = AssetDatabase.LoadAssetAtPath(path, typeof(GameObject));
-					if (!prefab)
-						continue;
-					GameObject orig_go = EditorUtility.InstantiatePrefab(prefab) as GameObject;
-					orig = orig_go.GetComponent<ImportedCloud>();
-					if (!orig)
-						continue;
-				}
-				#endregion
+				// FIXME disabled
+				continue;
 
+				#region ... refresh play-time cloud ...
 				#region ... load or create output prefab ...
+				Object prefab = null;
 				string locPath =
 					Path.Combine(locationsDir,
 					             Path.GetFileNameWithoutExtension( path ) + "--loc.prefab");
+
+				if (File.Exists(locPath)) {
+					continue;
+				}
+
 				GameObject location;
 				prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
 				if (!prefab) {
 					prefab = EditorUtility.CreateEmptyPrefab(locPath);
 					location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
 				} else {
+					Debug.LogWarning("This shouldn't have happened.");
 					location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
 				}
 				#endregion
 
-				#region ... export ...
-				ExplodedLocation exlo = location.GetComponent<ExplodedLocation>();
-
-				#region ... place location at the same position as orig ...
-				location.transform.localPosition = orig.transform.localPosition;
-				location.transform.localRotation = orig.transform.localRotation;
-				location.transform.localScale = orig.transform.localScale;
-				#endregion
-
-				// decide if cutting is necessary
-				#region ... cut to boxes ...
-				if ( exlo.SelectionChanged(orig) || exlo.BoxesChanged(orig) || !exlo.HasBoxChildren() ) {
-					try {
-						orig.CutToBoxes( exlo.transform );
-					} catch (ImportedCloud.CutError ex) {
-						// FIXME duplication of cleanup
-						Debug.LogWarning( ex.Message );
-						Object.DestroyImmediate(orig.gameObject);
-						Object.DestroyImmediate(location);
-						FileUtil.DeleteFileOrDirectory(locPath);
-						EditorUtility.UnloadUnusedAssets();
+				#region ... init orig ...
+				ImportedCloud orig = null;
+				{
+					Object origPrefab = AssetDatabase.LoadAssetAtPath(path, typeof(GameObject));
+					if (!origPrefab)
 						continue;
-					}
-
-					// update saved selection / boxes
-					exlo.SaveSelectionAndBoxes(orig);
-				} else
-					Debug.Log("Neither selection nor boxes changed - don't have to recut");
-				#endregion
-
-				#region ... fix subclouds ...
-				Dictionary<string,Material> materials = new Dictionary<string,Material>();
-				foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(locPath)) {
-					Material m = obj as Material;
-					if (m) {
-						materials[m.name] = m;
-					}
-				}
-
-				foreach(BinMesh bm in location.GetComponentsInChildren<BinMesh>()) {
-					if (materials.ContainsKey(bm.name)) {
-						bm.material = materials[bm.name];
-					} else {
-						bm.GenerateMaterial();
-						AssetDatabase.AddObjectToAsset(bm.material, prefab);
-					}
+					GameObject orig_go = EditorUtility.InstantiatePrefab(origPrefab) as GameObject;
+					orig = orig_go.GetComponent<ImportedCloud>();
+					if (!orig)
+						continue;
 				}
 				#endregion
 
-				#endregion
+				try {
+					orig.RefreshCompact(location, locPath, prefab);
+				} catch (ImportedCloud.CutError ex) {
+					// FIXME duplication of cleanup
+					Debug.LogWarning( ex.Message );
+					Object.DestroyImmediate(orig.gameObject);
+					Object.DestroyImmediate(location);
+					FileUtil.DeleteFileOrDirectory(locPath);
+					EditorUtility.UnloadUnusedAssets();
+					continue;
+				}
 
 				// save and clean up
 				Object.DestroyImmediate(orig.gameObject);
