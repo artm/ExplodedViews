@@ -16,6 +16,8 @@ public class BinMesh : MonoBehaviour
 	CloudStream.Reader binReader;
 	int pointCount = 0;
 
+	GameObject mainCameraGO;
+
 	public long PointsLeft {
 		get {
 			return (binReader.BaseStream.Length - binReader.BaseStream.Position) / CloudStream.pointRecSize;
@@ -27,7 +29,12 @@ public class BinMesh : MonoBehaviour
 			return transform.FindChild("Detail").childCount;
 		}
 	}
-	
+
+	void Awake()
+	{
+		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+	}
+
 	public void Start()
 	{
 		string fname = CloudStream.FindBin(bin + ".bin");
@@ -54,6 +61,10 @@ public class BinMesh : MonoBehaviour
 			material = Object.Instantiate( material ) as Material;
 			material.shader = Object.Instantiate( material.shader ) as Shader;
 		}
+
+		float lodScale = mainCameraGO.camera.farClipPlane / lodBreakDistances[0];
+		for(int i=0; i<lodBreakDistances.Length; i++)
+			lodBreakDistances[i] *= lodScale;
 
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
 	}

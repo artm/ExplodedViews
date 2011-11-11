@@ -79,6 +79,7 @@ public class LodManager : MonoBehaviour {
 	
 	void Start()
 	{
+		(collider as SphereCollider).radius = theCamera.camera.farClipPlane;
 		StartCoroutine( ProcessLoadQueue() );
 	}
 	
