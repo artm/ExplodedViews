@@ -169,26 +169,27 @@ public class CloudImporter : AssetPostprocessor
 		}
 		Transform sound = location.transform.FindChild("Sound");
 		if (!sound) {
-			sound = new GameObject("Sound", typeof(AudioSource)).transform;
+			sound = new GameObject("Sound", typeof(AudioSource), typeof(AudioGizmo)).transform;
 			sound.parent = location.transform;
-		}
-		sound.audio.clip = clip;
-		sound.audio.minDistance = 3;
-		sound.audio.maxDistance = 100;
-		sound.audio.loop = true;
+			sound.audio.clip = clip;
+			sound.audio.minDistance = 3;
+			sound.audio.maxDistance = 100;
+			sound.audio.loop = true;
+			sound.position = new Vector3(0,0,0);
+			int meshCount = 0;
+			foreach(MeshRenderer mr in GameObject.FindObjectsOfType(typeof(MeshRenderer)) as MeshRenderer[]) {
+				if (!mr.transform.IsChildOf(location.transform))
+					continue;
+				sound.position += mr.bounds.center;
+				meshCount ++;
+			}
+			sound.position = sound.position / (float)meshCount;
 
-		sound.position = new Vector3(0,0,0);
-		int meshCount = 0;
-		foreach(MeshRenderer mr in GameObject.FindObjectsOfType(typeof(MeshRenderer)) as MeshRenderer[]) {
-			if (!mr.transform.IsChildOf(location.transform))
-				continue;
-			sound.position += mr.bounds.center;
-			meshCount ++;
+			EditorUtility.ReplacePrefab(location, prefab);
+			Debug.Log("Added sound to "+ locPath +" (click to see)", prefab);
 		}
-		sound.position = sound.position / (float)meshCount;
-
-		StoreAndDestroy(location, prefab);
-		Debug.Log("Added sound to "+ locPath +" (click to see)", prefab);
+		Object.DestroyImmediate(location);
+		EditorUtility.UnloadUnusedAssets();
 	}
 
 	static void StoreAndDestroy(GameObject obj, Object prefab) {
@@ -196,7 +197,7 @@ public class CloudImporter : AssetPostprocessor
 		EditorUtility.ReplacePrefab(obj, prefab);
 		// get rid of the temporary object (otherwise it stays over in scene)
 		Object.DestroyImmediate(obj);
-		// if root was loaded from existing prefab it remains in scene. the following makes it disappear.
+		// if obj was loaded from existing prefab it remains in scene. the following makes it disappear.
 		EditorUtility.UnloadUnusedAssets();
 	}
 }
