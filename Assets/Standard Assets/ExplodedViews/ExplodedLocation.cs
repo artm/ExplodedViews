@@ -30,6 +30,9 @@ public class ExplodedLocation : MonoBehaviour {
 
 	public bool BoxesChanged(ImportedCloud orig)
 	{
+		return false;
+		
+		// FIXME this is too sensitive
 		HashSet<Matrix4x4> oldBoxes = new HashSet<Matrix4x4>( boxes );
 		HashSet<Matrix4x4> newBoxes = new HashSet<Matrix4x4>();
 
