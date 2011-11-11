@@ -128,29 +128,37 @@ public class CloudImporter : AssetPostprocessor
 			LogError("Can't open asset", prefab);
 			return;
 		}
-		Transform sound = location.transform.FindChild("Sound");
-		if (!sound) {
-			sound = new GameObject("Sound", typeof(AudioSource), typeof(AudioGizmo)).transform;
-			sound.parent = location.transform;
-			sound.audio.clip = clip;
-			sound.audio.minDistance = 3;
-			sound.audio.maxDistance = 100;
-			sound.audio.loop = true;
-			sound.position = new Vector3(0,0,0);
-			int meshCount = 0;
-			foreach(MeshRenderer mr in GameObject.FindObjectsOfType(typeof(MeshRenderer)) as MeshRenderer[]) {
-				if (!mr.transform.IsChildOf(location.transform))
-					continue;
-				sound.position += mr.bounds.center;
-				meshCount ++;
-			}
-			sound.position = sound.position / (float)meshCount;
+		try {
+			Transform soundNode = location.transform.FindChild("Sound");
+			string soundNodePrefabPath = "Assets/Prefabs/SoundNode.prefab";
+			if (!soundNode) {
+				Object soundNodePrefab = AssetDatabase.LoadAssetAtPath(soundNodePrefabPath, typeof(GameObject));
+				if (!soundNodePrefab) {
+					LogWarning("No sound node template " + soundNodePrefabPath);
+					return;
+				}
+				soundNode = (EditorUtility.InstantiatePrefab(soundNodePrefab) as GameObject).transform;
+				soundNode.parent = location.transform;
+				soundNode.audio.clip = clip;
+				#region ... find cloud center ...
+				soundNode.position = new Vector3(0,0,0);
+				int meshCount = 0;
+				foreach(MeshRenderer mr in GameObject.FindObjectsOfType(typeof(MeshRenderer)) as MeshRenderer[]) {
+					if (!mr.transform.IsChildOf(location.transform))
+						continue;
+					soundNode.position += mr.bounds.center;
+					meshCount ++;
+				}
+				soundNode.position = soundNode.position / (float)meshCount;
+				#endregion
 
-			EditorUtility.ReplacePrefab(location, prefab);
-			Debug.Log("Added sound to "+ locPath +" (click to see)", prefab);
+				EditorUtility.ReplacePrefab(location, prefab);
+				Debug.Log("Added sound to "+ locPath +" (click to see)", prefab);
+			}
+		} finally {
+			Object.DestroyImmediate(location);
+			EditorUtility.UnloadUnusedAssets();
 		}
-		Object.DestroyImmediate(location);
-		EditorUtility.UnloadUnusedAssets();
 	}
 
 	static void StoreAndDestroy(GameObject obj, Object prefab) {
