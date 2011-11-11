@@ -7,9 +7,9 @@ public class AudioGizmo : MonoBehaviour
 {
 	void OnDrawGizmos()
 	{
-		Gizmos.color = new Color(0, 1, .5f);
-		Gizmos.DrawWireSphere( transform.position, audio.minDistance );
-		Gizmos.DrawWireSphere( transform.position, audio.maxDistance );
+		Gizmos.color = new Color(0,1,.5f,0.25f);
+		Gizmos.DrawSphere( transform.position, audio.minDistance );
+		Gizmos.DrawSphere( transform.position, audio.maxDistance );
 	}
 }
 
