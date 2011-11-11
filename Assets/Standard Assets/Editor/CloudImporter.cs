@@ -42,7 +42,7 @@ public class CloudImporter : AssetPostprocessor
 					// load the hierarchy form prefab (to keep settings)
 					root = EditorUtility.InstantiatePrefab(prefab) as GameObject;
 				}
-				
+
 				ImportedCloud iCloud = root.GetComponent<ImportedCloud>();
 				iCloud.prefabPath = prefabPath;
 				iCloud.cloudPath = path;
@@ -61,7 +61,6 @@ public class CloudImporter : AssetPostprocessor
 					Path.Combine(locationsDir,
 					             Path.GetFileNameWithoutExtension( path ) + "--loc.prefab");
 
-				bool newLoc = true;
 				GameObject location;
 				prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
 				if (!prefab) {
@@ -69,7 +68,6 @@ public class CloudImporter : AssetPostprocessor
 					location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
 				} else {
 					location = EditorUtility.InstantiatePrefab(prefab) as GameObject;
-					newLoc = false;
 				}
 				#endregion
 
@@ -95,8 +93,8 @@ public class CloudImporter : AssetPostprocessor
 					Debug.LogWarning( ex.Message );
 					FileUtil.DeleteFileOrDirectory(locPath);
 				} finally {
-					Object.DestroyImmediate(orig.gameObject);
 					Object.DestroyImmediate(location);
+					Object.DestroyImmediate(orig.gameObject);
 					EditorUtility.UnloadUnusedAssets();
 				}
 				#endregion
