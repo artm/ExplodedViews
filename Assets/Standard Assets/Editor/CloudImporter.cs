@@ -93,20 +93,17 @@ public class CloudImporter : AssetPostprocessor
 
 				try {
 					orig.RefreshCompact(location, locPath, prefab);
+					// save the branch into the prefab
+					EditorUtility.ReplacePrefab(location, prefab);
+					Debug.Log("Saved exported cloud to "+ locPath +" (click to see)", prefab);
 				} catch (ImportedCloud.CutError ex) {
-					// FIXME duplication of cleanup
 					Debug.LogWarning( ex.Message );
+					FileUtil.DeleteFileOrDirectory(locPath);
+				} finally {
 					Object.DestroyImmediate(orig.gameObject);
 					Object.DestroyImmediate(location);
-					FileUtil.DeleteFileOrDirectory(locPath);
 					EditorUtility.UnloadUnusedAssets();
-					continue;
 				}
-
-				// save and clean up
-				Object.DestroyImmediate(orig.gameObject);
-				StoreAndDestroy(location, prefab);
-				Debug.Log("Saved exported cloud to "+ locPath +" (click to see)", prefab);
 				#endregion
 			}
         }
