@@ -534,13 +534,7 @@ public class ImportedCloud : MonoBehaviour
 	public void CutToBoxes( Transform location )
 	{
 		UpdateSelectionSize();
-		
-		/*
-		 * TODO
-		 * before starting to sort the points check if the export is really due 
-		 * and may be which portions must be exported this time around
-		 */
-		
+
 		#region setup cut/shadow boxes
 		Transform boxes = transform.FindChild ("CutBoxes");
 
@@ -631,16 +625,15 @@ public class ImportedCloud : MonoBehaviour
 		#region ... load and instantiate the template ...
 		Object template = AssetDatabase.LoadAssetAtPath("Assets/Prefabs/BinMesh.prefab", typeof(GameObject));
 		GameObject go = (GameObject)EditorUtility.InstantiatePrefab(template);
-		go.name = Path.GetFileNameWithoutExtension( compactPath );
-		go.GetComponent<BinMesh>().bin = go.name;
 		BinMesh bm = go.GetComponent<BinMesh>();
+		bm.bin = go.name = Path.GetFileNameWithoutExtension( compactPath );
 		#endregion
 
 		#region ... remove old version / attach new ...
 		Transform old = location.FindChild(go.name);
 		if (old != null)
 			Object.DestroyImmediate(old.gameObject);
-		go.transform.parent = location;
+		ProceduralUtils.InsertHere(go.transform, location);
 		#endregion
 
 		#region ... init BinMesh ...
@@ -650,18 +643,13 @@ public class ImportedCloud : MonoBehaviour
 		bm.RefreshMinMesh();
 		#endregion
 
-		#region ... generate or copy collider box ...
-		if (box == null) {
-			Debug.LogWarning("This is obsolete code, shouldn't have been called");
-			bm.GenerateColliderBox();
-		} else {
-			Transform box_tr = bm.transform.Find("Box");
-			box_tr.position = box.position;
-			box_tr.rotation = box.rotation;
-			box_tr.localScale = box.localScale;
-			box_tr.GetComponent<BoxCollider>().center = box.GetComponent<BoxCollider>().center;
-			box_tr.GetComponent<BoxCollider>().size = box.GetComponent<BoxCollider>().size;
-		}
+		#region ... copy collider box ...
+		Transform box_tr = bm.transform.Find("Box");
+		box_tr.position = box.position;
+		box_tr.rotation = box.rotation;
+		box_tr.localScale = box.localScale;
+		box_tr.GetComponent<BoxCollider>().center = box.GetComponent<BoxCollider>().center;
+		box_tr.GetComponent<BoxCollider>().size = box.GetComponent<BoxCollider>().size;
 		#endregion
 	}
 
