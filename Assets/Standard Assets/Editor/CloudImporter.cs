@@ -11,6 +11,8 @@ public class CloudImporter : AssetPostprocessor
     static string prefabsDir = "Assets/CloudPrefabs";
 	static string locationsDir = "Assets/CompactPrefabs";
 
+	static public bool autoCompact = false;
+
     static void OnPostprocessAllAssets (
         string[] importedAssets,
         string[] deletedAssets,
@@ -51,8 +53,8 @@ public class CloudImporter : AssetPostprocessor
 				StoreAndDestroy(root, prefab);
 				#endregion
             } else if (Regex.IsMatch(path,prefabsDir+".*\\.prefab")) {
-				// FIXME disabled
-				continue;
+				if (autoCompact)
+					continue;
 
 				#region ... refresh play-time cloud ...
 				#region ... load or create output prefab ...
