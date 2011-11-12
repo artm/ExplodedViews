@@ -54,6 +54,10 @@ public class ExplodedView : EditorWindow {
 			}
 			GameObject go = EditorUtility.InstantiatePrefab(prefab) as GameObject;
 			InsertKeepingLocalTransform(go.transform, root);
+
+			EditorApplication.SaveAssets();
+			EditorApplication.SaveScene(EditorApplication.currentScene);
+			Debug.Log("Saved " + EditorApplication.currentScene);
 		}
 	}
 
