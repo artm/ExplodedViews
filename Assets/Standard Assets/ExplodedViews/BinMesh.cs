@@ -122,7 +122,7 @@ public class BinMesh : MonoBehaviour
 	{
 		Transform detailBranch = transform.FindChild("Detail");
 		yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, go));
-		ProceduralUtils.InsertHere(go.transform, detailBranch);
+		ProceduralUtils.InsertAtOrigin(go.transform, detailBranch);
 		go.active = true;
 		if (material)
 			go.renderer.sharedMaterial = material;

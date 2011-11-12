@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 public class ExplodedView : EditorWindow {
 	bool autoCompact = false;
+	bool linkToPrefabs = false;
 	static ExplodedView window = null;
 	public static bool AutoCompact { get {return window ? window.autoCompact : false; } }
 
@@ -18,6 +19,7 @@ public class ExplodedView : EditorWindow {
 		//autoCompact = GUILayout.Toggle(autoCompact, "Auto compact");
 
 		if (GUILayout.Button("List compacts")) ListCompacts();
+		linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
 		if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
 	}
 
@@ -52,8 +54,14 @@ public class ExplodedView : EditorWindow {
 				Debug.LogError("Couldn't load prefab from " + path);
 				continue;
 			}
-			GameObject go = EditorUtility.InstantiatePrefab(prefab) as GameObject;
-			InsertKeepingLocalTransform(go.transform, root);
+			GameObject go =
+				linkToPrefabs
+					? EditorUtility.InstantiatePrefab(prefab) as GameObject
+					: GameObject.Instantiate(prefab) as GameObject;
+
+			go.name = go.name.Replace("(Clone)","");
+
+			ProceduralUtils.InsertKeepingLocalTransform(go.transform, root);
 
 			EditorApplication.SaveAssets();
 			EditorApplication.SaveScene(EditorApplication.currentScene);
@@ -61,15 +69,5 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
-	static void InsertKeepingLocalTransform(Transform child, Transform parent)
-	{
-		Vector3 locPos = child.localPosition;
-		Quaternion locRot = child.localRotation;
-		Vector3 locScale = child.localScale;
-		child.parent = parent;
-		child.localScale = locScale;
-		child.localRotation = locRot;
-		child.localPosition = locPos;
-	}
 }
 

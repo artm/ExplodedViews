@@ -236,7 +236,7 @@ public class ImportedCloud : MonoBehaviour
 
 		/* start the pool (actual pooled objects will be created as necessary) */
 		detailBranch = new GameObject("Detail");
-		ProceduralUtils.InsertHere(detailBranch.transform, transform);
+		ProceduralUtils.InsertAtOrigin(detailBranch.transform, transform);
 
 		guiMessage = "";
 		orbit = Object.FindObjectOfType(typeof(MouseOrbit)) as MouseOrbit;
@@ -363,7 +363,7 @@ public class ImportedCloud : MonoBehaviour
 				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
 				
 				if (CloudMeshPool.BufferFull || (binReader.Eof && i==lst.Count)) {
-					ProceduralUtils.InsertHere(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
+					ProceduralUtils.InsertAtOrigin(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
 					loadProgress = (float)detailBranch.transform.childCount / (float)CloudMeshPool.Capacity;
 					// FIXME, do we have to skip one here?
 					// yield return null;
@@ -633,7 +633,7 @@ public class ImportedCloud : MonoBehaviour
 		Transform old = location.FindChild(go.name);
 		if (old != null)
 			Object.DestroyImmediate(old.gameObject);
-		ProceduralUtils.InsertHere(go.transform, location);
+		ProceduralUtils.InsertAtOrigin(go.transform, location);
 		#endregion
 
 		#region ... init BinMesh ...
@@ -691,7 +691,7 @@ public class ImportedCloud : MonoBehaviour
 
 						Transform trigger = Object.Instantiate (cameraStandIn) as Transform;
 						trigger.name = words[0];
-						ProceduralUtils.InsertHere (trigger, location);
+						ProceduralUtils.InsertAtOrigin (trigger, location);
 						trigger.localPosition = new Vector3(float.Parse (words[1]), 
 							-float.Parse (words[2]), 
 							float.Parse (words[3]));
