@@ -30,9 +30,8 @@ public class ExplodedLocation : MonoBehaviour {
 
 	public bool BoxesChanged(ImportedCloud orig)
 	{
-		return false;
-		
 		// FIXME this is too sensitive
+#if false
 		HashSet<Matrix4x4> oldBoxes = new HashSet<Matrix4x4>( boxes );
 		HashSet<Matrix4x4> newBoxes = new HashSet<Matrix4x4>();
 
@@ -40,6 +39,8 @@ public class ExplodedLocation : MonoBehaviour {
 		foreach(Transform box in orig.transform.FindChild("CutBoxes"))
 			newBoxes.Add(box.worldToLocalMatrix * cloud2world);
 		return ! oldBoxes.SetEquals( newBoxes );
+#endif
+		return false;
 	}
 
 	public bool HasBoxChildren()

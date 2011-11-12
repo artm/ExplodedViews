@@ -255,10 +255,11 @@ public class BinMesh : MonoBehaviour
 			minMeshFilter.mesh = mesh;
 			mesh.name = name + "-miniMesh";
 			return mesh;
+		} catch {
+			return null;
 		} finally {
 			reader.Close();
 		}
-		return null;
 	}
 	
 	public void GenerateColliderBox ()
