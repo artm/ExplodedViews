@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEditor;
+using System.IO;
+using System.Collections.Generic;
 
 public class ExplodedView : EditorWindow {
 	bool autoCompact = false;
@@ -13,15 +15,57 @@ public class ExplodedView : EditorWindow {
 	}
 
 	void OnGUI () {
-		autoCompact = GUILayout.Toggle(autoCompact, "Auto compact");
+		//autoCompact = GUILayout.Toggle(autoCompact, "Auto compact");
 
-		if (GUILayout.Button("Debug")) {
-			Export();
+		if (GUILayout.Button("List compacts")) ListCompacts();
+		if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
+	}
+
+	IEnumerable<string> CompactPrefabs {
+		get {
+			foreach(string path in Directory.GetFiles("Assets/CompactPrefabs" ,"*.prefab")) {
+				yield return path;
+			}
 		}
 	}
 
-	void Export()
+	void ListCompacts()
 	{
+		foreach(string prefab in CompactPrefabs) {
+			Debug.Log(prefab);
+		}
+	}
+
+	void AddCompactsToClouds()
+	{
+		GameObject rootGo = GameObject.Find("Clouds");
+		if (!rootGo) {
+			Debug.LogError("No Clouds node in the scene");
+		}
+		Transform root = rootGo.transform;
+		foreach(string path in CompactPrefabs) {
+			// skip existing
+			if (root.Find(Path.GetFileNameWithoutExtension(path)))
+				continue;
+			Object prefab = AssetDatabase.LoadMainAssetAtPath(path);
+			if (!prefab) {
+				Debug.LogError("Couldn't load prefab from " + path);
+				continue;
+			}
+			GameObject go = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+			InsertKeepingLocalTransform(go.transform, root);
+		}
+	}
+
+	static void InsertKeepingLocalTransform(Transform child, Transform parent)
+	{
+		Vector3 locPos = child.localPosition;
+		Quaternion locRot = child.localRotation;
+		Vector3 locScale = child.localScale;
+		child.parent = parent;
+		child.localScale = locScale;
+		child.localRotation = locRot;
+		child.localPosition = locPos;
 	}
 }
 
