@@ -7,7 +7,8 @@ Shader "Exploded Views/Trilling Opaque Point" {
 		_NearTint( "Near tint", Color ) = (0.8,1,0.8,0.1)
 		
 		_TunnelD ("Tunnel Distance", float) = 1.0
-		_TunnelRadius("Tunnel Radius", Range(0, 1)) = 0.5
+		//_TunnelRadius("Tunnel Radius", Range(0, 1)) = 0.5
+		_TunnelRadius("Tunnel Radius", float) = 0.75
 		_TunnelAspect("Tunnel Aspect", float) = 1.33
 		
 		_SubLod ( "SubLod", Range(0,1) ) = 0
@@ -46,7 +47,7 @@ PointV2F vert (PointVIn v)
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 	
 	float displacement = max(0.0, 1.0 - o.pos.z / _TunnelD);
-	
+
 	o.pos.xy += normalize(o.pos.xy) 
 					* displacement * displacement
 					* float2(1.0,_TunnelAspect)
