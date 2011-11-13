@@ -714,13 +714,18 @@ public class ImportedCloud : MonoBehaviour
 	[ContextMenu("Make compact")]
 	void MakeCompact()
 	{
+		MakeCompact(true);
+	}
+
+	public void MakeCompact(bool overwrite)
+	{
 		#region ... load or create output prefab ...
-		Object prefab = null;
 		string locPath = Path.Combine("Assets/CompactPrefabs", name + "--loc.prefab");
+		if (!overwrite && File.Exists(locPath))
+			return;
+
 		GameObject location;
-
-
-		prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
+		Object prefab = AssetDatabase.LoadAssetAtPath(locPath, typeof(GameObject));
 		if (!prefab) {
 			prefab = EditorUtility.CreateEmptyPrefab(locPath);
 			location = new GameObject( Path.GetFileNameWithoutExtension(locPath), typeof(ExplodedLocation) );
@@ -759,11 +764,6 @@ public class ImportedCloud : MonoBehaviour
 			CutToBoxes( exlo.transform );
 			// update saved selection / boxes
 			exlo.SaveSelectionAndBoxes(this);
-
-			Debug.Log("Memory used before collection: " + Pretty.Count(System.GC.GetTotalMemory(false)));
-			System.GC.Collect();
-			Debug.Log("Memory used after collection: " + Pretty.Count(System.GC.GetTotalMemory(false)));
-
 		} else
 			Debug.Log("Neither selection nor boxes changed - don't have to recut");
 		#endregion
