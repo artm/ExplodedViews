@@ -17,13 +17,25 @@ public class Navigator : MonoBehaviour {
 		
 	CharacterController pill;
 	float fallSpeed = 0;
-	Vector3 velocity = new Vector3(0,0,0);
-	Vector3 nulVector = new Vector3(0,0,0);
-	
+	Vector3 velocity = Vector3.zero;
+
+	public float reflectTime = 0.2f;
+	float reflect_t = 0.0f;
+	Vector3 reflectStart, reflectTarget;
+
 	void Start () {
 		pill = GetComponent<CharacterController>();
 	}
-	
+
+	void OnControllerColliderHit(ControllerColliderHit hit)
+	{
+		if (!hit.gameObject.CompareTag("World Wall") || reflect_t > 0f)
+			return;
+		reflectStart = transform.forward;
+		reflectTarget = Vector3.Reflect(transform.forward, hit.normal);
+		reflect_t = 1f;
+	}
+
 	void UpdateWithCog(Vector3 cog)
 	{
 		float forward = Input.GetAxis("Vertical");
@@ -49,9 +61,18 @@ public class Navigator : MonoBehaviour {
 		
 		float turn = ((1.0f - strafe_t) * sideways + Input.GetAxis("SecondHorizontal")) * turnSpeed;
 		
-		// turn... 
-		transform.RotateAround(Vector3.up, turn * Time.deltaTime);
-		
+		if (reflect_t > 0f) {
+			// reflect
+			reflect_t = Mathf.Max(0, reflect_t - Time.deltaTime / reflectTime);
+			transform.LookAt( transform.position + Vector3.Slerp(reflectStart,reflectTarget,1f - reflect_t) );
+
+			if (reflect_t >= 0.99f)
+				reflectTarget = Vector3.zero; // done reflecting
+		} else {
+			// turn...
+			transform.RotateAround(Vector3.up, turn * Time.deltaTime);
+		}
+
 		// go to world space
 		Vector3 direction = transform.TransformDirection(walk);
 		
@@ -73,7 +94,7 @@ public class Navigator : MonoBehaviour {
 	
 	void Update()
 	{
-		UpdateWithCog(nulVector);
+		UpdateWithCog(Vector3.zero);
 	}
 	
 	void BlobsCenterOfGravity(Vector3 cog)
