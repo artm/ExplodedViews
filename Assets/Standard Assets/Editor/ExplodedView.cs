@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class ExplodedView : EditorWindow {
 	bool autoCompact = false;
-	bool linkToPrefabs = false;
+	bool linkToPrefabs = true;
 	static ExplodedView window = null;
 	public static bool AutoCompact { get {return window ? window.autoCompact : false; } }
 
@@ -20,12 +20,21 @@ public class ExplodedView : EditorWindow {
 
 		if (GUILayout.Button("List compacts")) ListCompacts();
 		linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
+		if (GUILayout.Button("Make compacts from origs")) MakeCompacts();
 		if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
 	}
 
 	IEnumerable<string> CompactPrefabs {
 		get {
 			foreach(string path in Directory.GetFiles("Assets/CompactPrefabs" ,"*.prefab")) {
+				yield return path;
+			}
+		}
+	}
+
+	IEnumerable<string> OrigPrefabs {
+		get {
+			foreach(string path in Directory.GetFiles("Assets/CloudPrefabs" ,"*.prefab", SearchOption.AllDirectories)) {
 				yield return path;
 			}
 		}
@@ -66,6 +75,23 @@ public class ExplodedView : EditorWindow {
 			EditorApplication.SaveAssets();
 			EditorApplication.SaveScene(EditorApplication.currentScene);
 			Debug.Log("Saved " + EditorApplication.currentScene);
+		}
+	}
+
+	void MakeCompacts()
+	{
+		foreach(string path in OrigPrefabs)
+		{
+			GameObject origGO = AssetDatabase.LoadMainAssetAtPath(path) as GameObject;
+			ImportedCloud orig = origGO.GetComponent<ImportedCloud>();
+
+			if (orig) {
+				orig.MakeCompact(false); // don't overwrite existing compacts
+				long memory = System.GC.GetTotalMemory(false);
+				System.GC.Collect();
+				Debug.Log("Cleaned up garbage: " + Pretty.Count(memory - System.GC.GetTotalMemory(false)));
+			}
+
 		}
 	}
 
