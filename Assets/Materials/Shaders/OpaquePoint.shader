@@ -1,5 +1,10 @@
 Shader "Exploded Views/Opaque Point" {
-	Properties { 
+	Properties {
+		minSize ("Min. Point Size", float) = 1
+		maxSize ("Max. Point Size", float) = 1
+		attA ("Quad. size attenuation", float) = 0
+		attB ("Lin. size attenuation", float) = 0
+		attC ("Const. size attenuation", float) = 0
 	}
 	SubShader {
 		Tags { "Queue" = "Geometry" }
@@ -13,16 +18,23 @@ CGPROGRAM
 #include "UnityCG.cginc"
 #include "ExplodedShaderLib.cginc"
 
+float attA, attB, attC;
+float minSize, maxSize;
 
 PointV2F vert (PointVIn v)
 {
 	PointV2F o;
 	
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
-	o.fog = o.pos.z;
+
+	float d = length(o.pos);
+	o.fog = d;
+
+	float attenuation = Quadratic(d, attA, attB, attC);
+	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, 1.0 );
+	Billboard( o.pos, v.texcoord.xy, size );
 
     // pass the color along...
     o.color = v.color;
