@@ -1,2 +1,2 @@
 #!/bin/bash
-ls | perl -lne 's/^\d?_//;s/_/+/;s/[_ ].*$//;print "<a href=\"http://maps.google.com/maps?f=q&hl=en&geocode=&q=$_\">$_</a><br>";'  > list.html
+ls *.cloud | perl -lne 's/^\d+_//;s/_/+/;s/[_ ].*$//;print "<a href=\"http://maps.google.com/maps?f=q&hl=en&geocode=&q=$_\">$_</a><br>";'
