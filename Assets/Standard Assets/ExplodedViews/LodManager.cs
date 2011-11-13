@@ -33,6 +33,7 @@ using System;
 [RequireComponent(typeof(CloudMeshPool))]
 public class LodManager : MonoBehaviour {
 	public bool dontBalanceOnWarp = false;
+	public float relativeCenterOffset = 0.4f;
 	
 	const int UnloadAll = -1;
 	
@@ -75,11 +76,21 @@ public class LodManager : MonoBehaviour {
 	{
 		theCamera = transform.parent.Find("Camera");
 		speedWarp = theCamera.GetComponent<SpeedWarp>();
+
+		RenderSettings.fog = true;
+		RenderSettings.fogMode = FogMode.Linear;
+		RenderSettings.fogStartDistance = 0;
+		RenderSettings.fogEndDistance = theCamera.camera.farClipPlane;
 	}
 	
 	void Start()
 	{
-		(collider as SphereCollider).radius = theCamera.camera.farClipPlane;
+		SphereCollider ball = collider as SphereCollider;
+		Vector3 center = ball.center;
+		center.z = theCamera.camera.farClipPlane * relativeCenterOffset;
+		ball.center = center;
+		ball.radius = theCamera.camera.farClipPlane * (1.0f - relativeCenterOffset);
+
 		StartCoroutine( ProcessLoadQueue() );
 	}
 	
