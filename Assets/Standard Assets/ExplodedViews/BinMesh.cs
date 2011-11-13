@@ -13,7 +13,7 @@ public class BinMesh : MonoBehaviour
 	// How many points in the minimal mesh.
 	public int minMeshSize = 1000;
 	public Material material = null;
-	CloudStream.Reader binReader;
+	CloudStream.Reader binReader = null;
 	int pointCount = 0;
 
 	GameObject mainCameraGO;
@@ -32,14 +32,23 @@ public class BinMesh : MonoBehaviour
 
 	void Awake()
 	{
+		string fname = null;
+
+		try {
+			fname = CloudStream.FindBin(bin + ".bin");
+		} catch {
+			//Debug.LogWarning("Couldn't find " + bin);
+			Object.DestroyImmediate( this );
+			return;
+		}
+
+		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
+
 		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
 	}
 
 	public void Start()
 	{
-		string fname = CloudStream.FindBin(bin + ".bin");
-		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
-		
 		Transform minmesh = transform.FindChild ("MinMesh");
 		if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
 			minmesh.renderer.sharedMaterial = material;
@@ -47,8 +56,7 @@ public class BinMesh : MonoBehaviour
 			minmesh.gameObject.active = false;
 		}
 		
-		FileInfo fi = new FileInfo(fname);
-		pointCount = (int)fi.Length / CloudStream.pointRecSize;
+		pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
 		
 		/*
 		 * Clone the shader object, so that we can change it's maxiumLOD 
