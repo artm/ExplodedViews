@@ -79,8 +79,13 @@ public class LodManager : MonoBehaviour {
 
 		RenderSettings.fog = true;
 		RenderSettings.fogMode = FogMode.Linear;
-		RenderSettings.fogStartDistance = 0;
+		//RenderSettings.fogStartDistance = 0;
 		RenderSettings.fogEndDistance = theCamera.camera.farClipPlane;
+
+		if (relativeCenterOffset<0.01f || relativeCenterOffset>0.5f) {
+			Debug.LogWarning( "Valid range for LOD's Relative Center Offset is between 0.01 and 0.5, will use default (0.4)" );
+			relativeCenterOffset = 0.4f;
+		}
 	}
 	
 	void Start()
