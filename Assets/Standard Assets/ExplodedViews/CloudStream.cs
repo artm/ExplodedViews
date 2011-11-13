@@ -16,7 +16,7 @@ public class CloudStream
     }
 
 	#region Relative paths utils
-	public const string binDir = "Bin";
+	public static string binDir = "Bin";
 	public static string FindBin(string path) {
 		if (Path.IsPathRooted(path)) {
 			// FIXME this is ugly :(

@@ -33,8 +33,13 @@ public class BinMesh : MonoBehaviour
 
 	void Awake()
 	{
-		string fname = null;
+		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
+	}
 
+	public void Start()
+	{
+		string fname = null;
 		try {
 			fname = CloudStream.FindBin(bin + ".bin");
 		} catch {
@@ -42,15 +47,8 @@ public class BinMesh : MonoBehaviour
 			Object.DestroyImmediate( this );
 			return;
 		}
-
 		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
 
-		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
-		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
-	}
-
-	public void Start()
-	{
 		Transform minmesh = transform.FindChild ("MinMesh");
 		if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
 			minmesh.renderer.sharedMaterial = material;
