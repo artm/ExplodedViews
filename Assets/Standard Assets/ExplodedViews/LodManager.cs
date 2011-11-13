@@ -34,7 +34,10 @@ using System;
 public class LodManager : MonoBehaviour {
 	public bool dontBalanceOnWarp = false;
 	public float relativeCenterOffset = 0.4f;
-	
+
+	public bool overrideLodBreaks = true;
+	public float[] lodBreakDistances = new float[] { 100, 90, 3};
+
 	const int UnloadAll = -1;
 	
 	Transform theCamera;

@@ -17,6 +17,7 @@ public class BinMesh : MonoBehaviour
 	int pointCount = 0;
 
 	GameObject mainCameraGO;
+	LodManager lodManager;
 
 	public long PointsLeft {
 		get {
@@ -45,6 +46,7 @@ public class BinMesh : MonoBehaviour
 		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
 
 		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
 	}
 
 	public void Start()
@@ -68,6 +70,10 @@ public class BinMesh : MonoBehaviour
 		if (material) {
 			material = Object.Instantiate( material ) as Material;
 			material.shader = Object.Instantiate( material.shader ) as Shader;
+		}
+
+		if (lodManager && lodManager.overrideLodBreaks) {
+			lodBreakDistances = lodManager.lodBreakDistances;
 		}
 
 		float lodScale = mainCameraGO.camera.farClipPlane / lodBreakDistances[0];
