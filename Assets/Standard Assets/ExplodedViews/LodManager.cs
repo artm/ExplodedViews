@@ -38,6 +38,8 @@ public class LodManager : MonoBehaviour {
 	public bool overrideLodBreaks = true;
 	public float[] lodBreakDistances = new float[] { 100, 90, 3};
 
+	public Material forcedBinMeshMaterial = null;
+
 	const int UnloadAll = -1;
 	
 	Transform theCamera;

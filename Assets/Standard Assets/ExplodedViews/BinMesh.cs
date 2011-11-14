@@ -57,7 +57,11 @@ public class BinMesh : MonoBehaviour
 		}
 		
 		pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
-		
+
+		if (lodManager && lodManager.forcedBinMeshMaterial!=null) {
+			material  = lodManager.forcedBinMeshMaterial;
+		}
+
 		/*
 		 * Clone the shader object, so that we can change it's maxiumLOD 
 		 * independently of other materials using the same shader.
