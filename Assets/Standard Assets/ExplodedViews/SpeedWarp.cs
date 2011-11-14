@@ -13,8 +13,9 @@ public class SpeedWarp : MonoBehaviour {
 	
 	public float warpFOV = 30;
 	// degrees per second
-	public float fovChangeSpeed = 5;
-	
+	public float fovOpenSpeed = 5;
+	public float fovCloseSpeed = 15;
+
 	float normalFOV;
 	float stamp = -1;
 	
@@ -43,7 +44,7 @@ public class SpeedWarp : MonoBehaviour {
 		// adjust FOV if necessary
 		camera.fov = Mathf.MoveTowardsAngle(camera.fov, 
 			warping ? warpFOV : normalFOV, 
-			Time.deltaTime * fovChangeSpeed);
+			Time.deltaTime * (warping ? fovOpenSpeed : fovCloseSpeed));
 		
 	}
 }
