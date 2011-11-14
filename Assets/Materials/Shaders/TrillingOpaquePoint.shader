@@ -43,8 +43,8 @@ uniform float _TurbulenceAmplitude, _TurbulenceCurliness, _TurbulenceFrequency;
 uniform float _SubLod;
 uniform float4 _NearTint;
 uniform float _TunnelD, _TunnelRadius, _TunnelAspect;
-float attA, attB, attC;
-float minSize, maxSize;
+uniform float attA, attB, attC;
+uniform float minSize, maxSize;
 
 PointV2F vert (PointVIn v)
 {
@@ -60,8 +60,8 @@ PointV2F vert (PointVIn v)
 					* float2(1.0,_TunnelAspect)
 					* _TunnelRadius;
 
-	float d = length(o.pos);
-	float attenuation = Quadratic(d, attA, attB, attC);
+	o.fog = length(o.pos);
+	float attenuation = Quadratic(o.fog, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
@@ -96,8 +96,8 @@ CGPROGRAM
 #include "noise3d.cginc"
 
 uniform float _TurbulenceAmplitude, _TurbulenceCurliness, _TurbulenceFrequency;
-float attA, attB, attC;
-float minSize, maxSize;
+uniform float attA, attB, attC;
+uniform float minSize, maxSize;
 
 PointV2F vert (PointVIn v)
 {
@@ -107,8 +107,8 @@ PointV2F vert (PointVIn v)
 	
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float d = length(o.pos);
-	float attenuation = Quadratic(d, attA, attB, attC);
+	o.fog = length(o.pos);
+	float attenuation = Quadratic(o.fog, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
@@ -137,16 +137,16 @@ CGPROGRAM
 #include "UnityCG.cginc"
 #include "ExplodedShaderLib.cginc"
 
-float attA, attB, attC;
-float minSize, maxSize;
+uniform float attA, attB, attC;
+uniform float minSize, maxSize;
 
 PointV2F vert (PointVIn v)
 {
 	PointV2F o;
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float d = length(o.pos);
-	float attenuation = Quadratic(d, attA, attB, attC);
+	o.fog = length(o.pos);
+	float attenuation = Quadratic(o.fog, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
