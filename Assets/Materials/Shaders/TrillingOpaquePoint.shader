@@ -52,17 +52,16 @@ PointV2F vert (PointVIn v)
 	
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
-	
-	float displacement = max(0.0, 1.0 - o.pos.z / _TunnelD);
-
-	o.pos.xy += normalize(o.pos.xy) 
-					* displacement * displacement
-					* float2(1.0,_TunnelAspect)
-					* _TunnelRadius;
 
 	o.fog = length(o.pos);
 	float attenuation = Quadratic(o.fog, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
+
+	float displacement = max(0.0, 1.0 - o.fog / _TunnelD);
+	o.pos.xy += normalize(o.pos.xy)
+					* displacement 
+					* float2(1.0,_TunnelAspect)
+					* _TunnelRadius;
 
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, size );
