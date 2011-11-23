@@ -44,14 +44,14 @@ public class NetReceive : MonoBehaviour {
 	void Update () {
 		string s;
 
-		if (!netStream) {
+		if (netStream == null) {
 			if (server.Pending()) {
 				tcpClient = server.AcceptTcpClient();
 				netStream = tcpClient.GetStream();
 			}
 		}
 
-		while (netStream && netStream.DataAvailable) {
+		while (netStream != null && netStream.DataAvailable) {
 			try {
 				int numread = netStream.Read(tmpbuf, 0, tmpbuf.Length);
 				s = Encoding.ASCII.GetString(tmpbuf, 0, numread);
