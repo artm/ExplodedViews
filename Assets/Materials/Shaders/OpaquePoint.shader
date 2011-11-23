@@ -30,8 +30,8 @@ PointV2F vert (PointVIn v)
 	float d = length(o.pos);
 	o.fog = d;
 
-	float attenuation = Quadratic(d, attA, attB, attC);
-	float size = max(minSize, maxSize * min(1.0, attenuation));
+	float size = (o.pos.w == 1.0) ? 1 : max(minSize, maxSize * min(1.0, Quadratic(d, attA, attB, attC)));
+
 
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, size );
