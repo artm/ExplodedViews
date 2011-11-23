@@ -22,6 +22,8 @@ public class ExplodedView : EditorWindow {
 		linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
 		if (GUILayout.Button("Make compacts from origs")) MakeCompacts();
 		if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
+
+		if (GUILayout.Button("Add CamList to  each compact")) AddCamsListsToCompacts();
 	}
 
 	IEnumerable<string> CompactPrefabs {
@@ -95,5 +97,14 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
+	void AddCamsListsToCompacts() {
+		foreach(string path in CompactPrefabs) {
+			GameObject prefab = AssetDatabase.LoadAssetAtPath(path,typeof(GameObject)) as GameObject;
+			CamsList cams = prefab.AddComponent<CamsList>();
+			cams.FindCams();
+		}
+		EditorApplication.SaveAssets();
+		EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
+	}
 }
 

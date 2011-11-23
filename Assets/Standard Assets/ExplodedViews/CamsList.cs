@@ -26,8 +26,16 @@ public class CamsList : MonoBehaviour {
 
 	public CamDesc[] cams;
 
+	void OnDrawGizmosSelected()
+	{
+		Gizmos.color = Color.green;
+		foreach(CamDesc cam in cams) {
+			Gizmos.DrawIcon( transform.TransformPoint(cam.position), "TinyRedCross.png");
+		}
+	}
+
 	[ContextMenu("Find cams.txt")]
-	void FindCams()
+	public void FindCams()
 	{
 		string path = "Assets/cams/" + gameObject.name.Replace("--loc", "") + "/cams.txt";
 		TextAsset ta = AssetDatabase.LoadAssetAtPath(path,typeof(TextAsset)) as TextAsset;
@@ -45,6 +53,5 @@ public class CamsList : MonoBehaviour {
 		}
 
 		cams = lst.ToArray();
-		EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
 	}
 }
