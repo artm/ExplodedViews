@@ -24,7 +24,7 @@ public class CamsList : MonoBehaviour {
 		}
 	}
 
-	public CamDesc[] cams;
+	public CamDesc[] cams = new CamDesc[0];
 
 	void OnDrawGizmosSelected()
 	{
