@@ -35,6 +35,13 @@ public class CamsList : MonoBehaviour {
 	}
 
 	[ContextMenu("Find cams.txt")]
+	void FindCamsInteractive()
+	{
+		FindCams();
+		EditorApplication.SaveAssets();
+		EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
+	}
+
 	public void FindCams()
 	{
 		string path = "Assets/cams/" + gameObject.name.Replace("--loc", "") + "/cams.txt";
