@@ -24,7 +24,7 @@ public class ExplodedView : EditorWindow {
 		if (GUILayout.Button("Make compacts from origs")) MakeCompacts();
 		if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
 
-		if (GUILayout.Button("Refresh compacts' cam lists")) AddCamsListsToCompacts();
+		if (GUILayout.Button("Refresh compacts' cam lists")) RefreshCamLists();
 	}
 
 	IEnumerable<string> CompactPaths {
@@ -98,7 +98,7 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
-	void AddCamsListsToCompacts() {
+	void RefreshCamLists() {
 		AssetDatabase.StartAssetEditing();
 		string[] paths = CompactPaths.ToArray();
 		int done = 0;
@@ -109,10 +109,13 @@ public class ExplodedView : EditorWindow {
 				CamsList camsList = prefab.GetComponent<CamsList>();
 				if (camsList == null)
 					camsList = prefab.AddComponent<CamsList>();
-				if (camsList.cams.Length == 0)
+				if (camsList.cams == null)
 					camsList.FindCams();
-				if (camsList.cams.Length == 0)
+				if (camsList.cams == null) {
 					GameObject.DestroyImmediate(camsList,true);
+				} else {
+					camsList.FindSlices();
+				}
 				progressor.Progress( (float)(++done)/paths.Length, "Converted {0}", path );
 			}
 		} finally {
