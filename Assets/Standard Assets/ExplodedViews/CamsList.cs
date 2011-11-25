@@ -157,7 +157,6 @@ public class CamsList : Inflatable {
 	#region slide show run-time / inflatable implementation
 	int currentSlide = -1;
 
-
 	public void StopSlideShow()
 	{
 		currentSlide = -1;
@@ -168,15 +167,13 @@ public class CamsList : Inflatable {
 		return cams != null && cams.Length > 0;
 	}
 
-	public bool IsTimeForNextSlide()
+	public void NextSlide()
 	{
-		// when answering true should have switched to the next slide already
-		if (currentSlide < 0) {
-			currentSlide = Random.Range(0,cams.Length-1);
-			binReader.SeekPoint( cams[currentSlide].slice.offset );
-			return true;
-		}
-		return false;
+		if (cams == null)
+			return;
+
+		currentSlide = Random.Range(0,cams.Length-1);
+		binReader.SeekPoint( cams[currentSlide].slice.offset );
 	}
 
 	static int DivCeil(int a, int b) {

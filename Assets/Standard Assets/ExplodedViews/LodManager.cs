@@ -21,6 +21,10 @@ public class LodManager : MonoBehaviour {
 
 	public Material forcedBinMeshMaterial = null;
 
+	public float slideDelay = 3.0f;
+	float slideDoneTime;
+	bool slideDone = false;
+
 	const int UnloadAll = -1;
 	
 	Transform theCamera;
@@ -135,12 +139,15 @@ public class LodManager : MonoBehaviour {
 						unloadQueue[slideShowNode] = UnloadAll;
 					}
 					slideShowNode = cams.StartSlideShow() ? cams : null;
+					slideDone = true;
+					slideDoneTime = Time.time - slideDelay*2; // make sure new slide will be chosen
 				}
 			}
 
 			if (slideShowNode != null) {
-				if (slideShowNode.IsTimeForNextSlide()) {
+				if (slideDone && (Time.time-slideDoneTime) > slideDelay) {
 					unloadQueue[slideShowNode] = UnloadAll;
+					slideShowNode.NextSlide();
 				}
 				// how many meshes current slide is entitled to?
 				slideShowEntitled =
@@ -233,7 +240,12 @@ public class LodManager : MonoBehaviour {
 			if (slideShowNode != null
 			       && slideShowNode.DetailsCount < slideShowEntitled
 			       && CloudMeshPool.HasFreeMeshes) {
-				yield return StartCoroutine( slideShowNode.LoadOne( CloudMeshPool.Get() ) );
+				yield return StartCoroutine( slideShowNode.LoadOne( CloudMeshPool.Get(),
+				                                                   (float) slideShowNode.CurrentSlideSize() / slideShowEntitled) );
+
+				if (slideShowNode.DetailsCount==slideShowEntitled)
+					slideDoneTime = Time.time;
+
 				continue;
 			}
 
