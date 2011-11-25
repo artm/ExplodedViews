@@ -5,7 +5,7 @@ using System.Collections;
 public abstract class Inflatable : MonoBehaviour {
 	Transform detail;
 
-	void Awake() {
+	public virtual void Awake() {
 		// add detail node if don't have one already
 		detail = transform.FindChild("Detail");
 		if (detail == null) {
@@ -16,6 +16,10 @@ public abstract class Inflatable : MonoBehaviour {
 
 	public int DetailsCount {
 		get {
+			if (!detail) {
+				return 0;
+			}
+
 			return detail.childCount;
 		}
 	}
@@ -23,7 +27,7 @@ public abstract class Inflatable : MonoBehaviour {
 	public IEnumerator LoadOne(GameObject go)
 	{
 		PreLoad(go);
-		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go));
+		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go, 1.0f, NextChunkSize));
 		ProceduralUtils.InsertAtOrigin(go.transform, detail);
 		go.active = true;
 		PostLoad(go);
@@ -39,6 +43,7 @@ public abstract class Inflatable : MonoBehaviour {
 	}
 
 	public abstract CloudStream.Reader Stream { get; }
+	public abstract int NextChunkSize { get; }
 	public abstract void PreLoad(GameObject go);
 	public abstract void PostLoad(GameObject go);
 	public abstract void PostUnload();

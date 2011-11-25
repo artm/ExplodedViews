@@ -15,6 +15,11 @@ public class CloudStream
         stream.Seek((long)offset * pointRecSize, origin);
     }
 
+	public static long PointPosition(Stream stream)
+    {
+        return stream.Position / pointRecSize;
+    }
+
 	#region Relative paths utils
 	public static string binDir = "Bin";
 	public static string FindBin(string path) {
@@ -43,7 +48,7 @@ public class CloudStream
 			// else fall through to error below
 		}
 
-		throw new Pretty.Exception("Couldn't find bin cloud {0}", path);
+		return null;
 	}
 	#endregion
 
@@ -110,21 +115,28 @@ public class CloudStream
         {
 			SeekPoint(offset, SeekOrigin.Begin);
 		}
+
+		public long PointPosition {
+			get {
+				return CloudStream.PointPosition(BaseStream);
+			}
+		}
 		
 		public void ReadPoints(Vector3[] v, Color[] c)
 		{
-			int bytesize = PrepareToRead(v, c, 0, 1f);
+			int amount = -1;
+			int bytesize = PrepareToRead(v, c, 0, 1f, ref amount);
 			Read(chbuffer, 0, bytesize);
 			DecodePoints(v, c, 0, 1f, bytesize/pointRecSize);
 		}
 		
 		byte[] chbuffer = null;
 		Reader mem = null;
-		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride)
+		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride, int amount = -1)
 		{
 			Vector3[] v = buffer.vBuffer;
 			Color[] c = buffer.cBuffer;
-        	int bytesize = PrepareToRead (v, c, buffer.Offset, stride);
+        	int bytesize = PrepareToRead (v, c, buffer.Offset, stride, ref amount);
    
 			System.IAsyncResult asyncRes = BaseStream.BeginRead (chbuffer, 0, bytesize, null, null);
         	// wait for the read to finish, but let the engine go
@@ -137,14 +149,19 @@ public class CloudStream
 		
 		#region Guts
 		// Check parameters for sanity, allocate memory buffer if necessary.
-		int PrepareToRead(Vector3[] v, Color[] c, int offset, float stride)
+		int PrepareToRead(Vector3[] v, Color[] c, int offset, float stride, ref int amount)
 		{
 			if (v.Length != c.Length)
 				throw new Pretty.AssertionFailed("Vertex and color arrays should be of the same size");
 			if (stride < 1f)
 				throw new Pretty.AssertionFailed("Strides less then 1.0 make no sense");
+
+			if (amount < 0) {
+				// until the end of the buffer
+				amount = v.Length - offset;
+			}
 			
-			int bytesize = Math.Min(Mathf.CeilToInt(stride * (v.Length - offset - 1) + 1) * pointRecSize,
+			int bytesize = Math.Min(Mathf.CeilToInt(stride * (amount - 1) + 1) * pointRecSize,
 			                        (int)(BaseStream.Length - BaseStream.Position));
 			
 			if (chbuffer == null || chbuffer.Length < bytesize) {
@@ -183,6 +200,12 @@ public class CloudStream
         {
             CloudStream.SeekPoint(BaseStream, offset, origin);
         }
+
+		public long PointPosition {
+			get {
+				return CloudStream.PointPosition(BaseStream);
+			}
+		}
 
         public void WritePoint(Vector3 v, Color c)
         {

@@ -12,8 +12,8 @@ using System.Text.RegularExpressions;
 public class CamsList : Inflatable {
 	[System.Serializable]
 	public class Slice {
-		public long offset = 0, length = 0;
-		public Slice(long o, long l) {
+		public int offset = 0, length = 0;
+		public Slice(int o, int l) {
 			offset = o;
 			length = l;
 		}
@@ -37,6 +37,37 @@ public class CamsList : Inflatable {
 	}
 
 	public CamDesc[] cams;
+	CloudStream.Reader binReader;
+
+	public override void Awake()
+	{
+		// forget sliceless cameras
+		cams = cams.Where(c => c.slice != null).ToArray();
+		if (cams.Length == 0)
+			cams = null;
+		base.Awake();
+	}
+
+	void Start()
+	{
+		if (cams == null)
+			return;
+
+		string path = CloudStream.FindBin(BaseName + ".bin");
+		if (path == null) {
+			// no orig => no slide show
+			Debug.LogError("Original bin not found for " + BaseName);
+			cams = null;
+			return;
+		}
+		binReader = new CloudStream.Reader( new FileStream( path, FileMode.Open, FileAccess.Read ) );
+	}
+
+	void OnApplicationQuit()
+	{
+		if (binReader != null)
+			binReader.Close();
+	}
 
 	void OnDrawGizmosSelected()
 	{
@@ -115,7 +146,7 @@ public class CamsList : Inflatable {
 				string id = m.Groups[1].Value;
 
 				if (camDict.ContainsKey(id)) {
-					camDict[id].slice = new CamsList.Slice( long.Parse(tokens[1]), long.Parse(tokens[2]));
+					camDict[id].slice = new CamsList.Slice( int.Parse(tokens[1]), int.Parse(tokens[2]));
 				} else {
 					Debug.LogWarning("Couldn't find camera for slice " + id);
 				}
@@ -124,47 +155,69 @@ public class CamsList : Inflatable {
 	}
 
 	#region slide show run-time / inflatable implementation
+	int currentSlide = -1;
+
+
 	public void StopSlideShow()
 	{
-		throw new System.NotImplementedException("Slide show not implemented in CamsList");
+		currentSlide = -1;
 	}
 
 	public bool StartSlideShow()
 	{
-		throw new System.NotImplementedException("Slide show not implemented in CamsList");
-		//return false;
+		return cams != null && cams.Length > 0;
 	}
 
-	public bool NewSlide()
+	public bool IsTimeForNextSlide()
 	{
-		throw new System.NotImplementedException("Slide show not implemented in CamsList");
+		// when answering true should have switched to the next slide already
+		if (currentSlide < 0) {
+			currentSlide = Random.Range(0,cams.Length-1);
+			binReader.SeekPoint( cams[currentSlide].slice.offset );
+			return true;
+		}
+		return false;
 	}
 
-	// in pool buffers!
+	static int DivCeil(int a, int b) {
+		return (a+b-1) / b;
+	}
+
 	public int CurrentSlideSize()
 	{
-		throw new System.NotImplementedException("Slide show not implemented in CamsList");
-		//return 0;
+		return DivCeil(cams[currentSlide].slice.length, CloudMeshPool.pointsPerMesh);
 	}
 
 	public override CloudStream.Reader Stream
 	{
 		get
 		{
-			throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+			return binReader;
 		}
 	}
+
+	public override int NextChunkSize
+	{
+		get {
+			return System.Math.Min(CloudMeshPool.pointsPerMesh,
+			                       cams[currentSlide].slice.length
+			                       - ((int)binReader.PointPosition-cams[currentSlide].slice.offset ));
+		}
+	}
+
 	public override void PreLoad(GameObject go)
 	{
-		throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+		// what should we do here?
 	}
+
 	public override void PostLoad(GameObject go)
 	{
-		throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+		// what should we do here?
 	}
+
 	public override void PostUnload()
 	{
-		throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+		// what should we do here?
 	}
 	#endregion
 

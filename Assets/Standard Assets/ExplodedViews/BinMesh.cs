@@ -30,19 +30,17 @@ public class BinMesh : Inflatable
 		}
 	}
 	
-	void Awake()
+	public override void Awake()
 	{
 		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
 		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
+		base.Awake();
 	}
 
 	public void Start()
 	{
-		string fname = null;
-		try {
-			fname = CloudStream.FindBin(bin + ".bin");
-		} catch {
-			//Debug.LogWarning("Couldn't find " + bin);
+		string fname = CloudStream.FindBin(bin + ".bin");
+		if (fname==null) {
 			Object.DestroyImmediate( this );
 			return;
 		}
@@ -86,7 +84,8 @@ public class BinMesh : Inflatable
 	
 	void OnApplicationQuit()
 	{
-		binReader.Close();
+		if (binReader != null)
+			binReader.Close();
 	}
 	
 	// assume that we've got distance from camera set by LodManager
@@ -134,6 +133,15 @@ public class BinMesh : Inflatable
 			return binReader;
 		}
 	}
+
+	public override int NextChunkSize
+	{
+		get {
+			return CloudMeshPool.pointsPerMesh;
+		}
+	}
+
+
 	public override void PreLoad(GameObject go)
 	{
 		// nothing to do

@@ -55,7 +55,7 @@ public class LodManager : MonoBehaviour {
 			unloadQueue[ bm ] = UnloadAll; // special value - unload all at once
 		}
 
-		if (other.transform.parent.parent == slideShowNode) {
+		if (slideShowNode && other.transform.parent.parent == slideShowNode) {
 			foreach(Collider box in slideShowNode.GetComponentsInChildren<Collider>()) {
 				if (managed.Contains(box.transform))
 					return;
@@ -139,7 +139,7 @@ public class LodManager : MonoBehaviour {
 			}
 
 			if (slideShowNode != null) {
-				if (slideShowNode.NewSlide()) {
+				if (slideShowNode.IsTimeForNextSlide()) {
 					unloadQueue[slideShowNode] = UnloadAll;
 				}
 				// how many meshes current slide is entitled to?
