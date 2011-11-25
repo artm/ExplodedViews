@@ -30,12 +30,6 @@ public class BinMesh : Inflatable
 		}
 	}
 	
-	public int DetailMeshCount {
-		get {
-			return transform.FindChild("Detail").childCount;
-		}
-	}
-
 	void Awake()
 	{
 		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");

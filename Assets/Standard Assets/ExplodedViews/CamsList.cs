@@ -9,7 +9,7 @@ using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
 
-public class CamsList : MonoBehaviour {
+public class CamsList : Inflatable {
 	[System.Serializable]
 	public class Slice {
 		public long offset = 0, length = 0;
@@ -123,18 +123,49 @@ public class CamsList : MonoBehaviour {
 		}
 	}
 
+	#region slide show run-time / inflatable implementation
 	public void StopSlideShow()
 	{
-
+		throw new System.NotImplementedException("Slide show not implemented in CamsList");
 	}
 
 	public bool StartSlideShow()
 	{
-		return false;
+		throw new System.NotImplementedException("Slide show not implemented in CamsList");
+		//return false;
 	}
 
-	public long CurrentSlideSize()
+	public bool NewSlide()
 	{
-		return 0;
+		throw new System.NotImplementedException("Slide show not implemented in CamsList");
 	}
+
+	// in pool buffers!
+	public int CurrentSlideSize()
+	{
+		throw new System.NotImplementedException("Slide show not implemented in CamsList");
+		//return 0;
+	}
+
+	public override CloudStream.Reader Stream
+	{
+		get
+		{
+			throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+		}
+	}
+	public override void PreLoad(GameObject go)
+	{
+		throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+	}
+	public override void PostLoad(GameObject go)
+	{
+		throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+	}
+	public override void PostUnload()
+	{
+		throw new System.NotImplementedException("Inflatable not implemented in CamsList");
+	}
+	#endregion
+
 }

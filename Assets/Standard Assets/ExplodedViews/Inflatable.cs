@@ -14,7 +14,7 @@ public abstract class Inflatable : MonoBehaviour {
 		}
 	}
 
-	int DetailsCount {
+	public int DetailsCount {
 		get {
 			return detail.childCount;
 		}

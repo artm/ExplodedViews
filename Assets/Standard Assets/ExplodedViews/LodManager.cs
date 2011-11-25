@@ -25,39 +25,45 @@ public class LodManager : MonoBehaviour {
 	
 	Transform theCamera;
 	SpeedWarp speedWarp;
-	HashSet<BinMesh> managed = new HashSet<BinMesh>();
+	HashSet<Transform> managed = new HashSet<Transform>();
 	Queue<BinMesh> loadQueue = new Queue<BinMesh>();
-	Dictionary<BinMesh, int> unloadQueue = new Dictionary<BinMesh, int>();
+	Dictionary<Inflatable, int> unloadQueue = new Dictionary<Inflatable, int>();
 
-	CamsList slideShowNode;
+	CamsList slideShowNode = null;
+	int slideShowEntitled = 0;
 	#endregion
 	
 	void OnTriggerEnter(Collider other)
 	{
-		if (other.transform.parent == null)
-			return;
-		
-		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
-		if (bm) {
-			Debug.Log(string.Format("managing {0}", bm.name));
-			managed.Add(bm);
-		}
+		if (other.name == "Box")
+			managed.Add(other.transform);
 	}
 
 	void OnTriggerExit(Collider other)
 	{
-		if (other.transform.parent == null)
+		if (other.name != "Box")
 			return;
-		
+
+		managed.Remove(other.transform);
+
 		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
 		if (bm) {
-			Debug.Log(string.Format("unmanaging {0}", bm.name));
-			managed.Remove(bm);
 			if (loadQueue.Contains(bm)) {
 				BinMesh[] lst = { bm };
 				loadQueue = new Queue<BinMesh>(loadQueue.Except(lst));
 			}
 			unloadQueue[ bm ] = UnloadAll; // special value - unload all at once
+		}
+
+		if (other.transform.parent.parent == slideShowNode) {
+			foreach(Collider box in slideShowNode.GetComponentsInChildren<Collider>()) {
+				if (managed.Contains(box.transform))
+					return;
+			}
+			// if got here then slide show contains no more managed boxes
+			slideShowNode.StopSlideShow();
+			unloadQueue[slideShowNode] = UnloadAll;
+			slideShowEntitled = 0;
 		}
 	}
 	
@@ -96,42 +102,55 @@ public class LodManager : MonoBehaviour {
 
 		#region Update distances from camera to managed BinMesh'es
 		float sum = 0, minDist = 0;
-		BinMesh closest = null;
+		Transform closest = null;
 		Vector3 camPos = theCamera.position;
-		foreach(BinMesh bm in managed) {
-			Vector3 closestPoint = bm.transform.Find("Box").collider.ClosestPointOnBounds(camPos);
-			bm.distanceFromCamera = Vector3.Distance(camPos, closestPoint);
-			sum += bm.distanceFromCamera;
-			bm.UpdateLod();
+		foreach(Transform box in managed) {
+			Vector3 closestPoint = box.collider.ClosestPointOnBounds(camPos);
 
-			if (minDist > bm.distanceFromCamera || closest == null) {
-				minDist = bm.distanceFromCamera;
-				closest = bm;
+			float distance = Vector3.Distance(camPos, closestPoint);
+
+			BinMesh bm = box.parent.GetComponent<BinMesh>();
+			if (bm != null) {
+				bm.distanceFromCamera = distance;
+				bm.UpdateLod();
+				sum += distance;
+			}
+
+			if (minDist > distance || closest == null) {
+				minDist = distance;
+				closest = box;
 			}
 		}
 		#endregion
 
 		#region setup slide show
-		int slideShowEntitled = 0;
+		slideShowEntitled = 0;
 		if (closest) {
-			CamsList cams = closest.transform.parent.GetComponent<CamsList>();
+			CamsList cams = closest.parent.parent.GetComponent<CamsList>();
 			if (cams != null) {
 				if (cams != slideShowNode) {
 					// switch slide show node
-					slideShowNode.StopSlideShow();
-					if (cams.StartSlideShow())
-						slideShowNode = cams;
-					else
-						slideShowNode = null;
+					if (slideShowNode != null) {
+						slideShowNode.StopSlideShow();
+						unloadQueue[slideShowNode] = UnloadAll;
+					}
+					slideShowNode = cams.StartSlideShow() ? cams : null;
 				}
 			}
 
 			if (slideShowNode != null) {
+				if (slideShowNode.NewSlide()) {
+					unloadQueue[slideShowNode] = UnloadAll;
+				}
 				// how many meshes current slide is entitled to?
 				slideShowEntitled =
-					System.Math.Min(Mathf.CeilToInt((float)slideShowNode.CurrentSlideSize()
-					                                / CloudMeshPool.pointsPerMesh),
+					System.Math.Min(slideShowNode.CurrentSlideSize(),
 					                CloudMeshPool.Capacity);
+				// unload slideshow children and discount them in load-balancing
+				foreach(BinMesh bm in slideShowNode.GetComponentsInChildren<BinMesh>()) {
+					unloadQueue[bm] = UnloadAll;
+					sum -= bm.distanceFromCamera;
+				}
 			}
 		}
 		#endregion
@@ -139,20 +158,23 @@ public class LodManager : MonoBehaviour {
 		#region distribute the rest of the pool
 		int buffersLeft = CloudMeshPool.Capacity - slideShowEntitled;
 		HashSet<BinMesh> toRemove = new HashSet<BinMesh>();
-		foreach(BinMesh bm in managed) {
+		foreach(Transform box in managed) {
+			if (box.parent.parent == slideShowNode.transform) continue;
+			BinMesh bm = box.parent.GetComponent<BinMesh>();
+			if (bm == null) continue;
 			// how many meshes this BinMesh is entitled to?
 			int entitled = (managed.Count == 1) ? buffersLeft :
 				Mathf.RoundToInt(
 					(float)buffersLeft * (1.0f - bm.distanceFromCamera / sum));
 			
-			int has = bm.DetailMeshCount;
+			int has = bm.DetailsCount;
 			if (entitled < has) {
 				// free surplus meshes
 				unloadQueue[bm] = has - entitled;
 				if (loadQueue.Contains(bm))
 					toRemove.Add(bm);
 			} else if (entitled > has) {
-				long canLoad = Math.Min(bm.PointsLeft / 16128, entitled - has);
+				long canLoad = Math.Min(bm.PointsLeft / CloudMeshPool.pointsPerMesh, entitled - has);
 				if (canLoad > 0 && !loadQueue.Contains(bm)) {
 					loadQueue.Enqueue(bm);
 				}
@@ -169,29 +191,29 @@ public class LodManager : MonoBehaviour {
 	{
 		while (true) 
 		{
-			// try freeing at least once
+			#region try freeing at least once
 			do {
 				// free some
-				HashSet<BinMesh> toRemove = new HashSet<BinMesh>();
+				HashSet<Inflatable> toRemove = new HashSet<Inflatable>();
 				// copy the keys collection so we can modify unloadQueue inside the loop
-				foreach(BinMesh bm in new List<BinMesh>(unloadQueue.Keys)) {
-					int todo = unloadQueue[bm];
+				foreach(Inflatable inflatable in new List<Inflatable>(unloadQueue.Keys)) {
+					int todo = unloadQueue[inflatable];
 					
 					if (todo == UnloadAll) {
-						bm.ReturnDetails(bm.DetailMeshCount);
+						inflatable.ReturnDetails(inflatable.DetailsCount);
 						todo = 0;
 					} else if (todo > 0) {
-						bm.ReturnDetails(1);
+						inflatable.ReturnDetails(1);
 						todo--;
 					}
 					
 					if (todo == 0) {
-						toRemove.Add(bm);
+						toRemove.Add(inflatable);
 					} else {
-						unloadQueue[bm] = todo;
+						unloadQueue[inflatable] = todo;
 					}
 				}
-				foreach(BinMesh bm in toRemove)
+				foreach(Inflatable bm in toRemove)
 					unloadQueue.Remove(bm);
 
 				if (!CloudMeshPool.HasFreeMeshes)
@@ -199,7 +221,22 @@ public class LodManager : MonoBehaviour {
 			
 				// continue trying if haven't freed anything
 			} while (!CloudMeshPool.HasFreeMeshes);
-			
+			#endregion
+
+			#region Load one mesh
+			/*
+			 * We only load one mesh at a time because in the mean time load/unload queues
+			 * could have changed
+			 */
+
+			// See if slide show needs more meshes...
+			if (slideShowNode != null
+			       && slideShowNode.DetailsCount < slideShowEntitled
+			       && CloudMeshPool.HasFreeMeshes) {
+				yield return StartCoroutine( slideShowNode.LoadOne( CloudMeshPool.Get() ) );
+				continue;
+			}
+
 			if (loadQueue.Count == 0) {
 				// nothing to load yet...
 				yield return null;
@@ -208,6 +245,7 @@ public class LodManager : MonoBehaviour {
 			
 			BinMesh toLoad = loadQueue.Dequeue();
 			yield return StartCoroutine( toLoad.LoadOne( CloudMeshPool.Get() ) );
+			#endregion
 		}
 	}
 }
