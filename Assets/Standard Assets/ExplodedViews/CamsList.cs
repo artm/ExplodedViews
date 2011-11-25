@@ -122,4 +122,19 @@ public class CamsList : MonoBehaviour {
 			}
 		}
 	}
+
+	public void StopSlideShow()
+	{
+
+	}
+
+	public bool StartSlideShow()
+	{
+		return false;
+	}
+
+	public long CurrentSlideSize()
+	{
+		return 0;
+	}
 }

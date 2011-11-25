@@ -4,26 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-/*
- * 
- * 1. LOD manager maintains a set of nearby clouds [x]
- * 2. desides how many meshes each cloud is entitled to [x]
- * 3. frees surplus meshes [x]
- * 4. makes the load requests queue: add each cloud that misses meshes once [x]
- * 
- * in stead of rewriting the que each time: when cleaning up meshes clean them 
- * from the current queue, when adding meshes, add them to the end of the queue 
- * and only if they ain't there already (may be there is ordered set collection?)
- * 
- * To do be able to do this need colliders for clouds - e.g. boxes.
- * 
- * 
- * Would use SortedSet to sort on distance. Oops, not in this version of mono :(
- * Can use SortedDictionary.
- * 
- * Removal should be queued as well so that it can't run parallel with loading
- */
-
 /* 
  * Rigidbody is necessary to receive OnTrigger* events, setting it to 'kinematic' 
  * makes sure physics doesn't affect it.
@@ -32,6 +12,7 @@ using System;
 [RequireComponent(typeof(Collider))]
 [RequireComponent(typeof(CloudMeshPool))]
 public class LodManager : MonoBehaviour {
+	#region fields
 	public bool dontBalanceOnWarp = false;
 	public float relativeCenterOffset = 0.4f;
 
@@ -47,6 +28,9 @@ public class LodManager : MonoBehaviour {
 	HashSet<BinMesh> managed = new HashSet<BinMesh>();
 	Queue<BinMesh> loadQueue = new Queue<BinMesh>();
 	Dictionary<BinMesh, int> unloadQueue = new Dictionary<BinMesh, int>();
+
+	CamsList slideShowNode;
+	#endregion
 	
 	void OnTriggerEnter(Collider other)
 	{
@@ -109,22 +93,57 @@ public class LodManager : MonoBehaviour {
 	{
 		if (dontBalanceOnWarp && speedWarp.Warping) 
 			return;
-		
-		float sum = 0;
+
+		#region Update distances from camera to managed BinMesh'es
+		float sum = 0, minDist = 0;
+		BinMesh closest = null;
 		Vector3 camPos = theCamera.position;
 		foreach(BinMesh bm in managed) {
-			Vector3 closest = bm.transform.Find("Box").collider.ClosestPointOnBounds(camPos);
-			bm.distanceFromCamera = Vector3.Distance(camPos, closest);
+			Vector3 closestPoint = bm.transform.Find("Box").collider.ClosestPointOnBounds(camPos);
+			bm.distanceFromCamera = Vector3.Distance(camPos, closestPoint);
 			sum += bm.distanceFromCamera;
 			bm.UpdateLod();
+
+			if (minDist > bm.distanceFromCamera || closest == null) {
+				minDist = bm.distanceFromCamera;
+				closest = bm;
+			}
 		}
-		
+		#endregion
+
+		#region setup slide show
+		int slideShowEntitled = 0;
+		if (closest) {
+			CamsList cams = closest.transform.parent.GetComponent<CamsList>();
+			if (cams != null) {
+				if (cams != slideShowNode) {
+					// switch slide show node
+					slideShowNode.StopSlideShow();
+					if (cams.StartSlideShow())
+						slideShowNode = cams;
+					else
+						slideShowNode = null;
+				}
+			}
+
+			if (slideShowNode != null) {
+				// how many meshes current slide is entitled to?
+				slideShowEntitled =
+					System.Math.Min(Mathf.CeilToInt((float)slideShowNode.CurrentSlideSize()
+					                                / CloudMeshPool.pointsPerMesh),
+					                CloudMeshPool.Capacity);
+			}
+		}
+		#endregion
+
+		#region distribute the rest of the pool
+		int buffersLeft = CloudMeshPool.Capacity - slideShowEntitled;
 		HashSet<BinMesh> toRemove = new HashSet<BinMesh>();
 		foreach(BinMesh bm in managed) {
 			// how many meshes this BinMesh is entitled to?
-			int entitled = (managed.Count == 1) ? CloudMeshPool.Capacity :
+			int entitled = (managed.Count == 1) ? buffersLeft :
 				Mathf.RoundToInt(
-					(float)CloudMeshPool.Capacity * (1.0f - bm.distanceFromCamera / sum));
+					(float)buffersLeft * (1.0f - bm.distanceFromCamera / sum));
 			
 			int has = bm.DetailMeshCount;
 			if (entitled < has) {
@@ -143,6 +162,7 @@ public class LodManager : MonoBehaviour {
 		if (toRemove.Count > 0) {
 			loadQueue = new Queue<BinMesh>(loadQueue.Except(toRemove));
 		}
+		#endregion
 	}
 	
 	IEnumerator ProcessLoadQueue()
@@ -153,15 +173,14 @@ public class LodManager : MonoBehaviour {
 			do {
 				// free some
 				HashSet<BinMesh> toRemove = new HashSet<BinMesh>();
+				// copy the keys collection so we can modify unloadQueue inside the loop
 				foreach(BinMesh bm in new List<BinMesh>(unloadQueue.Keys)) {
 					int todo = unloadQueue[bm];
 					
 					if (todo == UnloadAll) {
-						//Debug.Log(string.Format("{0}: Returning all meshes", bm.name));
 						bm.ReturnDetails(bm.DetailMeshCount);
 						todo = 0;
 					} else if (todo > 0) {
-						//Debug.Log(string.Format("{0}: Returning one mesh", bm.name));
 						bm.ReturnDetails(1);
 						todo--;
 					}
