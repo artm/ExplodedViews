@@ -75,11 +75,17 @@ public class LodManager : MonoBehaviour {
 	{
 		theCamera = transform.parent.Find("Camera");
 		speedWarp = theCamera.GetComponent<SpeedWarp>();
-
-		RenderSettings.fog = true;
+		
+		// adjust lod breaks
+		float lodScale = theCamera.camera.farClipPlane / lodBreakDistances[0];
+		for(int i=0; i<lodBreakDistances.Length; i++)
+			lodBreakDistances[i] *= lodScale;		
+		
+		// adjust fog to lod breaks
+		//RenderSettings.fog = true;
 		RenderSettings.fogMode = FogMode.Linear;
-		//RenderSettings.fogStartDistance = 0;
-		RenderSettings.fogEndDistance = theCamera.camera.farClipPlane;
+		RenderSettings.fogStartDistance = lodBreakDistances[1];
+		RenderSettings.fogEndDistance = lodBreakDistances[0];
 
 		if (relativeCenterOffset<0.01f || relativeCenterOffset>0.5f) {
 			Debug.LogWarning( "Valid range for LOD's Relative Center Offset is between 0.01 and 0.5, will use default (0.4)" );

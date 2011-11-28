@@ -16,7 +16,7 @@ public class BinMesh : Inflatable
 	CloudStream.Reader binReader = null;
 	int pointCount = 0;
 
-	GameObject mainCameraGO;
+//	GameObject mainCameraGO;
 	LodManager lodManager;
 	// distance -> LOD
 	public float[] lodBreakDistances = new float[] { 100, 15, 7};
@@ -32,7 +32,7 @@ public class BinMesh : Inflatable
 	
 	public override void Awake()
 	{
-		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+//		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
 		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
 		base.Awake();
 	}
@@ -74,10 +74,6 @@ public class BinMesh : Inflatable
 		if (lodManager && lodManager.overrideLodBreaks) {
 			lodBreakDistances = lodManager.lodBreakDistances;
 		}
-
-		float lodScale = mainCameraGO.camera.farClipPlane / lodBreakDistances[0];
-		for(int i=0; i<lodBreakDistances.Length; i++)
-			lodBreakDistances[i] *= lodScale;
 
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
 	}
