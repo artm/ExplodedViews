@@ -9,11 +9,11 @@ Shader "Exploded Views/Opaque Point" {
 	SubShader {
 		Tags { "Queue" = "Geometry" }
 		Pass {
+		
+		
 CGPROGRAM
-// Upgrade NOTE: excluded shader from OpenGL ES 2.0 because it does not contain a surface program
-// or both vertex and fragment programs.
-#pragma exclude_renderers gles
 #pragma vertex vert
+#pragma fragment frag
 
 #include "UnityCG.cginc"
 #include "ExplodedShaderLib.cginc"
@@ -28,10 +28,10 @@ PointV2F vert (PointVIn v)
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
 	float d = length(o.pos);
-	o.fog = d;
+	//o.fog = o.pos.z;
 
-	float size = (o.pos.w == 1.0) ? 1 : max(minSize, maxSize * min(1.0, Quadratic(d, attA, attB, attC)));
-
+	float attenuation = Quadratic(d, attA, attB, attC);
+	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, size );
@@ -40,6 +40,10 @@ PointV2F vert (PointVIn v)
     o.color = v.color;
 
  	return o;
+}
+
+half4 frag(PointV2F i) : COLOR { 
+	return i.color; 
 }
 
 ENDCG	

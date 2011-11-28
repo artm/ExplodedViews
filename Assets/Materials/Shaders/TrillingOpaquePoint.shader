@@ -24,12 +24,16 @@ Shader "Exploded Views/Trilling Opaque Point" {
 	//   0:	simple (possibly foggy) points
 	// 250:	turbulence
 	// 500:	turbulence + near-tint fading in + tunnel
-	
+
 	SubShader {
 	LOD 500
 	Tags { "Queue" = "Geometry" }
 
-	Pass {
+	Pass {	
+
+		Fog { Mode Off }
+
+
 CGPROGRAM
 #pragma target 3.0
 #pragma vertex vert
@@ -53,11 +57,12 @@ PointV2F vert (PointVIn v)
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	o.fog = length(o.pos);
-	float attenuation = Quadratic(o.fog, attA, attB, attC);
+	float d = length(o.pos);
+	//o.fog = o.pos.z;
+	float attenuation = Quadratic(d, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
 
-	float displacement = max(0.0, 1.0 - o.fog / _TunnelD);
+	float displacement = max(0.0, 1.0 - d / _TunnelD);
 	o.pos.xy += normalize(o.pos.xy)
 					* displacement 
 					* float2(1.0,_TunnelAspect)
@@ -72,7 +77,9 @@ PointV2F vert (PointVIn v)
  	return o;
 }
 
-half4 frag(PointV2F i) : COLOR { return lerp( i.color, _NearTint, _SubLod * _NearTint.a ); }
+half4 frag(PointV2F i) : COLOR { 
+	return lerp( i.color, _NearTint, _SubLod * _NearTint.a ); 
+}
 
 ENDCG
 
@@ -85,6 +92,10 @@ ENDCG
 		Tags { "Queue" = "Geometry" }
 
 		Pass {
+		
+		Fog { Mode Off }
+
+		
 CGPROGRAM
 #pragma target 3.0
 #pragma vertex vert
@@ -106,8 +117,8 @@ PointV2F vert (PointVIn v)
 	
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	o.fog = length(o.pos);
-	float attenuation = Quadratic(o.fog, attA, attB, attC);
+	float d = length(o.pos);
+	float attenuation = Quadratic(d, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
@@ -119,7 +130,9 @@ PointV2F vert (PointVIn v)
  	return o;
 }
 
-half4 frag(PointV2F i) : COLOR { return i.color; }
+half4 frag(PointV2F i) : COLOR { 
+	return i.color; 
+}
 
 ENDCG
 
@@ -144,8 +157,9 @@ PointV2F vert (PointVIn v)
 	PointV2F o;
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	o.fog = length(o.pos);
-	float attenuation = Quadratic(o.fog, attA, attB, attC);
+	//o.fog = o.pos.z;
+	float d = length(o.pos);
+	float attenuation = Quadratic(d, attA, attB, attC);
 	float size = max(minSize, maxSize * min(1.0, attenuation));
 
     // billboard...
