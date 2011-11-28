@@ -14,6 +14,7 @@ using System;
 public class LodManager : MonoBehaviour {
 	#region fields
 	public bool dontBalanceOnWarp = false;
+	public bool slideShowMode = false;
 	public float relativeCenterOffset = 0.4f;
 
 	public bool overrideLodBreaks = true;
@@ -22,8 +23,7 @@ public class LodManager : MonoBehaviour {
 	public Material forcedBinMeshMaterial = null;
 
 	public float slideDelay = 3.0f;
-	float slideDoneTime;
-	bool slideDone = false;
+	float slideDoneTime = -1;
 
 	const int UnloadAll = -1;
 	
@@ -68,6 +68,7 @@ public class LodManager : MonoBehaviour {
 			slideShowNode.StopSlideShow();
 			unloadQueue[slideShowNode] = UnloadAll;
 			slideShowEntitled = 0;
+			slideShowNode = null;
 		}
 	}
 	
@@ -134,8 +135,7 @@ public class LodManager : MonoBehaviour {
 		#endregion
 
 		#region setup slide show
-		slideShowEntitled = 0;
-		if (closest) {
+		if (slideShowMode && closest) {
 			CamsList cams = closest.parent.parent.GetComponent<CamsList>();
 			if (cams != null) {
 				if (cams != slideShowNode) {
@@ -145,34 +145,35 @@ public class LodManager : MonoBehaviour {
 						unloadQueue[slideShowNode] = UnloadAll;
 					}
 					slideShowNode = cams.StartSlideShow() ? cams : null;
-					slideDone = true;
 					slideDoneTime = Time.time - slideDelay*2; // make sure new slide will be chosen
 				}
 			}
+		}
 
-			if (slideShowNode != null) {
-				if (slideDone && (Time.time-slideDoneTime) > slideDelay) {
-					unloadQueue[slideShowNode] = UnloadAll;
-					slideShowNode.NextSlide();
-				}
-				// how many meshes current slide is entitled to?
+		if (slideShowNode != null) {
+			if ((slideDoneTime > 0) && ((Time.time-slideDoneTime) > slideDelay)) {
+				unloadQueue[slideShowNode] = UnloadAll;
+				slideShowNode.NextSlide();
+				slideDoneTime = -1;
 				slideShowEntitled =
 					System.Math.Min(slideShowNode.CurrentSlideSize(),
-					                CloudMeshPool.Capacity);
-				// unload slideshow children and discount them in load-balancing
-				foreach(BinMesh bm in slideShowNode.GetComponentsInChildren<BinMesh>()) {
-					unloadQueue[bm] = UnloadAll;
-					sum -= bm.distanceFromCamera;
-				}
+					                CloudMeshPool.Capacity / 2);
+				Debug.Log("Next slide wants: " + slideShowEntitled + " buffers");
 			}
-		}
+			// unload slideshow children and discount them in load-balancing
+			foreach(BinMesh bm in slideShowNode.GetComponentsInChildren<BinMesh>()) {
+				unloadQueue[bm] = UnloadAll;
+				sum -= bm.distanceFromCamera;
+			}
+		} else
+			slideShowEntitled = 0;
 		#endregion
 
 		#region distribute the rest of the pool
 		int buffersLeft = CloudMeshPool.Capacity - slideShowEntitled;
 		HashSet<BinMesh> toRemove = new HashSet<BinMesh>();
 		foreach(Transform box in managed) {
-			if (box.parent.parent == slideShowNode.transform) continue;
+			if (slideShowNode != null && box.parent.parent == slideShowNode.transform) continue;
 			BinMesh bm = box.parent.GetComponent<BinMesh>();
 			if (bm == null) continue;
 			// how many meshes this BinMesh is entitled to?
@@ -244,13 +245,14 @@ public class LodManager : MonoBehaviour {
 
 			// See if slide show needs more meshes...
 			if (slideShowNode != null
-			       && slideShowNode.DetailsCount < slideShowEntitled
-			       && CloudMeshPool.HasFreeMeshes) {
-				yield return StartCoroutine( slideShowNode.LoadOne( CloudMeshPool.Get(),
-				                                                   (float) slideShowNode.CurrentSlideSize() / slideShowEntitled) );
-
-				if (slideShowNode.DetailsCount==slideShowEntitled)
-					slideDoneTime = Time.time;
+			       && slideShowNode.DetailsCount < slideShowEntitled) {
+				if (CloudMeshPool.HasFreeMeshes) {				
+					yield return StartCoroutine( slideShowNode.LoadOne( CloudMeshPool.Get(),
+					                                                   (float) slideShowNode.CurrentSlideSize() / slideShowEntitled) );
+	
+					if (slideShowNode.DetailsCount==slideShowEntitled)
+						slideDoneTime = Time.time;
+				}
 
 				continue;
 			}
