@@ -39,8 +39,6 @@ public class NetReceive : MonoBehaviour {
 		server.Start();
 	}
 
-	char[] trimUs = " ;".ToCharArray();
-
 	void Update () {
 		string s;
 
@@ -49,6 +47,7 @@ public class NetReceive : MonoBehaviour {
 			netStream = incoming_client.GetStream();
 			waiting = true;
 		}
+		
 		while (waiting && netStream.DataAvailable) {
 			try {
 				int numread = 0;
@@ -56,11 +55,7 @@ public class NetReceive : MonoBehaviour {
 				numread = netStream.Read(tmpbuf, 0, tmpbuf.Length);
 
 				s = Encoding.ASCII.GetString(tmpbuf, 0, numread);
-				foreach(string line in s.Split('\n')) {
-					//Debug.Log("Got: " + line);
-					string[] parms = line.TrimEnd(trimUs).Split(' ');
-					BroadcastMessage("NetReceive", parms, SendMessageOptions.DontRequireReceiver);
-				}
+				BroadcastMessage("NetReceive", s, SendMessageOptions.DontRequireReceiver);							
 			}
 			//Called when netStream fails to read from the stream.
 			catch (IOException) {
@@ -75,6 +70,4 @@ public class NetReceive : MonoBehaviour {
 			}
 		}	
 	}
-	
-
 }
