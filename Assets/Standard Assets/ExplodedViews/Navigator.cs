@@ -5,7 +5,7 @@ using System.Collections;
 public class Navigator : MonoBehaviour {
 	
 	public float walkSpeed = 1;
-	public float walkSpeedExp = 2;
+	//public float walkSpeedExp = 2;
 	public float turnSpeed = 1;
 	public float CogForwardScaling = 0.001f; /* to meters */
 	public float CogSidewaysScaling = 0.001f; /* to meters */
@@ -51,7 +51,7 @@ public class Navigator : MonoBehaviour {
 		
 		forward += Input.GetAxis("SecondVertical");
 		forward *= walkSpeed;
-		forward = Mathf.Sign(forward)*Mathf.Pow(forward, walkSpeedExp);
+		//forward = Mathf.Sign(forward)*Mathf.Abs(Mathf.Pow(forward, walkSpeedExp));
 		
 		Vector3 walk = new Vector3( 0, 0, forward );
 		
@@ -92,13 +92,16 @@ public class Navigator : MonoBehaviour {
 		pill.Move( direction * Time.deltaTime );
 	}
 	
+	Vector3 theCog = Vector3.zero;
+	
 	void Update()
 	{
-		UpdateWithCog(Vector3.zero);
+		UpdateWithCog(theCog);
 	}
 	
 	void BlobsCenterOfGravity(Vector3 cog)
 	{
-		UpdateWithCog(cog);
+		//UpdateWithCog(cog);
+		theCog = cog;
 	}
 }

@@ -6,7 +6,7 @@ using System.IO;
 // Utilities for dealing with bin clouds (authoring tool)
 // - shuffle bin
 // - update the minimal mesh (smallest level of detail)
-public class BinMesh : MonoBehaviour
+public class BinMesh : Inflatable
 {
 	// Bin file name (without extension), will be looked for in the usual places.
 	public string bin;
@@ -16,8 +16,13 @@ public class BinMesh : MonoBehaviour
 	CloudStream.Reader binReader = null;
 	int pointCount = 0;
 
-	GameObject mainCameraGO;
+//	GameObject mainCameraGO;
 	LodManager lodManager;
+	// distance -> LOD
+	public float[] lodBreakDistances = new float[] { 100, 15, 7};
+	public float distanceFromCamera = 0;
+	public int lod = 0;
+	
 
 	public long PointsLeft {
 		get {
@@ -25,32 +30,22 @@ public class BinMesh : MonoBehaviour
 		}
 	}
 	
-	public int DetailMeshCount {
-		get {
-			return transform.FindChild("Detail").childCount;
-		}
-	}
-
-	void Awake()
+	public override void Awake()
 	{
-		string fname = null;
-
-		try {
-			fname = CloudStream.FindBin(bin + ".bin");
-		} catch {
-			//Debug.LogWarning("Couldn't find " + bin);
-			Object.DestroyImmediate( this );
-			return;
-		}
-
-		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
-
-		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+//		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
 		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
+		base.Awake();
 	}
 
 	public void Start()
 	{
+		string fname = CloudStream.FindBin(bin + ".bin");
+		if (fname==null) {
+			Object.DestroyImmediate( this );
+			return;
+		}
+		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
+
 		Transform minmesh = transform.FindChild ("MinMesh");
 		if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
 			minmesh.renderer.sharedMaterial = material;
@@ -59,7 +54,11 @@ public class BinMesh : MonoBehaviour
 		}
 		
 		pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
-		
+
+		if (lodManager && lodManager.forcedBinMeshMaterial!=null) {
+			material  = lodManager.forcedBinMeshMaterial;
+		}
+
 		/*
 		 * Clone the shader object, so that we can change it's maxiumLOD 
 		 * independently of other materials using the same shader.
@@ -76,16 +75,13 @@ public class BinMesh : MonoBehaviour
 			lodBreakDistances = lodManager.lodBreakDistances;
 		}
 
-		float lodScale = mainCameraGO.camera.farClipPlane / lodBreakDistances[0];
-		for(int i=0; i<lodBreakDistances.Length; i++)
-			lodBreakDistances[i] *= lodScale;
-
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
 	}
 	
 	void OnApplicationQuit()
 	{
-		binReader.Close();
+		if (binReader != null)
+			binReader.Close();
 	}
 	
 	// assume that we've got distance from camera set by LodManager
@@ -126,34 +122,36 @@ public class BinMesh : MonoBehaviour
 		UpdateMaterial();
 	}
 
-	#region LOD management hooks
-	// distance -> LOD
-	public float[] lodBreakDistances = new float[] { 100, 15, 7};
-	public float distanceFromCamera = 0;
-	public int lod = 0;
-	
-	public IEnumerator LoadOne(GameObject go)
+	public override CloudStream.Reader Stream
 	{
-		Transform detailBranch = transform.FindChild("Detail");
-		yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, go));
-		ProceduralUtils.InsertAtOrigin(go.transform, detailBranch);
-		go.active = true;
-		if (material)
-			go.renderer.sharedMaterial = material;
-		
-	}
-	
-	public void ReturnDetails(int count)
-	{
-		Transform detail = transform.FindChild("Detail");
-		for(int i = 0; i < count && detail.childCount > 0; i++) {
-			// remove the last child
-			CloudMeshPool.Return(detail.GetChild(detail.childCount - 1).gameObject);
-			// rewind the reader
-			binReader.SeekPoint(-16128, SeekOrigin.Current);
+		get
+		{
+			return binReader;
 		}
 	}
-	#endregion
+
+	public override int NextChunkSize
+	{
+		get {
+			return CloudMeshPool.pointsPerMesh;
+		}
+	}
+
+
+	public override void PreLoad(GameObject go)
+	{
+		// nothing to do
+	}
+	public override void PostLoad(GameObject go)
+	{
+		if (material)
+			go.renderer.sharedMaterial = material;
+	}
+	public override void PostUnload()
+	{
+		binReader.SeekPoint(- CloudMeshPool.pointsPerMesh , SeekOrigin.Current);
+	}
+
 
 	#region Material Animation
 	public float turbulenceAmplitude = 0;

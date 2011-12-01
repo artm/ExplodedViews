@@ -26,55 +26,48 @@ using System.IO;
 public class NetReceive : MonoBehaviour {
 
 	public int portNo = 6666;
+	public int bufferSize = 1024;
 	
-	private TcpClient incoming_client;
-	private NetworkStream netStream;
-	private TcpListener server;
-	private bool waiting;
+	private TcpListener server = null;
+	private TcpClient tcpClient = null;
+	private NetworkStream netStream = null;
+
+	byte[] tmpbuf;
 
 	// Use this for initialization
-	void Start () {		
-		waiting = false;
+	void Start () {
+		tmpbuf = new byte[bufferSize];
 		server = new TcpListener(IPAddress.Any, portNo);
 		server.Start();
 	}
 
-	char[] trimUs = " ;".ToCharArray();
-
 	void Update () {
 		string s;
 
-		if (server.Pending()) {
-			incoming_client = server.AcceptTcpClient();
-			netStream = incoming_client.GetStream();
-			waiting = true;
+		if (netStream == null) {
+			if (server.Pending()) {
+				tcpClient = server.AcceptTcpClient();
+				netStream = tcpClient.GetStream();
+			}
 		}
-		while (waiting && netStream.DataAvailable) {
-			try {
-				int numread = 0;
-				byte[] tmpbuf = new byte[1024];
-				numread = netStream.Read(tmpbuf, 0, tmpbuf.Length);
 
+		while (netStream != null && netStream.DataAvailable) {
+			try {
+				int numread = netStream.Read(tmpbuf, 0, tmpbuf.Length);
 				s = Encoding.ASCII.GetString(tmpbuf, 0, numread);
-				foreach(string line in s.Split('\n')) {
-					//Debug.Log("Got: " + line);
-					string[] parms = line.TrimEnd(trimUs).Split(' ');
-					BroadcastMessage("NetReceive", parms, SendMessageOptions.DontRequireReceiver);
-				}
+				BroadcastMessage("NetReceive", s, SendMessageOptions.DontRequireReceiver);
 			}
 			//Called when netStream fails to read from the stream.
 			catch (IOException) {
-				waiting = false;
 				netStream.Close();
-				incoming_client.Close();
+				netStream = null;
+				tcpClient.Close();
 			}
 			//Called when netStream has been closed already.
 			catch (ObjectDisposedException) {
-				waiting = false;
-				incoming_client.Close();
+				netStream = null;
+				tcpClient.Close();
 			}
-		}	
+		}
 	}
-	
-
 }

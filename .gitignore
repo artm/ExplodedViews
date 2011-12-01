@@ -14,3 +14,6 @@ Temp
 *.unity
 *.aiff
 *.app
+*.exe
+*_data
+cams.txt

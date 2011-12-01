@@ -22,12 +22,12 @@ struct TexPointV2F {
 // Shift a billboard corner size pixels along its corner
 inline void Billboard(inout float4 pos, in float2 corner, float size)
 {
-	pos.xy += (size * 2.0 / _ScreenParams.xy) * corner * pos.w;
+	pos.xy += size * 2.0 / _ScreenParams.xy * corner * pos.w;
 }
 
 inline void Billboard(inout float4 pos, in float2 corner, float2 size)
 {
-	pos.xy += (size * 2.0 / _ScreenParams.xy) * corner * pos.w;
+	pos.xy += size * 2.0 / _ScreenParams.xy * corner * pos.w;
 }
 
 inline float Quadratic(float d, float a, float b, float c)

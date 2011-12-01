@@ -10,7 +10,8 @@ public class CloudMeshPool : MonoBehaviour {
 
 	CloudMeshConvertor generator;
 	Stack<GameObject> freeMeshes;
-	public const int pointsPerMesh = 16128;
+	//public static int pointsPerMesh = 16128;
+	public static int pointsPerMesh = 4096;
 	
 	void Awake()
 	{
@@ -62,11 +63,11 @@ public class CloudMeshPool : MonoBehaviour {
 	public static Material GetMaterial() { return singleton.material; }
 	
 	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go) {
-		return ReadFrom( reader, go, 1f);
+		return ReadFrom( reader, go, 1f, -1);
 	}
-	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go, float stride) {
+	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go, float stride, int amount = -1) {
 		singleton.generator.Offset = 0;
-		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride )); 
+		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride, amount ));
 		singleton.generator.Convert(go.GetComponent<MeshFilter>().sharedMesh);
 	}
 

@@ -129,7 +129,7 @@ public class CloudImporter : AssetPostprocessor
 			return;
 		}
 		try {
-			Transform soundNode = location.transform.FindChild("Sound");
+			Transform soundNode = location.transform.FindChild("SoundNode");
 			string soundNodePrefabPath = "Assets/Prefabs/SoundNode.prefab";
 			if (!soundNode) {
 				Object soundNodePrefab = AssetDatabase.LoadAssetAtPath(soundNodePrefabPath, typeof(GameObject));
@@ -139,7 +139,6 @@ public class CloudImporter : AssetPostprocessor
 				}
 				soundNode = (EditorUtility.InstantiatePrefab(soundNodePrefab) as GameObject).transform;
 				soundNode.parent = location.transform;
-				soundNode.audio.clip = clip;
 				#region ... find cloud center ...
 				soundNode.position = new Vector3(0,0,0);
 				int meshCount = 0;
@@ -152,6 +151,7 @@ public class CloudImporter : AssetPostprocessor
 				soundNode.position = soundNode.position / (float)meshCount;
 				#endregion
 
+				soundNode.audio.clip = clip;
 				EditorUtility.ReplacePrefab(location, prefab);
 				Debug.Log("Added sound to "+ locPath +" (click to see)", prefab);
 			}

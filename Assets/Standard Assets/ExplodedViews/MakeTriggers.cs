@@ -1,37 +1,27 @@
 using UnityEngine;
-using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class MakeTriggers : MonoBehaviour {
+
+	public string binDir = null;
+
 	// make any colliders under me triggers...
-	void Start() {
+	void Awake() {
+		if (binDir != null)
+			CloudStream.binDir = binDir;
+
+
 		foreach(Collider c in FindObjectsOfType(typeof(Collider)) as Collider[]) {
 			if (c.transform == transform || c.transform.IsChildOf(transform))
 			c.isTrigger = true;
 		}
 	}
 
-	[ContextMenu("Release children")]
-	void ReleaseTheCraken()
+	[ContextMenu("Remember bin dir")]
+	void remember()
 	{
-		List<Transform> children = new List<Transform>();
-		foreach(Transform child in transform)
-		{
-			children.Add(child);
-		}
-
-		transform.DetachChildren();
-		DestroyImmediate(gameObject);
-
-		foreach(Transform child in children)
-		{
-			Object prefab = EditorUtility.GetPrefabParent(child.gameObject);
-			EditorUtility.ReplacePrefab(child.gameObject, prefab);
-			long memory = System.GC.GetTotalMemory(false);
-			System.GC.Collect();
-			Debug.Log("Cleaned up garbage: " + Pretty.Count(memory - System.GC.GetTotalMemory(false)));
-		}
+		binDir = Path.GetFullPath("Bin");
 	}
-
 }
