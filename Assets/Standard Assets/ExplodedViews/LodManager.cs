@@ -23,35 +23,40 @@ public class LodManager : MonoBehaviour {
 	public Material forcedBinMeshMaterial = null;
 
 	public float slideDelay = 3.0f;
+	public float rebalanceDelay = 1.0f;
+	
 	float slideDoneTime = -1;
 
 	const int UnloadAll = -1;
 	
 	Transform theCamera;
 	SpeedWarp speedWarp;
-	HashSet<Transform> managed = new HashSet<Transform>();
 	Queue<BinMesh> loadQueue = new Queue<BinMesh>();
 	Dictionary<Inflatable, int> unloadQueue = new Dictionary<Inflatable, int>();
-
 	CamsList slideShowNode = null;
 	int slideShowEntitled = 0;
+	
+	BinMesh[] allBinMeshes;
+	
 	#endregion
 	
 	void OnTriggerEnter(Collider other)
 	{
-		if (other.name == "Box")
-			managed.Add(other.transform);
+		if (other.name == "Box") {
+			BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
+			if (bm != null)
+				bm.Managed = true;
+		}
 	}
 
 	void OnTriggerExit(Collider other)
 	{
 		if (other.name != "Box")
 			return;
-
-		managed.Remove(other.transform);
-
+	
 		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
 		if (bm) {
+			bm.Managed = false;
 			if (loadQueue.Contains(bm)) {
 				BinMesh[] lst = { bm };
 				loadQueue = new Queue<BinMesh>(loadQueue.Except(lst));
@@ -61,7 +66,8 @@ public class LodManager : MonoBehaviour {
 
 		if (slideShowNode && other.transform.parent.parent == slideShowNode) {
 			foreach(Collider box in slideShowNode.GetComponentsInChildren<Collider>()) {
-				if (managed.Contains(box.transform))
+				BinMesh bm1 = box.transform.parent.GetComponent<BinMesh>();
+				if (bm1 != null && bm1.Managed)
 					return;
 			}
 			// if got here then slide show contains no more managed boxes
@@ -76,6 +82,10 @@ public class LodManager : MonoBehaviour {
 	{
 		theCamera = transform.parent.Find("Camera");
 		speedWarp = theCamera.GetComponent<SpeedWarp>();
+		
+		/* find all inflatables */
+		allBinMeshes = GameObject.Find("Clouds").GetComponentsInChildren<BinMesh>();
+		Debug.Log("" + allBinMeshes.Length + " bin meshes found");
 		
 		// adjust lod breaks
 		float lodScale = theCamera.camera.farClipPlane / lodBreakDistances[0];
@@ -105,8 +115,26 @@ public class LodManager : MonoBehaviour {
 		StartCoroutine( ProcessLoadQueue() );
 	}
 	
+	IEnumerable<BinMesh> Managed
+	{
+		get 
+		{
+			foreach(BinMesh bm in allBinMeshes)
+				if (bm.Managed) 
+					yield return bm as BinMesh;
+		}
+	}
+	
+	IEnumerator BalancingTask()
+	{
+		while(true) {
+			Balance();
+			yield return new WaitForSeconds(rebalanceDelay);
+		}
+	}
+	
 	// and now - manage
-	void Update()
+	void Balance()
 	{
 		if (dontBalanceOnWarp && speedWarp.Warping) 
 			return;
@@ -115,12 +143,12 @@ public class LodManager : MonoBehaviour {
 		float sum = 0, minDist = 0;
 		Transform closest = null;
 		Vector3 camPos = theCamera.position;
-		foreach(Transform box in managed) {
+		foreach(BinMesh bm in Managed) {
+			Transform box = bm.transform.FindChild("Box");
 			Vector3 closestPoint = box.collider.ClosestPointOnBounds(camPos);
 
 			float distance = Vector3.Distance(camPos, closestPoint);
 
-			BinMesh bm = box.parent.GetComponent<BinMesh>();
 			if (bm != null) {
 				bm.distanceFromCamera = distance;
 				bm.UpdateLod();
@@ -172,12 +200,11 @@ public class LodManager : MonoBehaviour {
 		#region distribute the rest of the pool
 		int buffersLeft = CloudMeshPool.Capacity - slideShowEntitled;
 		HashSet<BinMesh> toRemove = new HashSet<BinMesh>();
-		foreach(Transform box in managed) {
-			if (slideShowNode != null && box.parent.parent == slideShowNode.transform) continue;
-			BinMesh bm = box.parent.GetComponent<BinMesh>();
+		foreach(BinMesh bm in Managed) {
+			if (slideShowNode != null && bm.transform.parent == slideShowNode.transform) continue;
 			if (bm == null) continue;
 			// how many meshes this BinMesh is entitled to?
-			int entitled = (managed.Count == 1) ? buffersLeft :
+			int entitled = (Inflatable.ManagedCount == 1) ? buffersLeft :
 				Mathf.RoundToInt(
 					(float)buffersLeft * (1.0f - bm.distanceFromCamera / sum));
 			

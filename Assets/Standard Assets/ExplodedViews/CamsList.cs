@@ -69,6 +69,13 @@ public class CamsList : Inflatable {
 			binReader.Close();
 	}
 
+	string BaseName {
+		get {
+			return gameObject.name.Replace("--loc", "");
+		}
+	}
+
+#if UNITY_EDITOR
 	void OnDrawGizmosSelected()
 	{
 		Gizmos.color = Color.green;
@@ -83,12 +90,6 @@ public class CamsList : Inflatable {
 		FindCams();
 		EditorApplication.SaveAssets();
 		EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
-	}
-
-	string BaseName {
-		get {
-			return gameObject.name.Replace("--loc", "");
-		}
 	}
 
 	public void FindCams()
@@ -154,6 +155,8 @@ public class CamsList : Inflatable {
 		}
 	}
 
+#endif
+	
 	#region slide show run-time / inflatable implementation
 	int currentSlide = -1;
 

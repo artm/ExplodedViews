@@ -4,7 +4,20 @@ using System.Collections;
 // Base class for objects that can be inflated / deflated (e.g. BinMesh, CamsList)
 public abstract class Inflatable : MonoBehaviour {
 	Transform detail;
-
+	bool managed = false;
+	static int managedCount = 0;
+	
+	public bool Managed {
+		get { return managed; }
+		set { 
+			if (managed = value)
+				managedCount++;
+			else
+				managedCount--;
+		}
+	}
+	public static int ManagedCount { get { return managedCount; } }
+	
 	public virtual void Awake() {
 		// add detail node if don't have one already
 		detail = transform.FindChild("Detail");
@@ -24,7 +37,11 @@ public abstract class Inflatable : MonoBehaviour {
 		}
 	}
 
-	public IEnumerator LoadOne(GameObject go, float stride = 1.0f)
+	public IEnumerator LoadOne(GameObject go) {
+		return LoadOne(go,1);
+	}
+
+	public IEnumerator LoadOne(GameObject go, float stride)
 	{
 		PreLoad(go);
 		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go, stride, NextChunkSize));
