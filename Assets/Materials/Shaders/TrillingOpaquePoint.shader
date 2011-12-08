@@ -54,17 +54,20 @@ PointV2F vert (PointVIn v)
 {
 	PointV2F o;
 	
+	v.vertex = mul(UNITY_MATRIX_MV, v.vertex);
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
-	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
+	o.pos = mul (UNITY_MATRIX_P, v.vertex);
 
 	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
 	o.fog = d_s.x;
 
-	float displacement = max(0.0, 1.0 - d_s.x / _TunnelD);
-	o.pos.xy += normalize(o.pos.xy)
-					* displacement 
-					* float2(1.0,_TunnelAspect)
-					* _TunnelRadius;
+	if (o.pos.w != 1.0) {
+		float displacement = max(0.0, 1.0 - d_s.x / _TunnelD);
+		o.pos.xy += normalize(o.pos.xy)
+						* displacement 
+						* float2(1.0,_TunnelAspect)
+						* _TunnelRadius;
+	}
 
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, d_s.y );
@@ -110,10 +113,10 @@ uniform float minSize, maxSize;
 PointV2F vert (PointVIn v)
 {
 	PointV2F o;
-	
+
+	v.vertex = mul(UNITY_MATRIX_MV, v.vertex);
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
-	
-	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
+	o.pos = mul (UNITY_MATRIX_P, v.vertex);
 
 	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
 	o.fog = d_s.x;
