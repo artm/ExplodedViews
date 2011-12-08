@@ -9,7 +9,6 @@ struct PointVIn {
 
 struct PointV2F {
     float4 pos : POSITION;
-    float fog : FOGC;
     float4 color : COLOR;
 };
 
@@ -42,6 +41,11 @@ inline float2 DistanceAttenuatedSize(float4 pos, float a, float b, float c, floa
 	res.x = length(pos);
 	res.y = (pos.w == 1.0) ? minSize : max(minSize, maxSize * min(1.0, Quadratic(res.x, a, b, c)));
 	return res;
+}
+
+inline float exp2(float x)
+{
+	return exp( - x * x );
 }
 
 #endif // EXPLDED_SHADER_LIB

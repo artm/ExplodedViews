@@ -4,7 +4,8 @@ Shader "Exploded Views/Trilling Opaque Point" {
 		_TurbulenceFrequency( "Turbulence frequency", float ) = 5.0
 		_TurbulenceCurliness( "Turbulence curliness", float ) = 1.0
 		
-		_NearTint( "Near tint", Color ) = (0.8,1,0.8,0.1)
+		fogColor("Fog color", Color) = (0,0,0,1)
+		fogDensity("Fog density", float) = 0.005
 		
 		_TunnelD ("Tunnel Distance", float) = 1.0
 		//_TunnelRadius("Tunnel Radius", Range(0, 1)) = 0.5
@@ -28,11 +29,10 @@ Shader "Exploded Views/Trilling Opaque Point" {
 	SubShader {
 	LOD 500
 	Tags { "Queue" = "Geometry" }
+	Pass {
 
-	Pass {	
-
-		Fog { Mode Off }
-
+	// we do the fog "manually" because it is broken on target 3.0 shaders on direct x
+	Fog { Mode Off }
 
 CGPROGRAM
 #pragma target 3.0
@@ -45,21 +45,21 @@ CGPROGRAM
 
 uniform float _TurbulenceAmplitude, _TurbulenceCurliness, _TurbulenceFrequency;
 uniform float _SubLod;
-uniform float4 _NearTint;
 uniform float _TunnelD, _TunnelRadius, _TunnelAspect;
 uniform float attA, attB, attC;
 uniform float minSize, maxSize;
+uniform float4 fogColor;
+uniform float fogDensity;
 
 PointV2F vert (PointVIn v)
 {
 	PointV2F o;
 	
-	v.vertex = mul(UNITY_MATRIX_MV, v.vertex);
+	//v.vertex = mul(UNITY_MATRIX_MV, v.vertex);
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
-	o.pos = mul (UNITY_MATRIX_P, v.vertex);
+	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
 	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
-	o.fog = d_s.x;
 
 	if (o.pos.w != 1.0) {
 		float displacement = max(0.0, 1.0 - d_s.x / _TunnelD);
@@ -72,14 +72,14 @@ PointV2F vert (PointVIn v)
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, d_s.y );
 
-    // pass the color along...
-    o.color = v.color;
+    // vertex color + fog
+    o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
 
  	return o;
 }
 
 half4 frag(PointV2F i) : COLOR { 
-	return lerp( i.color, _NearTint, _SubLod * _NearTint.a ); 
+	return i.color;
 }
 
 ENDCG
@@ -109,23 +109,24 @@ CGPROGRAM
 uniform float _TurbulenceAmplitude, _TurbulenceCurliness, _TurbulenceFrequency;
 uniform float attA, attB, attC;
 uniform float minSize, maxSize;
+uniform float4 fogColor;
+uniform float fogDensity;
 
 PointV2F vert (PointVIn v)
 {
 	PointV2F o;
 
-	v.vertex = mul(UNITY_MATRIX_MV, v.vertex);
+	//v.vertex = mul(UNITY_MATRIX_MV, v.vertex);
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
-	o.pos = mul (UNITY_MATRIX_P, v.vertex);
+	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
 	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
-	o.fog = d_s.x;
 
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, d_s.y );
 
-    // pass the color along...
-    o.color = v.color;
+    // vertex color + fog
+    o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
 
  	return o;
 }
@@ -143,14 +144,16 @@ ENDCG
 	LOD 0
 	Pass {
 CGPROGRAM
+#pragma exclude_renderers gles
 #pragma vertex vert
-#pragma fragment frag
 
 #include "UnityCG.cginc"
 #include "ExplodedShaderLib.cginc"
 
 uniform float attA, attB, attC;
 uniform float minSize, maxSize;
+uniform float4 fogColor;
+uniform float fogDensity;
 
 PointV2F vert (PointVIn v)
 {
@@ -158,21 +161,15 @@ PointV2F vert (PointVIn v)
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
 	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
-	o.fog = d_s.x;
 
     // billboard...
 	Billboard( o.pos, v.texcoord.xy, d_s.y );
 
-    // pass the color along...
-    o.color = v.color;
+    // vertex color + fog
+    o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
 
  	return o;
 }
-
-half4 frag(PointV2F i) : COLOR { 
-	return i.color; 
-}
-
 
 ENDCG
 		}
