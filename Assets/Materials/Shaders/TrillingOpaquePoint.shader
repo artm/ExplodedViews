@@ -8,7 +8,6 @@ Shader "Exploded Views/Trilling Opaque Point" {
 		fogDensity("Fog density", float) = 0.005
 		
 		_TunnelD ("Tunnel Distance", float) = 1.0
-		//_TunnelRadius("Tunnel Radius", Range(0, 1)) = 0.5
 		_TunnelRadius("Tunnel Radius", float) = 0.75
 		_TunnelAspect("Tunnel Aspect", float) = 1.33
 
