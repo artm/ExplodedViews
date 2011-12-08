@@ -57,19 +57,17 @@ PointV2F vert (PointVIn v)
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float d = length(o.pos);
-	//o.fog = o.pos.z;
-	float attenuation = Quadratic(d, attA, attB, attC);
-	float size = max(minSize, maxSize * min(1.0, attenuation));
+	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
+	o.fog = d_s.x;
 
-	float displacement = max(0.0, 1.0 - d / _TunnelD);
+	float displacement = max(0.0, 1.0 - d_s.x / _TunnelD);
 	o.pos.xy += normalize(o.pos.xy)
 					* displacement 
 					* float2(1.0,_TunnelAspect)
 					* _TunnelRadius;
 
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, size );
+	Billboard( o.pos, v.texcoord.xy, d_s.y );
 
     // pass the color along...
     o.color = v.color;
@@ -117,12 +115,11 @@ PointV2F vert (PointVIn v)
 	
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float d = length(o.pos);
-	float attenuation = Quadratic(d, attA, attB, attC);
-	float size = max(minSize, maxSize * min(1.0, attenuation));
+	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
+	o.fog = d_s.x;
 
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, size );
+	Billboard( o.pos, v.texcoord.xy, d_s.y );
 
     // pass the color along...
     o.color = v.color;
@@ -157,13 +154,11 @@ PointV2F vert (PointVIn v)
 	PointV2F o;
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	//o.fog = o.pos.z;
-	float d = length(o.pos);
-	float attenuation = Quadratic(d, attA, attB, attC);
-	float size = max(minSize, maxSize * min(1.0, attenuation));
+	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
+	o.fog = d_s.x;
 
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, size );
+	Billboard( o.pos, v.texcoord.xy, d_s.y );
 
     // pass the color along...
     o.color = v.color;
