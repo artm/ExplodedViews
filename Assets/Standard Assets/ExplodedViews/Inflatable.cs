@@ -11,7 +11,7 @@ public abstract class Inflatable : MonoBehaviour {
 	
 	public float weight = 0.0f;
 	
-	public bool Managed {
+	public virtual bool Managed {
 		get { return managed; }
 		set { 
 			if (managed = value)

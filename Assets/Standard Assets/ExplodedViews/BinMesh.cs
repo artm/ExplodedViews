@@ -41,21 +41,23 @@ public class BinMesh : Inflatable
 
 	public void Start()
 	{
-		string fname = CloudStream.FindBin(bin + ".bin");
-		if (fname==null) {
+		if (CloudStream.FindBin(bin + ".bin")==null) {
 			Object.DestroyImmediate( this );
 			return;
 		}
-		binReader = new CloudStream.Reader(new FileStream(fname, FileMode.Open, FileAccess.Read));
 
-		Transform minmesh = transform.FindChild ("MinMesh");
-		if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
-			minmesh.renderer.sharedMaterial = material;
-		} else {
-			minmesh.gameObject.active = false;
+		{
+			Managed = true;
+			Transform minmesh = transform.FindChild ("MinMesh");
+			if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
+				minmesh.renderer.sharedMaterial = material;
+			} else {
+				minmesh.gameObject.active = false;
+			}
+			
+			pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
+			Managed = false;
 		}
-		
-		pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
 
 		if (lodManager && lodManager.forcedBinMeshMaterial!=null) {
 			material  = lodManager.forcedBinMeshMaterial;
@@ -79,14 +81,25 @@ public class BinMesh : Inflatable
 
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
 	}
-	
+
+	public override bool Managed {
+	set {
+			if (base.Managed = value && binReader == null) {
+				binReader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
+				                                                  FileMode.Open, FileAccess.Read));
+			} else if (binReader != null) {
+				binReader.Close();
+				binReader = null;
+			}
+		}
+	}
+
 	void OnApplicationQuit()
 	{
-		if (binReader != null)
-			binReader.Close();
+		Managed = false; // will close file if open
 	}
-	
-	// assume that we've got distance from camera set by LodManager
+
+    // assume that we've got distance from camera set by LodManager
 	public void Update()
 	{
 		// update distance to camera
@@ -155,8 +168,8 @@ public class BinMesh : Inflatable
 	}
 	public override void PostUnload()
 	{
-		if (binReader.PointPosition == 0)
-			return; // just in case
+		if (binReader == null || binReader.PointPosition == 0)
+			return;
 		
 		int tail = (int)(binReader.PointPosition % CloudMeshPool.pointsPerMesh);
 		if (tail == 0)
