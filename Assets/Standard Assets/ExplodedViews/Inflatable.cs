@@ -5,18 +5,29 @@ using System.Collections;
 public abstract class Inflatable : MonoBehaviour {
 	Transform detail;
 	bool managed = false;
+	int entitled = 0;
+	
 	static int managedCount = 0;
+	
+	public float weight = 0.0f;
 	
 	public bool Managed {
 		get { return managed; }
 		set { 
 			if (managed = value)
 				managedCount++;
-			else
+			else {
 				managedCount--;
+				entitled = 0;
+			}
 		}
 	}
 	public static int ManagedCount { get { return managedCount; } }
+	
+	public int Entitled {
+		get { return entitled; }
+		set { entitled = value; }
+	}
 	
 	public virtual void Awake() {
 		// add detail node if don't have one already

@@ -16,13 +16,14 @@ public class BinMesh : Inflatable
 	CloudStream.Reader binReader = null;
 	int pointCount = 0;
 
-//	GameObject mainCameraGO;
+	Transform mainCameraTransform;
 	LodManager lodManager;
+	Collider box;
+	
 	// distance -> LOD
 	public float[] lodBreakDistances = new float[] { 100, 15, 7};
 	public float distanceFromCamera = 0;
 	public int lod = 0;
-	
 
 	public long PointsLeft {
 		get {
@@ -32,8 +33,9 @@ public class BinMesh : Inflatable
 	
 	public override void Awake()
 	{
-//		mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+		mainCameraTransform = GameObject.Find("Camera").transform;
 		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
+		box = transform.FindChild("Box").collider;
 		base.Awake();
 	}
 
@@ -85,8 +87,12 @@ public class BinMesh : Inflatable
 	}
 	
 	// assume that we've got distance from camera set by LodManager
-	public void UpdateLod()
+	public void Update()
 	{
+		// update distance to camera
+		Vector3 closestPoint = box.ClosestPointOnBounds(mainCameraTransform.position);
+		distanceFromCamera = Vector3.Distance(mainCameraTransform.position, closestPoint);
+		
 		int i;
 		for(i = 0; i < lodBreakDistances.Length && distanceFromCamera < lodBreakDistances[i]; i++)
 			;
@@ -149,7 +155,14 @@ public class BinMesh : Inflatable
 	}
 	public override void PostUnload()
 	{
-		binReader.SeekPoint(- CloudMeshPool.pointsPerMesh , SeekOrigin.Current);
+		if (binReader.PointPosition == 0)
+			return; // just in case
+		
+		int tail = (int)(binReader.PointPosition % CloudMeshPool.pointsPerMesh);
+		if (tail == 0)
+			tail = CloudMeshPool.pointsPerMesh;
+		
+		binReader.SeekPoint(-tail , SeekOrigin.Current);
 	}
 
 

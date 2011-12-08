@@ -11,7 +11,7 @@ public class CloudMeshPool : MonoBehaviour {
 	CloudMeshConvertor generator;
 	Stack<GameObject> freeMeshes;
 	//public static int pointsPerMesh = 16128;
-	public static int pointsPerMesh = 4096;
+	public static int pointsPerMesh = 1024;
 	
 	void Awake()
 	{
