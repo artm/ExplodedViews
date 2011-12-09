@@ -58,10 +58,8 @@ PointV2F vert (PointVIn v)
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
-
 	if (o.pos.w != 1.0) {
-		float displacement = max(0.0, 1.0 - d_s.x / _TunnelD);
+		float displacement = max(0.0, 1.0 - o.pos.z / _TunnelD);
 		o.pos.xy += normalize(o.pos.xy)
 						* displacement 
 						* float2(1.0,_TunnelAspect)
@@ -69,7 +67,7 @@ PointV2F vert (PointVIn v)
 	}
 
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, d_s.y );
+	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
     o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
@@ -119,10 +117,8 @@ PointV2F vert (PointVIn v)
 	v.vertex.xyz += _TurbulenceAmplitude * snoise3( _TurbulenceCurliness * v.vertex.xyz, _TurbulenceFrequency * _Time);
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
-
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, d_s.y );
+	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
     o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
@@ -159,10 +155,8 @@ PointV2F vert (PointVIn v)
 	PointV2F o;
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
 
-	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
-
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, d_s.y );
+	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
     o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));

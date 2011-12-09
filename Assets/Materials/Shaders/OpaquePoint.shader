@@ -32,12 +32,10 @@ uniform float fogDensity;
 PointV2F vert (PointVIn v)
 {
 	PointV2F o;
-	
 	o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
-	float2 d_s = DistanceAttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize);
 
     // billboard...
-	Billboard( o.pos, v.texcoord.xy, d_s.y );
+	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
     o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));

@@ -19,14 +19,14 @@ struct TexPointV2F {
 };
 
 // Shift a billboard corner size pixels along its corner
-inline void Billboard(inout float4 pos, in float2 corner, float size)
+inline void Billboard(inout float4 pos, in float2 corner, float2 size)
 {
 	pos.xy += size * 2.0 / _ScreenParams.xy * corner * pos.w;
 }
 
-inline void Billboard(inout float4 pos, in float2 corner, float2 size)
+inline void Billboard(inout float4 pos, in float2 corner, float size)
 {
-	pos.xy += size * 2.0 / _ScreenParams.xy * corner * pos.w;
+	Billboard(pos, corner, float2(size));
 }
 
 inline float Quadratic(float d, float a, float b, float c)
@@ -35,12 +35,9 @@ inline float Quadratic(float d, float a, float b, float c)
 }
 
 // returns (distance, size)
-inline float2 DistanceAttenuatedSize(float4 pos, float a, float b, float c, float minSize, float maxSize)
+inline float AttenuatedSize(float4 pos, float a, float b, float c, float minSize, float maxSize)
 {
-	float2 res;
-	res.x = length(pos);
-	res.y = (pos.w == 1.0) ? minSize : max(minSize, maxSize * min(1.0, Quadratic(res.x, a, b, c)));
-	return res;
+	return (pos.w == 1.0) ? minSize : max(minSize, maxSize * min(1.0, Quadratic(pos.z, a, b, c)));
 }
 
 inline float exp2(float x)
