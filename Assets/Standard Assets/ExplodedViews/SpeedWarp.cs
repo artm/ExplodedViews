@@ -26,6 +26,9 @@ public class SpeedWarp : MonoBehaviour {
 	
 	void VelocityChanged(Vector3 velocity)
 	{
+		if (!enabled)
+			return;
+		
 		Vector3 localVelocity = transform.InverseTransformDirection(velocity);
 		float speed = localVelocity.z;
 		
