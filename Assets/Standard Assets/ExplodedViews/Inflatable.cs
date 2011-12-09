@@ -49,7 +49,7 @@ public abstract class Inflatable : MonoBehaviour {
 	}
 
 	public IEnumerator LoadOne(GameObject go) {
-		return LoadOne(go,1);
+		yield return StartCoroutine( LoadOne(go,1) );
 	}
 
 	public IEnumerator LoadOne(GameObject go, float stride)
