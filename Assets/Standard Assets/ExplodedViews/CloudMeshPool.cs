@@ -11,7 +11,8 @@ public class CloudMeshPool : MonoBehaviour {
 	CloudMeshConvertor generator;
 	Stack<GameObject> freeMeshes;
 	//public static int pointsPerMesh = 16128;
-	public static int pointsPerMesh = 1024;
+	public static int pointsPerMesh;
+	public int PointsPerMesh = 4096;
 	
 	void Awake()
 	{
@@ -21,7 +22,10 @@ public class CloudMeshPool : MonoBehaviour {
 				throw new Pretty.Exception("Multiple instances of CloudMeshPool are not allowed!");
 			singleton = this;
 		}
-		
+
+		PointsPerMesh = System.Math.Min(16128, PointsPerMesh);
+		CloudMeshPool.pointsPerMesh = PointsPerMesh;
+
 		generator = new CloudMeshConvertor(pointsPerMesh);
 		freeMeshes = new Stack<GameObject>(capacity);
 	}
