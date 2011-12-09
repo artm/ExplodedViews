@@ -75,25 +75,19 @@ public class LodManager : MonoBehaviour {
 	
 	void OnTriggerEnter(Collider other)
 	{
-		if (other.name == "Box") {
-			BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
-			if (bm != null)
-				bm.Managed = true;
-			else
-				Debug.Log("Box is not a child of BinMesh", other);
-		}
+		if (other.transform.parent == null) return;
+		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
+		if (bm == null) return;
+		bm.Managed = true;
 	}
 
 	void OnTriggerExit(Collider other)
 	{
-		if (other.name != "Box")
-			return;
-	
 		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
-		if (bm) {
-			bm.Managed = false;
-		}
+		if (bm == null) return;
+		bm.Managed = false;
 
+		// see if we're related to current slide show and if it has no more Managed relatives
 		if (slideShow && other.transform.parent.parent == slideShow) {
 			foreach(Collider box in slideShow.GetComponentsInChildren<Collider>()) {
 				BinMesh bm1 = box.transform.parent.GetComponent<BinMesh>();
@@ -131,7 +125,7 @@ public class LodManager : MonoBehaviour {
 		if (dontBalanceOnWarp && speedWarp.Warping) 
 			return;
 		
-		#region Update distances from camera to managed BinMesh'es
+		#region Find the closest mesh and distance distribution
 		float maxDist = 0, minDist = 0;
 		Transform closest = null;
 		foreach(BinMesh bm in Managed) {
@@ -207,12 +201,10 @@ public class LodManager : MonoBehaviour {
 				if (bm.Entitled > bm.DetailsCount && CloudMeshPool.HasFreeMeshes) {
 					// load one
 					yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
-					//yielded = true;
-					yield return null;
+					yielded = true;
 				} else if (bm.Entitled < bm.DetailsCount) {
 					// unload one or all
-					int unloadCount = bm.Managed ? 1 : bm.DetailsCount;
-					bm.ReturnDetails( unloadCount );
+					bm.ReturnDetails( bm.Managed ? 1 : bm.DetailsCount );
 				}
 			}
 			if (!yielded)

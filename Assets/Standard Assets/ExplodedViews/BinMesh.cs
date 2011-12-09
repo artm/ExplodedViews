@@ -80,16 +80,21 @@ public class BinMesh : Inflatable
 		}
 
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
+
+		enabled = false; // will get enabled by lod manager
 	}
 
 	public override bool Managed {
 	set {
 			if (base.Managed = value && binReader == null) {
+				// FIXME: should use open/close and not new to avoid garbage generation
 				binReader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
 				                                                  FileMode.Open, FileAccess.Read));
+				enabled = true;
 			} else if (binReader != null) {
 				binReader.Close();
 				binReader = null;
+				enabled = false;
 			}
 		}
 	}
