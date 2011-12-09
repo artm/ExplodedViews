@@ -5,14 +5,10 @@ using System.Collections;
 public class Navigator : MonoBehaviour {
 	
 	public float walkSpeed = 1;
-	//public float walkSpeedExp = 2;
 	public float turnSpeed = 1;
 	public float CogForwardScaling = 0.001f; /* to meters */
 	public float CogSidewaysScaling = 0.001f; /* to meters */
 
-	public bool  strafeWhenSlow = false;
-	public float strafeThreshold = 1;
-	
 	public float gravity = -10;
 		
 	CharacterController pill;
@@ -43,29 +39,16 @@ public class Navigator : MonoBehaviour {
 		
 		forward += cog.x * CogForwardScaling;
 		sideways += cog.y * CogSidewaysScaling;
-				
-		//Debug.Log("f: " + forward + ", s: " + sideways);
 
 		// now scale with speeds
-		// ... we sneak in second gamepad's joystick here, clever us
-		
-		forward += Input.GetAxis("SecondVertical");
 		forward *= walkSpeed;
-		//forward = Mathf.Sign(forward)*Mathf.Abs(Mathf.Pow(forward, walkSpeedExp));
-		
 		Vector3 walk = new Vector3( 0, 0, forward );
-		
-		float strafe_t = strafeWhenSlow ? 1.0f - Mathf.Min( Mathf.Abs(walk.z) / strafeThreshold, 1 ) : 0f;
-		// ... and even the third! 
-		walk.x = (strafe_t * sideways + Input.GetAxis("ThirdHorizontal")) * walkSpeed;
-		
-		float turn = ((1.0f - strafe_t) * sideways + Input.GetAxis("SecondHorizontal")) * turnSpeed;
+		float turn = sideways * turnSpeed;
 		
 		if (reflect_t > 0f) {
 			// reflect
 			reflect_t = Mathf.Max(0, reflect_t - Time.deltaTime / reflectTime);
 			transform.LookAt( transform.position + Vector3.Slerp(reflectStart,reflectTarget,1f - reflect_t) );
-
 			if (reflect_t >= 0.99f)
 				reflectTarget = Vector3.zero; // done reflecting
 		} else {
@@ -81,7 +64,7 @@ public class Navigator : MonoBehaviour {
 			fallSpeed = 0;
 		else
 			fallSpeed += gravity * Time.deltaTime;
-		direction += new Vector3(0, fallSpeed, 0);
+		direction.y += fallSpeed;
 		
 		Vector3 newVelocity = direction;
 		if ( newVelocity != velocity ) {
@@ -101,7 +84,6 @@ public class Navigator : MonoBehaviour {
 	
 	void BlobsCenterOfGravity(Vector3 cog)
 	{
-		//UpdateWithCog(cog);
 		theCog = cog;
 	}
 }
