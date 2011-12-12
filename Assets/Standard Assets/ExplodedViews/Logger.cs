@@ -8,16 +8,101 @@ public class Logger : MonoBehaviour {
 	StringBuilder logAsText = new StringBuilder(1024);
 	int waterMark = 0;
 	bool filled = false;
+	Dictionary<string, RingBufferPlot> plots = new Dictionary<string, RingBufferPlot>();
 
 	public bool on = false;
 	public GUIStyle style;
-	
-	// Todo: abstract this away
-	Texture2D dtPlot;
-	Color32[] dtPlotPixels;
-	float[] dtBuffer;
-	float dtMin, dtMax;
-	int dtBufferLen, dtBufferIdx;
+	public int plotWidth = 256, plotHeight = 32;
+
+	class RingBuffer : IEnumerable<float>
+	{
+		float[] buffer;
+		int len, idx;
+		public RingBuffer(int capacity) {
+			buffer = new float[ capacity ];
+			len = idx = 0;
+		}
+		public void Write(float val) {
+			buffer[idx++] = val;
+			if (idx >= buffer.Length) idx=0;
+			if (len <  buffer.Length) len++;
+		}
+		public void Shrink() {
+			if (len>0) len--;
+		}
+		public IEnumerator<float> GetEnumerator()
+		{
+			for(int i = idx; i<len; i++)
+				yield return buffer[i];
+			for(int i = 0; i<idx; i++)
+				yield return buffer[i];
+		}
+		System.Collections.IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
+	}
+
+	class RingBufferPlot
+	{
+		RingBuffer buffer;
+		Texture2D texture;
+		Color32[] pixels;
+		string minFmt, maxFmt;
+
+		public static bool update = true;
+		public Color32 bgColor = new Color32(0,0,0,128);
+		public Color32 color = new Color32(128,255,128,255);
+
+		float min, max;
+		public float Min { get {return min;}}
+		public float Max { get {return max;}}
+		public RingBufferPlot(int width, int height, string label, params string[] fmt)
+		{
+			texture = new Texture2D(width,height,TextureFormat.RGBA32, false);
+			pixels = new Color32[width*height];
+			buffer = new RingBuffer(width);
+			min = Mathf.Infinity;
+			max = Mathf.NegativeInfinity;
+
+			string format = fmt.Length > 0 ? fmt[0] : "{0}";
+			maxFmt = label + " max: " + format;
+			minFmt = "min: " + format;
+		}
+		public void Write(float val) {
+			buffer.Write(val);
+			// FIXME: make sure texture is updated only when necessary
+			if (update)
+				UpdateTexture();
+		}
+		public void Shrink() {
+			buffer.Shrink();
+			// FIXME: make sure texture is updated only when necessary
+			if (update)
+				UpdateTexture();
+		}
+		void UpdateTexture() {
+			min = Mathf.Infinity;
+			max = Mathf.NegativeInfinity;
+			foreach(float val in buffer) {
+				min = System.Math.Min(min, val);
+				max = System.Math.Max(max, val);
+			}
+			for(int i = 0; i < pixels.Length; i++) {
+				pixels[i] = bgColor;
+			}
+			int x = 0;
+			foreach(float val in buffer) {
+				int y = Mathf.FloorToInt( (texture.height - 1) * (val - min) / (max - min) );
+				pixels[ x + y*texture.width ] = color;
+				x++;
+			}
+			texture.SetPixels32(pixels,0);
+			texture.Apply();
+		}
+		public void Draw(GUIStyle style) {
+			GUILayout.Label(string.Format(maxFmt, max), style);
+			GUILayout.Box(texture, style);
+			GUILayout.Label(string.Format(minFmt, min), style);
+		}
+	}
 
 	void _Log(string format, params object[] args)
 	{
@@ -35,6 +120,14 @@ public class Logger : MonoBehaviour {
 			logAsText.AppendFormat("{0}\n",log[i]);
 	}
 
+	void _Plot(string label, float val, params string[] fmt)
+	{
+		if (!plots.ContainsKey(label)) {
+			plots[label] = new RingBufferPlot(plotWidth,plotHeight,label,fmt);
+		}
+		plots[label].Write(val);
+	}
+
 	public string Text { get { return logAsText.ToString(); } }
 
 	void OnGUI() {
@@ -45,59 +138,21 @@ public class Logger : MonoBehaviour {
 			GUILayout.Label( Text, style );
 			GUILayout.BeginVertical();
 			// Stats
-			GUILayout.Label(string.Format("{0:##0.0} ms ({1:00} FPS)", 
-			                              1000f*dtMax, 1f/dtMax), style);
-			GUILayout.Box(dtPlot,style);
-			GUILayout.Label(string.Format("{0:##0.0} ms ({1:00} FPS)", 
-			                              1000f*dtMin, 1f/dtMin), style);
+			foreach(RingBufferPlot plot in plots.Values) {
+				plot.Draw(style);
+			}
 			GUILayout.EndVertical();
 			GUILayout.EndHorizontal();
 			GUILayout.EndArea();
 		}
 	}
 	
-	IEnumerable<float> DtBuffer {
-		get {
-			for(int i = dtBufferIdx; i<dtBufferLen; i++)
-				yield return dtBuffer[i];
-			for(int i = 0; i<dtBufferIdx; i++)
-				yield return dtBuffer[i];
-		}
-	}
-	
 	void Update() {
-		if (Input.GetKeyUp("space"))
+		if (Input.GetKeyUp("space")) {
 			on = !on;
-		// log delta time
-		dtBuffer[dtBufferIdx++] = Time.deltaTime;
-		if (dtBufferIdx >= dtBuffer.Length) dtBufferIdx=0;
-		if (dtBufferLen < dtBuffer.Length) dtBufferLen++;
-		if (on) {
-			// plot delta time
-			bool started = false;
-			dtMin = 0.0f;
-			dtMax = 0.0f;
-			foreach(float dt in DtBuffer) {
-				if (!started) {
-					dtMin = dtMax = dt;
-					started = true;
-				} else {
-					if (dt < dtMin) dtMin = dt;
-					if (dt > dtMax) dtMax = dt;
-				}
-			}
-			for(int i = 0; i < dtPlotPixels.Length; i++) {
-				dtPlotPixels[i] = new Color32(0,0,0,128);
-			}
-			int x = 0;
-			foreach(float dt in DtBuffer) {
-				int y = Mathf.FloorToInt( (dtPlot.height-1) * (dt-dtMin) / (dtMax-dtMin) );
-				dtPlotPixels[ x + y*dtPlot.width ] = new Color32(0,255,0,255);
-				x++;
-			}
-			dtPlot.SetPixels32(dtPlotPixels,0);
-			dtPlot.Apply();
+			RingBufferPlot.update = on;
 		}
+		_Plot("dt",Time.deltaTime*1000f,"{0:##0.#} ms");
 	}
 
 	static Logger singleton = null;
@@ -108,18 +163,16 @@ public class Logger : MonoBehaviour {
 		} else {
 			singleton = this;
 		}
-	}
-	
-	void Start() {
-		dtPlot = new Texture2D(256,64);
-		dtPlotPixels = new Color32[ dtPlot.width*dtPlot.height ];
-		dtBuffer = new float[ dtPlot.width ];
-		Debug.Log(string.Format("dtBuffer.Length: {0}", dtBuffer.Length));
-		dtBufferLen = dtBufferIdx = 0;
+		RingBufferPlot.update = on;
 	}
 
 	public static void Log(string format, params object[] args)
 	{
 		singleton._Log(format, args);
+	}
+
+	public static void Plot(string label, float val, params string[] fmt)
+	{
+		singleton._Plot(label, val, fmt);
 	}
 }
