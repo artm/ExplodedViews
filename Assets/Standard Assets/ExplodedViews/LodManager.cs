@@ -60,6 +60,8 @@ public class LodManager : MonoBehaviour {
 			Debug.LogWarning( "Valid range for LOD's Relative Center Offset is between 0.0 and 0.5, will use default (0.4)" );
 			relativeCenterOffset = 0.4f;
 		}
+
+		Time.maximumDeltaTime = 0.05f;
 	}
 	
 	void Start()
