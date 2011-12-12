@@ -210,12 +210,12 @@ public class LodManager : MonoBehaviour {
 				BinMesh bm = loadQueue[i];
 				if (bm.Entitled > bm.DetailsCount && CloudMeshPool.HasFreeMeshes) {
 					// load one
-					Logger.Log("Loading a buffer for: {0}...", bm.name);
+					//Logger.Log("Loading a buffer for: {0}...", bm.name);
 					yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
-					Logger.Log("Buffer for {0} loaded", bm.name);
+					//Logger.Log("Buffer for {0} loaded", bm.name);
 				} else if (bm.Entitled < bm.DetailsCount) {
 					// unload one or all
-					Logger.Log("Unloading {0} buffers", bm.name);
+					//Logger.Log("Unloading {0} buffers", bm.name);
 					bm.ReturnDetails( bm.DetailsCount - bm.Entitled );
 					yield return null;
 				}
