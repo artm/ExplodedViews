@@ -12,7 +12,7 @@ public class Logger : MonoBehaviour {
 
 	public bool on = false;
 	public GUIStyle style;
-	public int plotWidth = 256, plotHeight = 32;
+	public int plotWidth = 64, plotHeight = 32;
 
 	class RingBuffer : IEnumerable<float>
 	{
@@ -49,7 +49,7 @@ public class Logger : MonoBehaviour {
 
 		public static bool update = true;
 		public Color32 bgColor = new Color32(0,0,0,128);
-		public Color32 color = new Color32(128,255,128,255);
+		public Color32 color = new Color32(128,255,128,128);
 
 		float min, max;
 		public float Min { get {return min;}}
@@ -88,9 +88,12 @@ public class Logger : MonoBehaviour {
 			for(int i = 0; i < pixels.Length; i++) {
 				pixels[i] = bgColor;
 			}
-			int x = 0;
+			int x = 0,y0 = 0;
 			foreach(float val in buffer) {
 				int y = Mathf.FloorToInt( (texture.height - 1) * (val - min) / (max - min) );
+				if (x==0) y0 = y;
+				while(y0<y) pixels[ x + texture.width*y0++ ] = color;
+				while(y0>y) pixels[ x + texture.width*y0-- ] = color;
 				pixels[ x + y*texture.width ] = color;
 				x++;
 			}
@@ -130,21 +133,25 @@ public class Logger : MonoBehaviour {
 
 	public string Text { get { return logAsText.ToString(); } }
 
+	Rect[] wrect = new Rect[1];
 	void OnGUI() {
 		if (on) {
-			GUILayout.BeginArea(new Rect(0,Screen.height/2,Screen.width,Screen.height/2));
-			GUILayout.BeginHorizontal();
-			// Log
-			GUILayout.Label( Text, style );
-			GUILayout.BeginVertical();
-			// Stats
-			foreach(RingBufferPlot plot in plots.Values) {
-				plot.Draw(style);
-			}
-			GUILayout.EndVertical();
-			GUILayout.EndHorizontal();
-			GUILayout.EndArea();
+			wrect[0] = GUILayout.Window(0,wrect[0],LoggerWindow,"ExplodedLogs");
+
 		}
+	}
+	void LoggerWindow(int id) {
+		GUILayout.BeginHorizontal();
+		// Log
+		GUILayout.Label( Text, style );
+		GUILayout.BeginVertical();
+		// Stats
+		foreach(RingBufferPlot plot in plots.Values) {
+			plot.Draw(style);
+		}
+		GUILayout.EndVertical();
+		GUILayout.EndHorizontal();
+		GUI.DragWindow();
 	}
 	
 	void Update() {
@@ -164,6 +171,7 @@ public class Logger : MonoBehaviour {
 			singleton = this;
 		}
 		RingBufferPlot.update = on;
+		wrect[0] = new Rect(0,Screen.height/2,10,10);
 	}
 
 	public static void Log(string format, params object[] args)
