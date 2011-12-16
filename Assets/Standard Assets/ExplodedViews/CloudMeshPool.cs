@@ -10,7 +10,6 @@ public class CloudMeshPool : MonoBehaviour {
 
 	CloudMeshConvertor generator;
 	Stack<GameObject> freeMeshes;
-	//public static int pointsPerMesh = 16128;
 	public static int pointsPerMesh;
 	public int PointsPerMesh = 4096;
 	
@@ -95,5 +94,12 @@ public class CloudMeshPool : MonoBehaviour {
 	public static int Capacity { get { return singleton.capacity; } }
 	public static int PointCapacity { get { return singleton.capacity * pointsPerMesh; } }
 	public static bool BufferFull { get { return singleton.generator.Full; } }
+	
+	public static int LoadedPointsCount {
+		get {
+			return (singleton.capacity - singleton.freeMeshes.Count) * pointsPerMesh;
+		}
+	}
+	
 	#endregion
 }

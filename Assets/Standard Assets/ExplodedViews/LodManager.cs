@@ -16,6 +16,7 @@ public class LodManager : MonoBehaviour {
 	public bool dontBalanceOnWarp = false;
 	public bool slideShowMode = false;
 	public float relativeCenterOffset = 0.4f;
+	public float radiusScale = 0.3f;
 
 	public bool overrideLodBreaks = true;
 	public float[] lodBreakDistances = new float[] { 100, 90, 3};
@@ -61,7 +62,7 @@ public class LodManager : MonoBehaviour {
 			relativeCenterOffset = 0.4f;
 		}
 
-		Time.maximumDeltaTime = 0.05f;
+		Time.maximumDeltaTime = 0.04f;
 	}
 	
 	void Start()
@@ -70,7 +71,7 @@ public class LodManager : MonoBehaviour {
 		Vector3 center = ball.center;
 		center.z = theCamera.camera.farClipPlane * relativeCenterOffset;
 		ball.center = center;
-		ball.radius = theCamera.camera.farClipPlane * (1.0f - relativeCenterOffset);
+		ball.radius = theCamera.camera.farClipPlane * (1.0f - relativeCenterOffset) * radiusScale;
 		
 		StartCoroutine( Balance() );
 		StartCoroutine( ProcessLoadQueue() );
@@ -102,6 +103,11 @@ public class LodManager : MonoBehaviour {
 			slideShow.Entitled = 0;
 			slideShow = null;
 		}
+	}
+	
+	void Update() {
+		Logger.Plot("Managed clouds", Inflatable.ManagedCount);
+		Logger.Plot("Point count", CloudMeshPool.LoadedPointsCount);
 	}
 	
 	IEnumerable<BinMesh> Managed

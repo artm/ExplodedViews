@@ -101,9 +101,9 @@ public class Logger : MonoBehaviour {
 			texture.Apply();
 		}
 		public void Draw(GUIStyle style) {
-			GUILayout.Label(string.Format(maxFmt, max), style);
+			GUILayout.Label(string.Format(maxFmt, Pretty.Count(max)), style);
 			GUILayout.Box(texture, style);
-			GUILayout.Label(string.Format(minFmt, min), style);
+			GUILayout.Label(string.Format(minFmt, Pretty.Count(min)), style);
 		}
 	}
 
