@@ -17,3 +17,7 @@ Temp
 *.exe
 *_data
 cams.txt
+*.jpg
+
+Assets/sounds
+*.png
