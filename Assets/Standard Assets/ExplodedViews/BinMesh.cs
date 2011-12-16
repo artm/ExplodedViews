@@ -104,7 +104,6 @@ public class BinMesh : Inflatable
 		Managed = false; // will close file if open
 	}
 
-    // assume that we've got distance from camera set by LodManager
 	public void Update()
 	{
 		// update distance to camera
@@ -286,11 +285,11 @@ public class BinMesh : Inflatable
 		MeshFilter minMeshFilter = minMeshNode.GetComponent<MeshFilter>();
 		if (!minMeshFilter)
 			throw new Pretty.AssertionFailed("Need MinMesh child");
-		
-		CloudStream.Reader reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"), 
-				FileMode.Open));
-		
+
+		CloudStream.Reader reader = null;
 		try {
+			reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
+			                                                                  FileMode.Open));
 			CloudMeshConvertor conv = new CloudMeshConvertor(minMeshSize);
 			Mesh mesh = conv.MakeMesh();
 			reader.ReadPoints(conv.vBuffer, conv.cBuffer);
@@ -301,7 +300,8 @@ public class BinMesh : Inflatable
 		} catch {
 			return null;
 		} finally {
-			reader.Close();
+			if (reader != null)
+				reader.Close();
 		}
 	}
 	
