@@ -23,14 +23,19 @@ public class CloudStream
 	#region Relative paths utils
 	public static string binDir = "Bin";
 	public static string FindBin(string path) {
+		GameObject cloudsgo = GameObject.Find("Clouds");
+		if (cloudsgo != null) {
+			MakeTriggers mt = cloudsgo.GetComponentInChildren<MakeTriggers>();
+			binDir = mt.binDir;
+		}
+
 		if (Path.IsPathRooted(path)) {
 			// FIXME this is ugly :(
 			string discard = Path.GetDirectoryName(path),
 			       relative = Path.GetFileName(path);
 			while(true) {
 				string resolved = Path.Combine( binDir, relative );
-				FileInfo fi = new FileInfo(resolved);
-				if (fi.Exists)
+				if (File.Exists(resolved))
 					return resolved;
 
 				if (discard.Length > 1) {
@@ -42,8 +47,7 @@ public class CloudStream
 			// fall through to error below
 		} else {
 			string resolved = Path.Combine(binDir,path);
-			FileInfo fi = new FileInfo(resolved);
-			if (fi.Exists)
+			if (File.Exists(resolved))
 				return resolved;
 			// else fall through to error below
 		}
