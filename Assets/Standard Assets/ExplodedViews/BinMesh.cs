@@ -276,8 +276,11 @@ public class BinMesh : Inflatable
 		subProg.Progress(1f, "Writing to disk... done");
 	}
 	
-	[ContextMenu("Refresh Minimal Mesh")]
-	public Mesh RefreshMinMesh()
+	public Mesh RefreshMinMesh() {
+		return RefreshMinMesh(null);
+	}
+
+	public Mesh RefreshMinMesh(Mesh mesh)
 	{
 		Transform minMeshNode = transform.FindChild("MinMesh");
 		if (!minMeshNode)
@@ -291,7 +294,8 @@ public class BinMesh : Inflatable
 			reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
 			                                                                  FileMode.Open));
 			CloudMeshConvertor conv = new CloudMeshConvertor(minMeshSize);
-			Mesh mesh = conv.MakeMesh();
+			if (mesh == null)
+				mesh = conv.MakeMesh();
 			reader.ReadPoints(conv.vBuffer, conv.cBuffer);
 			conv.Convert(mesh);
 			minMeshFilter.mesh = mesh;
