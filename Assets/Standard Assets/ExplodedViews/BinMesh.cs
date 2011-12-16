@@ -49,12 +49,7 @@ public class BinMesh : Inflatable
 		{
 			Managed = true;
 			Transform minmesh = transform.FindChild ("MinMesh");
-			if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
-				minmesh.renderer.sharedMaterial = material;
-			} else {
-				minmesh.gameObject.active = false;
-			}
-			
+			minmesh.renderer.material = material;
 			pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
 			Managed = false;
 		}
