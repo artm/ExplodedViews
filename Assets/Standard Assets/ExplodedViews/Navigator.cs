@@ -34,6 +34,8 @@ public class Navigator : MonoBehaviour {
 
 	void UpdateWithCog(Vector3 cog)
 	{
+		float delta = Time.deltaTime;
+		
 		float forward = Input.GetAxis("Vertical");
 		float sideways = Input.GetAxis("Horizontal");
 		
@@ -47,13 +49,13 @@ public class Navigator : MonoBehaviour {
 		
 		if (reflect_t > 0f) {
 			// reflect
-			reflect_t = Mathf.Max(0, reflect_t - Time.deltaTime / reflectTime);
+			reflect_t = Mathf.Max(0, reflect_t - delta / reflectTime);
 			transform.LookAt( transform.position + Vector3.Slerp(reflectStart,reflectTarget,1f - reflect_t) );
 			if (reflect_t >= 0.99f)
 				reflectTarget = Vector3.zero; // done reflecting
 		} else {
 			// turn...
-			transform.RotateAround(Vector3.up, turn * Time.deltaTime);
+			transform.RotateAround(Vector3.up, turn * delta);
 		}
 
 		// go to world space
@@ -63,7 +65,7 @@ public class Navigator : MonoBehaviour {
 		if (pill.isGrounded)
 			fallSpeed = 0;
 		else
-			fallSpeed += gravity * Time.deltaTime;
+			fallSpeed += gravity * delta;
 		direction.y += fallSpeed;
 		
 		Vector3 newVelocity = direction;
@@ -72,7 +74,7 @@ public class Navigator : MonoBehaviour {
 			BroadcastMessage("VelocityChanged", velocity, SendMessageOptions.DontRequireReceiver);
 		}
 
-		pill.Move( direction * Time.deltaTime );
+		pill.Move( direction * delta );
 	}
 	
 	Vector3 theCog = Vector3.zero;
