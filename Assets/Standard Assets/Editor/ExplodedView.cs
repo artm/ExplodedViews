@@ -37,6 +37,7 @@ public class ExplodedView : EditorWindow {
 		logOffset = EditorGUILayout.FloatField("C", logOffset);
 		adjustMinMeshes = EditorGUILayout.Toggle("Adjust MinMeshes", adjustMinMeshes);
 		if (GUILayout.Button("Volume stats")) VolumeStats();
+		if (GUILayout.Button("Restore min meshes")) ReconnectMinMeshes();
 	}
 
 	int minMeshSize(float volume) {
@@ -212,6 +213,28 @@ public class ExplodedView : EditorWindow {
 		}
 		Debug.Log(string.Format("min: {0} max: {1} mean: {2} sigma2: {3}",
 		                        min, max, mean, sigma2));
+	}
+
+	void ReconnectMinMeshes() {
+		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Restoring prefabs")) {
+			Dictionary<string,Mesh> meshes = new Dictionary<string,Mesh>();
+			string path = AssetDatabase.GetAssetPath(prefab);
+			foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(path)) {
+				Mesh mesh = obj as Mesh;
+				if (mesh) {
+					meshes[mesh.name] = mesh;
+				}
+			}
+
+			foreach(MeshFilter mf in prefab.GetComponentsInChildren<MeshFilter>(true)) {
+				if (mf.name == "MinMesh") {
+					string meshname = mf.transform.parent.name + "-miniMesh";
+					if (meshes.ContainsKey(meshname)) {
+						mf.mesh = meshes[meshname];
+					}
+				}
+			}
+		}
 	}
 }
 
