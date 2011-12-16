@@ -36,7 +36,8 @@ public class ExplodedView : EditorWindow {
 		volumeMultiplier = EditorGUILayout.FloatField("B", volumeMultiplier);
 		logOffset = EditorGUILayout.FloatField("C", logOffset);
 		adjustMinMeshes = EditorGUILayout.Toggle("Adjust MinMeshes", adjustMinMeshes);
-		if (GUILayout.Button("Volume stats")) VolumeStats();
+		if (GUILayout.Button("Volumes => MinMesh sizes")) MinMeshesFromVolume();
+		if (GUILayout.Button("Restore min meshes")) ReconnectMinMeshes();
 	}
 
 	int minMeshSize(float volume) {
@@ -176,12 +177,23 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
-	void VolumeStats()
+	void MinMeshesFromVolume()
 	{
 		float min = Mathf.Infinity, max = Mathf.NegativeInfinity, mean = 0, sigma2 = 0;
 		List<float> V = new List<float>();
 		List<string> names = new List<string>();
 		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Calculating volume statistics")) {
+			Dictionary<string,Mesh> meshes = new Dictionary<string,Mesh>();
+			if (adjustMinMeshes) {
+				string path = AssetDatabase.GetAssetPath(prefab);
+				foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(path)) {
+					Mesh mesh = obj as Mesh;
+					if (mesh) {
+						meshes[mesh.name] = mesh;
+					}
+				}
+			}
+
 			foreach(BoxCollider box in prefab.GetComponentsInChildren<BoxCollider>(true)) {
 				Vector3 s = box.transform.lossyScale;
 				float v = Mathf.Abs(s.x*s.y*s.z);
@@ -194,7 +206,14 @@ public class ExplodedView : EditorWindow {
 					BinMesh bm = box.transform.parent.GetComponent<BinMesh>();
 					if (bm!=null) {
 						bm.minMeshSize = minMeshSize(v);
-						bm.RefreshMinMesh();
+						string meshname = bm.name + "-miniMesh";
+						if (meshes.ContainsKey(meshname))
+							bm.RefreshMinMesh( meshes[meshname]);
+						else {
+							Mesh m = bm.RefreshMinMesh();
+							AssetDatabase.AddObjectToAsset(m,prefab);
+						}
+
 					}
 				}
 			}
@@ -212,6 +231,28 @@ public class ExplodedView : EditorWindow {
 		}
 		Debug.Log(string.Format("min: {0} max: {1} mean: {2} sigma2: {3}",
 		                        min, max, mean, sigma2));
+	}
+
+	void ReconnectMinMeshes() {
+		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Restoring prefabs")) {
+			Dictionary<string,Mesh> meshes = new Dictionary<string,Mesh>();
+			string path = AssetDatabase.GetAssetPath(prefab);
+			foreach(Object obj in AssetDatabase.LoadAllAssetsAtPath(path)) {
+				Mesh mesh = obj as Mesh;
+				if (mesh) {
+					meshes[mesh.name] = mesh;
+				}
+			}
+
+			foreach(MeshFilter mf in prefab.GetComponentsInChildren<MeshFilter>(true)) {
+				if (mf.name == "MinMesh") {
+					string meshname = mf.transform.parent.name + "-miniMesh";
+					if (meshes.ContainsKey(meshname)) {
+						mf.mesh = meshes[meshname];
+					}
+				}
+			}
+		}
 	}
 }
 

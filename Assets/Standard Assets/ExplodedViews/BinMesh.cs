@@ -49,12 +49,7 @@ public class BinMesh : Inflatable
 		{
 			Managed = true;
 			Transform minmesh = transform.FindChild ("MinMesh");
-			if (binReader.BaseStream.Length < CloudMeshPool.pointsPerMesh) {
-				minmesh.renderer.sharedMaterial = material;
-			} else {
-				minmesh.gameObject.active = false;
-			}
-			
+			minmesh.renderer.material = material;
 			pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
 			Managed = false;
 		}
@@ -104,7 +99,6 @@ public class BinMesh : Inflatable
 		Managed = false; // will close file if open
 	}
 
-    // assume that we've got distance from camera set by LodManager
 	public void Update()
 	{
 		// update distance to camera
@@ -277,8 +271,11 @@ public class BinMesh : Inflatable
 		subProg.Progress(1f, "Writing to disk... done");
 	}
 	
-	[ContextMenu("Refresh Minimal Mesh")]
-	public Mesh RefreshMinMesh()
+	public Mesh RefreshMinMesh() {
+		return RefreshMinMesh(null);
+	}
+
+	public Mesh RefreshMinMesh(Mesh mesh)
 	{
 		Transform minMeshNode = transform.FindChild("MinMesh");
 		if (!minMeshNode)
@@ -286,13 +283,14 @@ public class BinMesh : Inflatable
 		MeshFilter minMeshFilter = minMeshNode.GetComponent<MeshFilter>();
 		if (!minMeshFilter)
 			throw new Pretty.AssertionFailed("Need MinMesh child");
-		
-		CloudStream.Reader reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"), 
-				FileMode.Open));
-		
+
+		CloudStream.Reader reader = null;
 		try {
+			reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
+			                                                                  FileMode.Open));
 			CloudMeshConvertor conv = new CloudMeshConvertor(minMeshSize);
-			Mesh mesh = conv.MakeMesh();
+			if (mesh == null)
+				mesh = conv.MakeMesh();
 			reader.ReadPoints(conv.vBuffer, conv.cBuffer);
 			conv.Convert(mesh);
 			minMeshFilter.mesh = mesh;
@@ -301,7 +299,8 @@ public class BinMesh : Inflatable
 		} catch {
 			return null;
 		} finally {
-			reader.Close();
+			if (reader != null)
+				reader.Close();
 		}
 	}
 	
