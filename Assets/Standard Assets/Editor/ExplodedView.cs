@@ -148,32 +148,18 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
-	// FIXME use iterator with progress bar...
 	void RefreshCamLists() {
-		AssetDatabase.StartAssetEditing();
-		string[] paths = CompactPaths.ToArray();
-		int done = 0;
-		Progressor progressor = new Progressor("Adding cams lists");
-		try {
-			foreach(string path in paths) {
-				GameObject prefab = AssetDatabase.LoadAssetAtPath(path,typeof(GameObject)) as GameObject;
-				CamsList camsList = prefab.GetComponent<CamsList>();
-				if (camsList == null)
-					camsList = prefab.AddComponent<CamsList>();
-				if (camsList.cams == null)
-					camsList.FindCams();
-				if (camsList.cams == null) {
-					GameObject.DestroyImmediate(camsList,true);
-				} else {
-					camsList.FindSlices();
-				}
-				progressor.Progress( (float)(++done)/paths.Length, "Converted {0}", path );
+		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Refreshing cam lists")) {
+			CamsList camsList = prefab.GetComponent<CamsList>();
+			if (camsList == null)
+				camsList = prefab.AddComponent<CamsList>();
+			if (camsList.cams == null)
+				camsList.FindCams();
+			if (camsList.cams == null) {
+				GameObject.DestroyImmediate(camsList,true);
+			} else {
+				camsList.FindSlices();
 			}
-		} finally {
-			progressor.Done();
-			AssetDatabase.StopAssetEditing();
-			EditorApplication.SaveAssets();
-			EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
 		}
 	}
 
