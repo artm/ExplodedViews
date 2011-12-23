@@ -46,14 +46,6 @@ public class BinMesh : Inflatable
 			return;
 		}
 
-		{
-			Managed = true;
-			Transform minmesh = transform.FindChild ("MinMesh");
-			minmesh.renderer.material = material;
-			pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize;
-			Managed = false;
-		}
-
 		if (lodManager && lodManager.forcedBinMeshMaterial!=null) {
 			material  = lodManager.forcedBinMeshMaterial;
 		}
@@ -68,6 +60,14 @@ public class BinMesh : Inflatable
 		if (material) {
 			material = Object.Instantiate( material ) as Material;
 			material.shader = Object.Instantiate( material.shader ) as Shader;
+		}
+
+		{
+			Managed = true;
+			Transform minmesh = transform.FindChild ("MinMesh");
+			minmesh.renderer.material = material;
+			pointCount = (int)binReader.BaseStream.Length / CloudStream.pointRecSize - minMeshSize;
+			Managed = false;
 		}
 
 		if (lodManager && lodManager.overrideLodBreaks) {
@@ -85,6 +85,8 @@ public class BinMesh : Inflatable
 				// FIXME: should use open/close and not new to avoid garbage generation
 				binReader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
 				                                                  FileMode.Open, FileAccess.Read));
+				// skip the minmeshsized chunk
+				binReader.SeekPoint(minMeshSize);
 				enabled = true;
 			} else if (binReader != null) {
 				binReader.Close();
