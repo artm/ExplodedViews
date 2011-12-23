@@ -91,6 +91,7 @@ public class BinMesh : Inflatable
 			} else if (binReader != null) {
 				binReader.Close();
 				binReader = null;
+				Entitled = 0;
 				enabled = false;
 			}
 		}
