@@ -173,12 +173,10 @@ public class LodManager : MonoBehaviour {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
 				// how many meshes this BinMesh is entitled to?
 				bm.Entitled = Mathf.RoundToInt(bm.weight * buffersLeft);
-				//Debug.Log(string.Format("{0} is entitled to {1}", bm.name, bm.Entitled));
 			}
 			#endregion
 
 			yield return null;
-
 			#region Update load queue
 			int i = 0;
 			foreach(BinMesh bm in allBinMeshes) {
