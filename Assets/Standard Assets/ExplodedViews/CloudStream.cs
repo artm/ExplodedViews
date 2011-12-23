@@ -173,8 +173,16 @@ public class CloudStream
 			                        (int)(BaseStream.Length - BaseStream.Position));
 			
 			if (chbuffer == null || chbuffer.Length < bytesize) {
-				chbuffer = new byte[bytesize];
-				mem = new Reader(new MemoryStream(chbuffer));
+				try {
+					chbuffer = new byte[bytesize];
+					mem = new Reader(new MemoryStream(chbuffer));
+				} catch (System.OverflowException) {
+					Debug.LogError(string.Format(
+					   "Failed to allocate chbuffer of size {0}, amount: {1}, offset: {2}, stride: {3}",
+					    bytesize, amount, offset, stride));
+					Debug.LogError(string.Format("BaseStream.Length: {0}, Position: {1}",
+					                             BaseStream.Length, BaseStream.Position));
+				}
 			}
 			
 			return bytesize;
