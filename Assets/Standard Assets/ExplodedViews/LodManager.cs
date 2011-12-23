@@ -180,10 +180,8 @@ public class LodManager : MonoBehaviour {
 			#region Update load queue
 			int i = 0;
 			foreach(BinMesh bm in allBinMeshes) {
-				if (bm.Managed)
+				if (bm.Managed || bm.DetailsCount > 0)
 					loadQueue[i++] = bm;
-				else if (bm.Entitled > 0)
-					bm.ReturnDetails( bm.DetailsCount );
 			}
 			loadQueue[i] = null; // sentinel
 			#endregion
@@ -200,14 +198,10 @@ public class LodManager : MonoBehaviour {
 				BinMesh bm = loadQueue[i];
 				if (bm.Entitled > bm.DetailsCount && CloudMeshPool.HasFreeMeshes) {
 					// load one
-					//Logger.Log("Loading a buffer for: {0}...", bm.name);
 					yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
-					//Logger.Log("Buffer for {0} loaded", bm.name);
-				} else if (bm.Entitled < bm.DetailsCount) {
-					// unload one or all
-					//Logger.Log("Unloading {0} buffers", bm.name);
-					bm.ReturnDetails( bm.DetailsCount - bm.Entitled );
-					yield return null;
+				} else if (!bm.Managed || bm.Entitled < bm.DetailsCount) {
+					// unload one mesh
+					bm.ReturnDetails( 1 );
 				}
 			}
 			yield return null;
