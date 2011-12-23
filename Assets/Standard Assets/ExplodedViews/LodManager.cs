@@ -161,7 +161,7 @@ public class LodManager : MonoBehaviour {
 			float totalWeight = 0;
 			foreach(BinMesh bm in Managed) {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
-				totalWeight += (bm.weight = 1.0f - bm.distanceFromCamera / maxDist);
+				totalWeight += (bm.weight = 1.0f - Mathf.Pow( bm.distanceFromCamera / maxDist, 0.5f));
 			}
 			
 			foreach(BinMesh bm in Managed) {
