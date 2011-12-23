@@ -10,6 +10,8 @@ public class Navigator : MonoBehaviour {
 	public float CogSidewaysScaling = 0.001f; /* to meters */
 
 	public float gravity = -10;
+
+	public AnimationCurve speedCurve = new AnimationCurve();
 		
 	CharacterController pill;
 	float fallSpeed = 0;
@@ -43,7 +45,7 @@ public class Navigator : MonoBehaviour {
 		sideways += cog.y * CogSidewaysScaling;
 
 		// now scale with speeds
-		forward *= walkSpeed;
+		forward = speedCurve.Evaluate(forward) * walkSpeed;
 		Vector3 walk = new Vector3( 0, 0, forward );
 		float turn = sideways * turnSpeed;
 		
