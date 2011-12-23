@@ -45,22 +45,6 @@ public class LodManager : MonoBehaviour {
 		Debug.Log("" + allBinMeshes.Length + " bin meshes found");
 		loadQueue = new BinMesh[allBinMeshes.Length + 1]; // extra one for sentinel
 		loadQueue[0] = null;
-		
-		// adjust lod breaks
-		float lodScale = theCamera.camera.farClipPlane / lodBreakDistances[0];
-		for(int i=0; i<lodBreakDistances.Length; i++)
-			lodBreakDistances[i] *= lodScale;		
-		
-		// adjust fog to lod breaks
-		//RenderSettings.fog = true;
-		RenderSettings.fogMode = FogMode.Linear;
-		RenderSettings.fogStartDistance = lodBreakDistances[1];
-		RenderSettings.fogEndDistance = lodBreakDistances[0];
-
-		if (relativeCenterOffset<0.0f || relativeCenterOffset>0.5f) {
-			Debug.LogWarning( "Valid range for LOD's Relative Center Offset is between 0.0 and 0.5, will use default (0.4)" );
-			relativeCenterOffset = 0.4f;
-		}
 
 		Time.maximumDeltaTime = 0.04f;
 	}
