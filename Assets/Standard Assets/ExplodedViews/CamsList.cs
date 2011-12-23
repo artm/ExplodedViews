@@ -38,6 +38,7 @@ public class CamsList : Inflatable {
 
 	public CamDesc[] cams;
 	CloudStream.Reader binReader;
+	LodManager lodManager;
 
 	public override void Awake()
 	{
@@ -45,6 +46,7 @@ public class CamsList : Inflatable {
 		cams = cams.Where(c => c.slice != null).ToArray();
 		if (cams.Length == 0)
 			cams = null;
+		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
 		base.Awake();
 	}
 
@@ -61,6 +63,7 @@ public class CamsList : Inflatable {
 			return;
 		}
 		binReader = new CloudStream.Reader( new FileStream( path, FileMode.Open, FileAccess.Read ) );
+		Logger.Log("cams.Length: {0}", cams.Length);
 	}
 
 	void OnApplicationQuit()
@@ -159,6 +162,21 @@ public class CamsList : Inflatable {
 	
 	#region slide show run-time / inflatable implementation
 	int currentSlide = -1;
+	int slideShowVotes = 0;
+
+	// asked by children when they touch slide show trigger
+	public void AskSlideShowStart()
+	{
+		slideShowVotes++;
+		lodManager.MaybeStartSlideShow(this);
+	}
+
+	public void AskSlideShowStop()
+	{
+		if (--slideShowVotes == 0) {
+			lodManager.MaybeStopSlideShow(this);
+		}
+	}
 
 	public void StopSlideShow()
 	{
@@ -177,6 +195,9 @@ public class CamsList : Inflatable {
 
 		currentSlide = Random.Range(0,cams.Length-1);
 		binReader.SeekPoint( cams[currentSlide].slice.offset );
+		Logger.Log("Slide selected, offset: {0}, size: {1}",
+		           cams[currentSlide].slice.offset,
+		           cams[currentSlide].slice.length);
 	}
 
 	static int DivCeil(int a, int b) {

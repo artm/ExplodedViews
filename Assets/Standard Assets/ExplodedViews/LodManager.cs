@@ -14,7 +14,6 @@ using System;
 public class LodManager : MonoBehaviour {
 	#region fields
 	public bool dontBalanceOnWarp = false;
-	public bool slideShowMode = false;
 	public float relativeCenterOffset = 0.4f;
 	public float radiusScale = 0.3f;
 
@@ -26,13 +25,11 @@ public class LodManager : MonoBehaviour {
 	public float slideDelay = 3.0f;
 	public float rebalanceDelay = 1.0f;
 	
-	float slideDoneTime = -1;
-
 	Transform theCamera;
 	CamsList slideShow = null;
 	
 	BinMesh[] allBinMeshes;
-	BinMesh[] loadQueue;
+	Inflatable[] loadQueue;
 	
 	#endregion
 	
@@ -43,7 +40,7 @@ public class LodManager : MonoBehaviour {
 		/* find all inflatables */
 		allBinMeshes = GameObject.Find("Clouds").GetComponentsInChildren<BinMesh>();
 		Debug.Log("" + allBinMeshes.Length + " bin meshes found");
-		loadQueue = new BinMesh[allBinMeshes.Length + 1]; // extra one for sentinel
+		loadQueue = new Inflatable[allBinMeshes.Length + 2]; // extra one for sentinel and one for slideshow
 		loadQueue[0] = null;
 
 		Time.maximumDeltaTime = 0.04f;
@@ -59,6 +56,7 @@ public class LodManager : MonoBehaviour {
 		
 		StartCoroutine( Balance() );
 		StartCoroutine( ProcessLoadQueue() );
+		StartCoroutine( RunSlideShow() );
 	}
 	
 	void OnTriggerEnter(Collider other)
@@ -74,21 +72,43 @@ public class LodManager : MonoBehaviour {
 		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
 		if (bm == null) return;
 		bm.Managed = false;
+	}
 
-		// see if we're related to current slide show and if it has no more Managed relatives
-		if (slideShow && other.transform.parent.parent == slideShow) {
-			foreach(Collider box in slideShow.GetComponentsInChildren<Collider>()) {
-				BinMesh bm1 = box.transform.parent.GetComponent<BinMesh>();
-				if (bm1 != null && bm1.Managed)
-					return;
-			}
-			// if got here then slide show contains no more managed boxes
+	// only start if this node isn't a slide show yet
+	public void MaybeStartSlideShow(CamsList node) {
+		if (node != slideShow && node.StartSlideShow()) {
+			slideShow = node;
+		}
+	}
+
+	// only stop if this node is current slide show
+	public void MaybeStopSlideShow(CamsList node) {
+		if (node == slideShow) {
 			slideShow.StopSlideShow();
-			slideShow.Entitled = 0;
 			slideShow = null;
 		}
 	}
+
+	IEnumerator RunSlideShow()
+	{
+		while(true) {
+			while(slideShow) {
+				slideShow.NextSlide();
+				slideShow.ReturnDetails( slideShow.DetailsCount );
+				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), CloudMeshPool.Capacity / 2 );
+				CamsList tmp = slideShow;
+				Balance();
+				while(slideShow == tmp && slideShow.DetailsCount < slideShow.Entitled)
+					yield return null;
+				if (slideShow == tmp)
+					yield return new WaitForSeconds(slideDelay);
+			}
 	
+			while(!slideShow)
+				yield return null;
+		}
+	}
+
 	void Update() {
 		Logger.Plot("Managed clouds", Inflatable.ManagedCount);
 		Logger.Plot("Point count", CloudMeshPool.LoadedPointsCount);
@@ -108,49 +128,10 @@ public class LodManager : MonoBehaviour {
 	{
 		while (true) {
 			#region Find the closest mesh and distance distribution
-			float maxDist = 0, minDist = 0;
-			Transform closest = null;
+			float maxDist = 0;
 			foreach(BinMesh bm in Managed) {
-				if (minDist > bm.distanceFromCamera || closest == null) {
-					minDist = bm.distanceFromCamera;
-					closest = bm.transform;
-				}
 				if (maxDist < bm.distanceFromCamera)
 					maxDist = bm.distanceFromCamera;
-			}
-			#endregion
-
-			yield return null;
-
-			#region setup slide show
-			if (slideShowMode && closest != null) {
-				CamsList cams = closest.parent.GetComponent<CamsList>();
-				if (cams != null) {
-					if (cams != slideShow) {
-						// switch slide show node
-						if (slideShow != null) {
-							slideShow.StopSlideShow();
-							slideShow.Entitled = 0;
-						}
-						slideShow = cams.StartSlideShow() ? cams : null;
-						slideDoneTime = Time.time - slideDelay*2; // make sure new slide will be chosen
-					}
-				}
-			}
-	
-			if (slideShow != null) {
-				if ((slideDoneTime > 0) && ((Time.time-slideDoneTime) > slideDelay)) {
-					slideShow.NextSlide();
-					slideDoneTime = -1;
-					slideShow.Entitled =
-						System.Math.Min(slideShow.CurrentSlideSize(),
-						                CloudMeshPool.Capacity / 2);
-					Debug.Log("Next slide wants: " + slideShow.Entitled + " buffers");
-				}
-				// unload slideshow children and discount them in load-balancing
-				foreach(BinMesh bm in slideShow.GetComponentsInChildren<BinMesh>()) {
-					bm.Entitled = 0;
-				}
 			}
 			#endregion
 
@@ -179,6 +160,7 @@ public class LodManager : MonoBehaviour {
 			yield return null;
 			#region Update load queue
 			int i = 0;
+			if (slideShow != null) loadQueue[i++] = slideShow;
 			foreach(BinMesh bm in allBinMeshes) {
 				if (bm.Managed || bm.DetailsCount > 0)
 					loadQueue[i++] = bm;
@@ -195,13 +177,13 @@ public class LodManager : MonoBehaviour {
 		while (true) 
 		{
 			for(int i=0; loadQueue[i] != null && i<loadQueue.Length; i++) {
-				BinMesh bm = loadQueue[i];
-				if (bm.Entitled > bm.DetailsCount && CloudMeshPool.HasFreeMeshes) {
+				Inflatable inflatable = loadQueue[i];
+				if (inflatable.Entitled > inflatable.DetailsCount && CloudMeshPool.HasFreeMeshes) {
 					// load one
-					yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
-				} else if (!bm.Managed || bm.Entitled < bm.DetailsCount) {
+					yield return StartCoroutine( inflatable.LoadOne( CloudMeshPool.Get() ) );
+				} else if (inflatable.DetailsCount > 0 && (!inflatable.Managed || inflatable.Entitled < inflatable.DetailsCount)) {
 					// unload one mesh
-					bm.ReturnDetails( 1 );
+					inflatable.ReturnDetails( 1 );
 				}
 			}
 			yield return null;
