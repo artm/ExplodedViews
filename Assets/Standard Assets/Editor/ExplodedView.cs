@@ -38,6 +38,7 @@ public class ExplodedView : EditorWindow {
 		adjustMinMeshes = EditorGUILayout.Toggle("Adjust MinMeshes", adjustMinMeshes);
 		if (GUILayout.Button("Volumes => MinMesh sizes")) MinMeshesFromVolume();
 		if (GUILayout.Button("Restore min meshes")) ReconnectMinMeshes();
+		if (GUILayout.Button("Attach slide show handlers")) AttachSlideShowHandlers();
 	}
 
 	int minMeshSize(float volume) {
@@ -237,6 +238,15 @@ public class ExplodedView : EditorWindow {
 						mf.mesh = meshes[meshname];
 					}
 				}
+			}
+		}
+	}
+
+	void AttachSlideShowHandlers()
+	{
+		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Attaching slide show handlers")) {
+			foreach(BoxCollider box in prefab.GetComponentsInChildren<BoxCollider>(true)) {
+				box.gameObject.AddComponent<SlideShowHandler>();
 			}
 		}
 	}
