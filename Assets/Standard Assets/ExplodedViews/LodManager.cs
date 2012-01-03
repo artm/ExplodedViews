@@ -180,7 +180,7 @@ public class LodManager : MonoBehaviour {
 				if (inflatable.Entitled > inflatable.DetailsCount && CloudMeshPool.HasFreeMeshes) {
 					// load one
 					yield return StartCoroutine( inflatable.LoadOne( CloudMeshPool.Get() ) );
-				} else if (inflatable.DetailsCount > 0 && (!inflatable.Managed || inflatable.Entitled < inflatable.DetailsCount)) {
+				} else if (inflatable.Entitled < inflatable.DetailsCount) {
 					// unload one mesh
 					inflatable.ReturnDetails( 1 );
 				}
