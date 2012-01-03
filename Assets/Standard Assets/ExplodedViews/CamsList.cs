@@ -72,6 +72,15 @@ public class CamsList : Inflatable {
 			binReader.Close();
 	}
 
+	public bool SlideShowable {
+		get {
+			return (cams != null)
+				&& (cams.Length > 0)
+				&& (cams[0].slice.length > 0)
+				&& (CloudStream.FindBin(BaseName + ".bin") != null);
+		}
+	}
+
 	string BaseName {
 		get {
 			return gameObject.name.Replace("--loc", "");
@@ -221,8 +230,9 @@ public class CamsList : Inflatable {
 	{
 		get {
 			return System.Math.Min(CloudMeshPool.pointsPerMesh,
-			                       cams[currentSlide].slice.length
-			                       - ((int)binReader.PointPosition-cams[currentSlide].slice.offset ));
+			                       cams[currentSlide].slice.offset
+			                       + cams[currentSlide].slice.length
+			                       - (int)binReader.PointPosition);
 		}
 	}
 
