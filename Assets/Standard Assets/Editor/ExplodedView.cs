@@ -15,30 +15,41 @@ public class ExplodedView : EditorWindow {
 	float logOffset = 100;
 	bool adjustMinMeshes = false;
 
+	bool projFold = true, sceneFold = true;
+
+	public class NoCloudsException : System.Exception {}
+
 	[MenuItem ("Window/Expoded View")]
 	static void Init () {
 		// Get existing open window or if none, make a new one:
 		window = (ExplodedView) EditorWindow.GetWindow(typeof(ExplodedView));
 	}
 
-
 	void OnGUI () {
-		//autoCompact = GUILayout.Toggle(autoCompact, "Auto compact");
+		if (projFold = EditorGUILayout.Foldout(projFold, "Project, Prefabs")) {
+			//autoCompact = GUILayout.Toggle(autoCompact, "Auto compact");
+	
+			if (GUILayout.Button("List compacts")) ListCompacts();
+			linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
+			if (GUILayout.Button("Make compacts from origs")) MakeCompacts();
+	
+			if (GUILayout.Button("Refresh compacts' cam lists")) RefreshCamLists();
+			GUILayout.Label("MinMesh size = A * log( B * volume ) + C");
+			logMultiplier = EditorGUILayout.FloatField("A", logMultiplier);
+			volumeMultiplier = EditorGUILayout.FloatField("B", volumeMultiplier);
+			logOffset = EditorGUILayout.FloatField("C", logOffset);
+			adjustMinMeshes = EditorGUILayout.Toggle("Adjust MinMeshes", adjustMinMeshes);
+			if (GUILayout.Button("Volumes => MinMesh sizes")) MinMeshesFromVolume();
+			if (GUILayout.Button("Restore min meshes")) ReconnectMinMeshes();
+			if (GUILayout.Button("Attach slide show handlers")) AttachSlideShowHandlers();
+		}
 
-		if (GUILayout.Button("List compacts")) ListCompacts();
-		linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
-		if (GUILayout.Button("Make compacts from origs")) MakeCompacts();
-		if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
-
-		if (GUILayout.Button("Refresh compacts' cam lists")) RefreshCamLists();
-		GUILayout.Label("MinMesh size = A * log( B * volume ) + C");
-		logMultiplier = EditorGUILayout.FloatField("A", logMultiplier);
-		volumeMultiplier = EditorGUILayout.FloatField("B", volumeMultiplier);
-		logOffset = EditorGUILayout.FloatField("C", logOffset);
-		adjustMinMeshes = EditorGUILayout.Toggle("Adjust MinMeshes", adjustMinMeshes);
-		if (GUILayout.Button("Volumes => MinMesh sizes")) MinMeshesFromVolume();
-		if (GUILayout.Button("Restore min meshes")) ReconnectMinMeshes();
-		if (GUILayout.Button("Attach slide show handlers")) AttachSlideShowHandlers();
+		if (sceneFold = EditorGUILayout.Foldout(sceneFold, "Current scene")) {
+			if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
+			if (GUILayout.Button("List locations")) ListSceneLocations();
+			if (GUILayout.Button("Delete non-slide-showable locations")) DeleteNonSlideShowable();
+			if (GUILayout.Button("Revert locations to prefabs")) RevertSceneLocations();
+		}
 	}
 
 	int minMeshSize(float volume) {
@@ -101,6 +112,50 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
+	IEnumerable<GameObject> SceneLocations {
+		get {
+			GameObject root = GameObject.Find("Clouds");
+			if (root == null) throw new NoCloudsException();
+			foreach(ExplodedLocation loc in root.GetComponentsInChildren<ExplodedLocation>()) {
+				yield return loc.gameObject;
+			}
+		}
+	}
+
+	void ListSceneLocations() {
+		try {
+			int slideable_count = 0;
+			foreach(GameObject location in SceneLocations) {
+				CamsList cl = location.GetComponent<CamsList>();
+				if (cl != null && cl.SlideShowable) {
+					slideable_count++;
+					Debug.Log( string.Format("{0}", location.name), location );
+				} else {
+					Debug.LogWarning( string.Format("{0}, non-slide-showable", location.name), location );
+				}
+			}
+			Debug.Log(string.Format("Slide-showable count: {0}", slideable_count));
+		} catch (NoCloudsException) {
+			Debug.LogError("No 'Clouds' node in the current scene");
+		}
+	}
+
+	void RevertSceneLocations() {
+		foreach(GameObject location in SceneLocations) {
+			EditorUtility.ResetToPrefabState(location);
+		}
+		EditorApplication.SaveScene(EditorApplication.currentScene);
+	}
+
+	void DeleteNonSlideShowable()
+	{
+		foreach(GameObject go in SceneLocations.Where(
+		    x => ((x.GetComponent<CamsList>() == null) || !x.GetComponent<CamsList>().SlideShowable)).ToArray()) {
+			GameObject.DestroyImmediate(go);
+		}
+		EditorApplication.SaveScene(EditorApplication.currentScene);
+	}
+
 	void AddCompactsToClouds()
 	{
 		GameObject rootGo = GameObject.Find("Clouds");
@@ -108,27 +163,19 @@ public class ExplodedView : EditorWindow {
 			Debug.LogError("No Clouds node in the scene");
 		}
 		Transform root = rootGo.transform;
-		foreach(string path in CompactPaths) {
+
+		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Adding compacts to Clouds")) {
 			// skip existing
-			if (root.Find(Path.GetFileNameWithoutExtension(path)))
+			if (root.Find(prefab.name))
 				continue;
-			Object prefab = AssetDatabase.LoadMainAssetAtPath(path);
-			if (!prefab) {
-				Debug.LogError("Couldn't load prefab from " + path);
-				continue;
-			}
 			GameObject go =
 				linkToPrefabs
 					? EditorUtility.InstantiatePrefab(prefab) as GameObject
 					: GameObject.Instantiate(prefab) as GameObject;
-
 			go.name = go.name.Replace("(Clone)","");
-
 			ProceduralUtils.InsertKeepingLocalTransform(go.transform, root);
-
-			EditorApplication.SaveAssets();
+			// save so we can continue after crash
 			EditorApplication.SaveScene(EditorApplication.currentScene);
-			Debug.Log("Saved " + EditorApplication.currentScene);
 		}
 	}
 
