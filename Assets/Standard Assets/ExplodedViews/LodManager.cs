@@ -39,7 +39,6 @@ public class LodManager : MonoBehaviour {
 
 		/* find all inflatables */
 		allBinMeshes = GameObject.Find("Clouds").GetComponentsInChildren<BinMesh>();
-		Debug.Log("" + allBinMeshes.Length + " bin meshes found");
 		loadQueue = new Inflatable[allBinMeshes.Length + 2]; // extra one for sentinel and one for slideshow
 		loadQueue[0] = null;
 
