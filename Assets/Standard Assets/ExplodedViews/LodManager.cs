@@ -92,7 +92,6 @@ public class LodManager : MonoBehaviour {
 	{
 		while(true) {
 			while(slideShow) {
-				slideShow.NextSlide();
 				slideShow.ReturnDetails( slideShow.DetailsCount );
 				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), CloudMeshPool.Capacity / 2 );
 				CamsList tmp = slideShow;
@@ -101,6 +100,8 @@ public class LodManager : MonoBehaviour {
 					yield return null;
 				if (slideShow == tmp)
 					yield return new WaitForSeconds(slideDelay);
+				if (slideShow == tmp)
+					slideShow.NextSlide();
 			}
 	
 			while(!slideShow)

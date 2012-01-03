@@ -189,12 +189,17 @@ public class CamsList : Inflatable {
 
 	public void StopSlideShow()
 	{
+		Entitled = 0;
 		currentSlide = -1;
 	}
 
 	public bool StartSlideShow()
 	{
-		return cams != null && cams.Length > 0;
+		if (cams != null && cams.Length > 0) {
+			NextSlide();
+			return true;
+		} else
+			return false;
 	}
 
 	public void NextSlide()
