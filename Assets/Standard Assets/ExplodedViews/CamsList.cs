@@ -167,6 +167,53 @@ public class CamsList : Inflatable {
 		}
 	}
 
+	[ContextMenu("Shuffle bin")]
+	public void ShuffleOrigBin()
+	{
+		ShuffleOrigBin(null);
+	}
+
+	public void ShuffleOrigBin(Progressor prog)
+	{
+		using (FileStream stream = File.Open(CloudStream.FindBin(BaseName + ".bin"), FileMode.Open)) {
+			CloudStream.Reader reader = new CloudStream.Reader(stream);
+
+			try {
+				if (prog == null)
+					prog = new Progressor("Shuffling " + name);
+		
+				for(int ci = 0; ci < cams.Length; ci++) {
+					CamDesc cam = cams[ci];
+					prog.Progress((float)ci/(float)cams.Length, "{0} ETA: {eta}", cam.name);
+
+					int byteCount = cam.slice.length * CloudStream.pointRecSize;
+					byte[] sliceBytes = new byte[byteCount];
+
+					reader.SeekPoint(cam.slice.offset, SeekOrigin.Begin);
+					stream.Read( sliceBytes, 0, byteCount );
+		
+					byte[] tmp = new byte[CloudStream.pointRecSize];
+		
+					ShuffleUtility.WithSwap(cam.slice.length, (i, j) =>
+					{
+						/*
+			             * This is the fastest way I found to swap 16-byte long chunks in memory (tried MemoryStream and
+			             * byte-by-byte swap loop).
+			             */
+						System.Buffer.BlockCopy(sliceBytes, i * CloudStream.pointRecSize, tmp, 0, CloudStream.pointRecSize);
+						System.Buffer.BlockCopy(sliceBytes, j * CloudStream.pointRecSize, sliceBytes, i * CloudStream.pointRecSize, CloudStream.pointRecSize);
+						System.Buffer.BlockCopy(tmp, 0, sliceBytes, j * CloudStream.pointRecSize, CloudStream.pointRecSize);
+						// 'i' runs backwards from pointCount-1 to 0
+					});
+		
+					reader.SeekPoint(cam.slice.offset, SeekOrigin.Begin);
+					stream.Write( sliceBytes, 0, byteCount );
+				}
+			} finally {
+				prog.Done("Shuffled orig bin in {tt}");
+			}
+		} // using(stream)
+	}
 #endif
 	
 	#region slide show run-time / inflatable implementation
