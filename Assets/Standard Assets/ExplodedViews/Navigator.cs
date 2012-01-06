@@ -27,7 +27,9 @@ public class Navigator : MonoBehaviour {
 
 	void OnControllerColliderHit(ControllerColliderHit hit)
 	{
-		if (!hit.gameObject.CompareTag("World Wall") || reflect_t > 0f)
+		if (!hit.gameObject.CompareTag("World Wall")
+		    || reflect_t > 0f // already reflecting
+		    || Vector3.Dot(transform.forward, velocity) < 0f ) // moving backwards
 			return;
 		reflectStart = transform.forward;
 		reflectTarget = Vector3.Reflect(transform.forward, hit.normal);
