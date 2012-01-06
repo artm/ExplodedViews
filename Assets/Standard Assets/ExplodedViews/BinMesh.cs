@@ -25,6 +25,25 @@ public class BinMesh : Inflatable
 	public float distanceFromCamera = 0;
 	public int lod = 0;
 
+	public float Scale {
+		get { return scale; }
+		set {
+			scale = value;
+			// scale min mesh
+			Mesh minMesh = transform.FindChild("MinMesh").GetComponent<MeshFilter>().mesh;
+			Vector3[] v = minMesh.vertices;
+			for(int i = 0; i<v.Length; ++i) {
+				v[i] = v[i] * scale;
+			}
+			minMesh.vertices = v;
+			minMesh.RecalculateBounds();
+			// scale the box
+			Transform box = transform.FindChild("Box");
+			box.localPosition = box.localPosition * scale;
+			box.localScale = box.localScale * scale;
+		}
+	}
+
 	public long PointsLeft {
 		get {
 			return (binReader.BaseStream.Length - binReader.BaseStream.Position) / CloudStream.pointRecSize;

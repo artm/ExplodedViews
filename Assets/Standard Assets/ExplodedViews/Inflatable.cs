@@ -10,6 +10,7 @@ public abstract class Inflatable : MonoBehaviour {
 	static int managedCount = 0;
 	
 	public float weight = 0.0f;
+	protected float scale = 1.0f;
 	
 	public virtual bool Managed {
 		get { return managed; }
@@ -55,7 +56,7 @@ public abstract class Inflatable : MonoBehaviour {
 	public IEnumerator LoadOne(GameObject go, float stride)
 	{
 		PreLoad(go);
-		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go, stride, NextChunkSize));
+		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go, stride, NextChunkSize, scale));
 		ProceduralUtils.InsertAtOrigin(go.transform, detail);
 		go.active = true;
 		PostLoad(go);

@@ -106,7 +106,13 @@ public class CloudMeshConvertor
 	public void Convert(Mesh mesh) {
 		Convert(mesh,vBuffer,cBuffer);
 	}
-	
+
+	public void Convert(Mesh mesh, float scale) {
+		for(int i = 0; i<vBuffer.Length; ++i)
+			vBuffer[i] *= scale;
+		Convert(mesh,vBuffer,cBuffer);
+	}
+
 	/// <summary>
 	/// Create a mesh with compatible internals (to be filled by conversions).
 	/// </summary>

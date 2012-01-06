@@ -63,7 +63,12 @@ public class CamsList : Inflatable {
 			return;
 		}
 		binReader = new CloudStream.Reader( new FileStream( path, FileMode.Open, FileAccess.Read ) );
-		Logger.Log("cams.Length: {0}", cams.Length);
+
+		// apply scale
+		scale = transform.localScale.x;
+		transform.localScale = Vector3.one;
+		foreach(BinMesh bm in GetComponentsInChildren<BinMesh>())
+			bm.Scale = scale;
 	}
 
 	void OnApplicationQuit()
