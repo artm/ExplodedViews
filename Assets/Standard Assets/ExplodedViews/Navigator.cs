@@ -13,7 +13,8 @@ public class Navigator : MonoBehaviour {
 	public float gravity = -10;
 
 	public AnimationCurve speedCurve = new AnimationCurve();
-		
+	public AnimationCurve walkToTurnDeceleration = new AnimationCurve();
+
 	CharacterController pill;
 	float fallSpeed = 0;
 	Vector3 velocity = Vector3.zero;
@@ -56,9 +57,8 @@ public class Navigator : MonoBehaviour {
 			sideways = 0f;
 
 		// now scale with speeds
-		forward = speedCurve.Evaluate(forward) * walkSpeed;
-		Vector3 walk = new Vector3( 0, 0, forward );
-		float turn = sideways * turnSpeed;
+		Vector3 walk = new Vector3( 0, 0, speedCurve.Evaluate(forward) * walkSpeed );
+		float turn = sideways * turnSpeed * walkToTurnDeceleration.Evaluate(Mathf.Abs(forward));
 		
 		if (reflect_t > 0f) {
 			// reflect
