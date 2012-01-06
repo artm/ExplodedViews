@@ -27,10 +27,10 @@ public class LodManager : MonoBehaviour {
 	
 	Transform theCamera;
 	CamsList slideShow = null;
+	float maxManagementDist;
 	
 	BinMesh[] allBinMeshes;
-	Inflatable[] loadQueue;
-	
+
 	#endregion
 	
 	void Awake()
@@ -39,8 +39,6 @@ public class LodManager : MonoBehaviour {
 
 		/* find all inflatables */
 		allBinMeshes = GameObject.Find("Clouds").GetComponentsInChildren<BinMesh>();
-		loadQueue = new Inflatable[allBinMeshes.Length + 2]; // extra one for sentinel and one for slideshow
-		loadQueue[0] = null;
 
 		Time.maximumDeltaTime = 0.04f;
 	}
@@ -51,10 +49,10 @@ public class LodManager : MonoBehaviour {
 		Vector3 center = ball.center;
 		center.z = theCamera.camera.farClipPlane * relativeCenterOffset;
 		ball.center = center;
-		ball.radius = theCamera.camera.farClipPlane * (1.0f - relativeCenterOffset) * radiusScale;
+		maxManagementDist = ball.radius = theCamera.camera.farClipPlane * (1.0f - relativeCenterOffset) * radiusScale;
 		
 		StartCoroutine( Balance() );
-		StartCoroutine( ProcessLoadQueue() );
+		StartCoroutine( ProcessUnloadQueue() );
 		StartCoroutine( RunSlideShow() );
 	}
 	
@@ -84,6 +82,7 @@ public class LodManager : MonoBehaviour {
 	public void MaybeStopSlideShow(CamsList node) {
 		if (node == slideShow) {
 			slideShow.StopSlideShow();
+			slideShow.ReturnDetails(slideShow.DetailsCount);
 			slideShow = null;
 		}
 	}
@@ -123,26 +122,25 @@ public class LodManager : MonoBehaviour {
 					yield return bm as BinMesh;
 		}
 	}
+
+	IEnumerable<Inflatable> BinMeshesToLoad
+	{
+		get {
+			foreach(BinMesh bm in allBinMeshes)
+				if (bm.Entitled > bm.DetailsCount)
+					yield return bm as Inflatable;
+		}
+	}
 	
 	IEnumerator Balance()
 	{
 		while (true) {
-			#region Find the closest mesh and distance distribution
-			float maxDist = 0;
-			foreach(BinMesh bm in Managed) {
-				if (maxDist < bm.distanceFromCamera)
-					maxDist = bm.distanceFromCamera;
-			}
-			#endregion
-
-			yield return null;
-
 			#region distribute the rest of the pool
 			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ?slideShow.Entitled : 0);
 			float totalWeight = 0;
 			foreach(BinMesh bm in Managed) {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
-				totalWeight += (bm.weight = 1.0f - Mathf.Pow( bm.distanceFromCamera / maxDist, 0.5f));
+				totalWeight += (bm.weight = 1.0f - Mathf.Pow( bm.distanceFromCamera / maxManagementDist, 0.5f));
 			}
 			
 			foreach(BinMesh bm in Managed) {
@@ -153,37 +151,37 @@ public class LodManager : MonoBehaviour {
 			foreach(BinMesh bm in Managed) {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
 				// how many meshes this BinMesh is entitled to?
-				bm.Entitled = Mathf.RoundToInt(bm.weight * buffersLeft);
+				bm.Entitled = Mathf.FloorToInt(bm.weight * buffersLeft);
 			}
 			#endregion
 
-			yield return null;
-			#region Update load queue
-			int i = 0;
-			if (slideShow != null) loadQueue[i++] = slideShow;
-			foreach(BinMesh bm in allBinMeshes) {
-				if (bm.Managed || bm.DetailsCount > 0)
-					loadQueue[i++] = bm;
+			while (slideShow != null && slideShow.Entitled > slideShow.DetailsCount) {
+				if (CloudMeshPool.HasFreeMeshes)
+					yield return StartCoroutine( slideShow.LoadOne( CloudMeshPool.Get() ) );
+				else
+					yield return null;
 			}
-			loadQueue[i] = null; // sentinel
-			#endregion
-	
-			yield return new WaitForSeconds(rebalanceDelay);
+
+			foreach(BinMesh bm in allBinMeshes) {
+				while (bm.Entitled > bm.DetailsCount) {
+					if (CloudMeshPool.HasFreeMeshes)
+						yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
+					else
+						yield return null;
+				}
+			}
+
+			yield return null;
 		}
 	}
-	
-	IEnumerator ProcessLoadQueue()
+
+	IEnumerator ProcessUnloadQueue()
 	{
 		while (true) 
 		{
-			for(int i=0; loadQueue[i] != null && i<loadQueue.Length; i++) {
-				Inflatable inflatable = loadQueue[i];
-				if (inflatable.Entitled > inflatable.DetailsCount && CloudMeshPool.HasFreeMeshes) {
-					// load one
-					yield return StartCoroutine( inflatable.LoadOne( CloudMeshPool.Get() ) );
-				} else if (inflatable.Entitled < inflatable.DetailsCount) {
-					// unload one mesh
-					inflatable.ReturnDetails( 1 );
+			foreach(BinMesh bm in allBinMeshes) {
+				if (bm.Entitled < bm.DetailsCount) {
+					bm.ReturnDetails( 1 );
 				}
 			}
 			yield return null;
