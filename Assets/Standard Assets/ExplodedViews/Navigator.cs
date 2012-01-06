@@ -6,6 +6,7 @@ public class Navigator : MonoBehaviour {
 	
 	public float walkSpeed = 1;
 	public float turnSpeed = 1;
+	public float turnRest = 0.1f;
 	public float CogForwardScaling = 0.001f; /* to meters */
 	public float CogSidewaysScaling = 0.001f; /* to meters */
 
@@ -42,9 +43,17 @@ public class Navigator : MonoBehaviour {
 		
 		float forward = Input.GetAxis("Vertical");
 		float sideways = Input.GetAxis("Horizontal");
-		
+
 		forward += cog.x * CogForwardScaling;
 		sideways += cog.y * CogSidewaysScaling;
+
+		// apply turn rest
+		if (sideways > turnRest)
+			sideways -= turnRest;
+		else if (sideways < -turnRest)
+			sideways += turnRest;
+		else
+			sideways = 0f;
 
 		// now scale with speeds
 		forward = speedCurve.Evaluate(forward) * walkSpeed;
