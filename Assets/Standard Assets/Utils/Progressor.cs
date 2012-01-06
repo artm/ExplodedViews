@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Progressor
 {
@@ -12,6 +13,14 @@ public class Progressor
 
     Progressor stack = null;
     float progFrom, progTo;
+
+	// used by Iterate<> and Sub() version without arguments
+	class IterState {
+		public int i;
+		public int total;
+		public IterState() { i=0; total=0; }
+	}
+	IterState iter = new IterState();
 
     public float elapsed { get { return swatch.elapsed; } }
 
@@ -40,6 +49,11 @@ public class Progressor
     {
         return new Progressor(this, progFrom, progTo);
     }
+
+	public Progressor Sub()
+	{
+		return Sub( (float)iter.i / (float)iter.total , (float)(iter.i+1) / (float)iter.total );
+	}
 
 	/// <summary>
 	/// Advance progress bar
@@ -70,6 +84,26 @@ public class Progressor
                 throw new Cancel();
         }
     }
+
+	public delegate string Printer<T>(T obj);
+
+	public IEnumerable<T> Iterate<T>(IEnumerable<T> collection, Printer<T> print) {
+		T[] array = collection.ToArray();
+		try {
+			iter.total = array.Length;
+
+			for(iter.i = 0; iter.i<iter.total; ++iter.i) {
+				T obj = array[iter.i];
+				Progress((float) iter.i / (float) iter.total, "Processing {0}, ETA: {eta}", print(obj));
+				yield return obj;
+			}
+		} finally {
+			Done();
+		}
+	}
+	public IEnumerable<T> Iterate<T>(IEnumerable<T> collection) {
+		return Iterate<T>(collection, x => x.ToString());
+	}
 
     public void Done()
     {
