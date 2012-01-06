@@ -49,6 +49,7 @@ public class ExplodedView : EditorWindow {
 			if (GUILayout.Button("List locations")) ListSceneLocations();
 			if (GUILayout.Button("Delete non-slide-showable locations")) DeleteNonSlideShowable();
 			if (GUILayout.Button("Revert locations to prefabs")) RevertSceneLocations();
+			if (GUILayout.Button("Shuffle origs of the current scene")) ShuffleSceneLocations();
 		}
 	}
 
@@ -145,6 +146,20 @@ public class ExplodedView : EditorWindow {
 			EditorUtility.ResetToPrefabState(location);
 		}
 		EditorApplication.SaveScene(EditorApplication.currentScene);
+	}
+
+	void ShuffleSceneLocations() {
+		Progressor prog = new Progressor("Shuffling, shuffling...");
+		try {
+			foreach( GameObject go in prog.Iterate(SceneLocations, x => x.name) ) {
+				CamsList loc = go.GetComponent<CamsList>();
+				if (loc != null) {
+					loc.ShuffleOrigBin(prog.Sub());
+				}
+			}
+		} finally {
+			prog.Done("Shuffled scene's originals in {tt}");
+		}
 	}
 
 	void DeleteNonSlideShowable()
