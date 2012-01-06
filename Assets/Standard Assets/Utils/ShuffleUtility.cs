@@ -8,11 +8,10 @@ public class ShuffleUtility
     /* a fisher-yates shuffle that doesn't know what it actually shuffles */
     public static void WithSwap(int count, SwapByIndex swap)
     {
-        for (int i = count; --i > 0; ) {
+        for (int i = count - 1; i > 0; --i) {
             int j = random.Next(i + 1); // including i
-            if (i == j)
-                continue;
-            swap(i,j);
+            if (i != j)
+				swap(i,j);
         }
     }
 

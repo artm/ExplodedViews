@@ -2,6 +2,7 @@ using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Progressor
 {
@@ -40,6 +41,19 @@ public class Progressor
         return new Progressor(this, progFrom, progTo);
     }
 
+	/// <summary>
+	/// Advance progress bar
+	/// </summary>
+	/// <param name="progress">
+	/// The measure of progress - from 0.0f to 1.0f.
+	/// </param>
+	/// <param name="format">
+	/// Current message format. May contain {eta} token which will be
+	/// substituted with estimated time until the end of operation.
+	/// </param>
+	/// <param name="args">
+	/// Values for format (as per System.String.Format).
+	/// </param>
     public void Progress(float progress, string format, params object[] args)
     {
         if (stack != null) {
@@ -78,7 +92,5 @@ public class Progressor
         Debug.Log(string.Format(format, lastWords));
         Done();
     }
-
-
 }
 #endif
