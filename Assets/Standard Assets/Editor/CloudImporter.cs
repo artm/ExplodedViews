@@ -26,30 +26,36 @@ public class CloudImporter : EditorWindow
 	{
 		string path = EditorPrefs.GetString("IncomingCloudsFolder",".");		
 		path = EditorUtility.OpenFolderPanel("Incoming clouds directory", path, "");
-		ExplodedPrefs prefs = ExplodedPrefs.Instance();
+		//ExplodedPrefs prefs = ExplodedPrefs.Instance();
 		
 		if (path == null || path == "") 
 			return;
 		
 		foreach(string fname in Directory.GetFiles(path, "*.cloud")) {
-			Debug.Log("Seeing a cloud: " + fname);
+			// Safety: don't overwrite already imported clouds
+			if (File.Exists( Path.Combine("Assets/Clouds", Path.GetFileName(fname)) )) {
+				Debug.LogWarning(string.Format("Cloud '{0}' is already imported, skipping", 
+				                               Path.GetFileName(fname)));
+				continue;
+			}
 			// Sanity check: there should be a corresponding .bin next to the cloud
 			string binFname = Path.ChangeExtension(fname, ".bin");
 			if (!File.Exists(binFname)) {
 				Debug.LogError(string.Format("No .bin file found for '{0}'", fname));
 				continue;
 			}
-			// Safety: don't overwrite already imported clouds
-			if (File.Exists( Path.Combine(prefs.binPath, Path.GetFileName(fname)) )) {
-				Debug.LogWarning(string.Format("Cloud '{0}' is already imported, skipping", 
-				                               Path.GetFileName(fname)));
-				continue;
-			}
+			// ready to import
+			Import(fname, binFname);
 		}
 		EditorPrefs.SetString("IncomingCloudsFolder", path);
 	}
 	
-	
+	void Import(string cloud_fname, string bin_fname)
+	{
+		// iterate over slices and ...
+		// ... shuffle each slice
+		// ... sample a bit of each slice for the orig preview
+	}
 	
 	
 	// old stuff
