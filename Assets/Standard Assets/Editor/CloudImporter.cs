@@ -6,12 +6,58 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.IO;
 
-public class CloudImporter : AssetPostprocessor
+public class CloudImporter : EditorWindow
 {
+	static CloudImporter window = null;
+	
+	public static CloudImporter Window { get { return window; } }
+	[MenuItem ("Window/Cloud Importer")]
+	static void Init () {
+		// Get existing open window or if none, make a new one:
+		window = (CloudImporter) EditorWindow.GetWindow<CloudImporter>();
+	}
+
+	void OnGUI() {
+		if (GUILayout.Button("Import clouds..."))
+			ImportClouds();
+	}
+	
+	void ImportClouds()
+	{
+		string path = EditorPrefs.GetString("IncomingCloudsFolder",".");		
+		path = EditorUtility.OpenFolderPanel("Incoming clouds directory", path, "");
+		ExplodedPrefs prefs = ExplodedPrefs.Instance();
+		
+		if (path == null || path == "") 
+			return;
+		
+		foreach(string fname in Directory.GetFiles(path, "*.cloud")) {
+			Debug.Log("Seeing a cloud: " + fname);
+			// Sanity check: there should be a corresponding .bin next to the cloud
+			string binFname = Path.ChangeExtension(fname, ".bin");
+			if (!File.Exists(binFname)) {
+				Debug.LogError(string.Format("No .bin file found for '{0}'", fname));
+				continue;
+			}
+			// Safety: don't overwrite already imported clouds
+			if (File.Exists( Path.Combine(prefs.binPath, Path.GetFileName(fname)) )) {
+				Debug.LogWarning(string.Format("Cloud '{0}' is already imported, skipping", 
+				                               Path.GetFileName(fname)));
+				continue;
+			}
+		}
+		EditorPrefs.SetString("IncomingCloudsFolder", path);
+	}
+	
+	
+	
+	
+	// old stuff
+#if __NEVER__	
     static string prefabsDir = "Assets/CloudPrefabs";
 	static string locationsDir = "Assets/CompactPrefabs";
 
-    static void OnPostprocessAllAssets (
+    static void OnPostprocessAllAssets__disabled (
         string[] importedAssets,
         string[] deletedAssets,
         string[] movedAssets,
@@ -102,7 +148,7 @@ public class CloudImporter : AssetPostprocessor
         }
     }
 
-	void OnPreprocessAudio()
+	void OnPreprocessAudio__disabled()
 	{
 		AudioImporter ai = assetImporter as AudioImporter;
 		if (ai) {
@@ -111,7 +157,7 @@ public class CloudImporter : AssetPostprocessor
 		}
 	}
 
-	void OnPostprocessAudio (AudioClip clip)
+	void OnPostprocessAudio__disabled(AudioClip clip)
 	{
 		// find clip's cloud
 		string locPath = Path.Combine(locationsDir,
@@ -161,7 +207,7 @@ public class CloudImporter : AssetPostprocessor
 		}
 	}
 
-	static void StoreAndDestroy(GameObject obj, Object prefab) {
+	static void StoreAndDestroy__disabled(GameObject obj, Object prefab) {
 		// save the branch into the prefab
 		EditorUtility.ReplacePrefab(obj, prefab);
 		// get rid of the temporary object (otherwise it stays over in scene)
@@ -169,4 +215,6 @@ public class CloudImporter : AssetPostprocessor
 		// if obj was loaded from existing prefab it remains in scene. the following makes it disappear.
 		EditorUtility.UnloadUnusedAssets();
 	}
+
+#endif
 }
