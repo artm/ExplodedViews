@@ -1,59 +1,49 @@
 using UnityEngine;
 using UnityEditor;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 using System.IO;
 
-public class CloudImporter : EditorWindow
+public class CloudImporter
 {
     static string prefabsDir = "Assets/CloudPrefabs";
 	
-	static CloudImporter window = null;	
-	public static CloudImporter Window { get { return window; } }
-	[MenuItem ("Window/Cloud Importer")]
-	static void Init () {
+	[MenuItem ("Exploded Views/Import clouds")]
+	static void ImportClouds () {
+		ExplodedPrefs prefs = ExplodedPrefs.Instance();
 		// Get existing open window or if none, make a new one:
-		window = (CloudImporter) EditorWindow.GetWindow<CloudImporter>();
-	}
-
-	void OnGUI() {
-		if (GUILayout.Button("Import clouds..."))
-			ImportClouds();
-	}
+		if (EditorUtility.DisplayDialog("Import clouds",
+		                                string.Format(
+		                                "Folders are setup in Resources/ExplodedPrefs asset\n" +
+		                                "Incoming: {0}\n" +
+		                                "Imported: {1}", prefs.incomingPath, prefs.importedPath ),
+		                                "Import",
+		                                "Cancel")) {
+			string[] clouds = Directory.GetFiles(prefs.incomingPath, "*.cloud");
 	
-	void ImportClouds()
-	{
-		string path = EditorPrefs.GetString("IncomingCloudsFolder",".");		
-		path = EditorUtility.OpenFolderPanel("Incoming clouds directory", path, "");
-		//ExplodedPrefs prefs = ExplodedPrefs.Instance();
-		
-		if (path == null || path == "") 
-			return;
-		
-		foreach(string cloud_path in Directory.GetFiles(path, "*.cloud")) {
-			string prefab_path = Path.Combine(prefabsDir, Path.GetFileNameWithoutExtension(cloud_path) + ".prefab");
-			// Safety: don't overwrite prefabs
-			if (File.Exists( prefab_path )) {
-				Debug.LogError( string.Format("{0} already imported", Path.GetFileNameWithoutExtension(cloud_path)) );
-				                              
-				continue;
+			if (clouds.Length == 0) {
+				Debug.LogWarning(string.Format("No cloud files at incoming path: {0}", prefs.incomingPath));
 			}
-						
-			// Sanity check: there should be a corresponding .bin next to the cloud
-			string bin_path = Path.ChangeExtension(cloud_path, ".bin");
-			if (!File.Exists(bin_path)) {
-				Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
-				continue;
+	
+			foreach(string cloud_path in clouds) {
+				string prefab_path = Path.Combine(prefabsDir, Path.GetFileNameWithoutExtension(cloud_path) + ".prefab");
+				// Safety: don't overwrite prefabs
+				if (File.Exists( prefab_path )) {
+					Debug.LogError( string.Format("{0} already imported", Path.GetFileNameWithoutExtension(cloud_path)) );
+					continue;
+				}
+	
+				// Sanity check: there should be a corresponding .bin next to the cloud
+				string bin_path = Path.ChangeExtension(cloud_path, ".bin");
+				if (!File.Exists(bin_path)) {
+					Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
+					continue;
+				}
+				// ready to import
+				ImportCloud(cloud_path, bin_path, prefab_path);
 			}
-			// ready to import
-			Import(cloud_path, bin_path, prefab_path);
 		}
-		EditorPrefs.SetString("IncomingCloudsFolder", path);
 	}
 	
-	void Import(string cloud_path, string bin_path, string prefab_path)
+	static void ImportCloud(string cloud_path, string bin_path, string prefab_path)
 	{
 		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
 		
