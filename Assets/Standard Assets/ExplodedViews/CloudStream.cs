@@ -25,8 +25,8 @@ public class CloudStream
 	public static string FindBin(string path) {
 		GameObject cloudsgo = GameObject.Find("Clouds");
 		if (cloudsgo != null) {
-			MakeTriggers mt = cloudsgo.GetComponentInChildren<MakeTriggers>();
-			binDir = mt.binDir;
+			ExplodedPrefs prefs = ExplodedPrefs.Instance();
+			binDir = prefs.binPath;
 		}
 
 		if (Path.IsPathRooted(path)) {

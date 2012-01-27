@@ -889,37 +889,17 @@ public class ImportedCloud : MonoBehaviour
 	void ReadCloudMap ()
 	{
 		List<Slice> lst = new List<Slice> ();
-		Dictionary<string, Slice> dict = new Dictionary<string, Slice>();
 		TextReader mapReader;
 		mapReader = new StreamReader (cloudPath);
 		binPath = CloudStream.FindBin (mapReader.ReadLine ());
-		Debug.Log ("Found bin cloud: " + binPath);
 		
 		string ln;
 		while ((ln = mapReader.ReadLine ()) != null) {
 			Slice slice = new Slice (ln, this);
 			lst.Add(slice);
-			dict[slice.name] = slice;
 		}
 		mapReader.Close ();
-
-		bool ditch = (slices == null) || (slices.Length != lst.Count); // true if something went wrong
-		if (!ditch) {
-			foreach(Slice slice in slices) {
-				if (!dict.ContainsKey(slice.name)) {
-					ditch = true;
-					break;
-				}
-				slice.Update(dict[slice.name]);
-			}
-		}
-
-		if (ditch) {
-			Debug.LogWarning(string.Format("List of {0} slices changed, have to ditch " +
-				"its properties (e.g. selection)", Path.GetFileNameWithoutExtension(cloudPath)));
-			slices = lst.ToArray ();
-		}
-
+		slices = lst.ToArray ();
 	}
 	
 	// Save the state of itself on exit

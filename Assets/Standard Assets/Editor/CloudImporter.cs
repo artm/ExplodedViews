@@ -6,12 +6,89 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.IO;
 
-public class CloudImporter : AssetPostprocessor
+public class CloudImporter : EditorWindow
 {
     static string prefabsDir = "Assets/CloudPrefabs";
+	
+	static CloudImporter window = null;	
+	public static CloudImporter Window { get { return window; } }
+	[MenuItem ("Window/Cloud Importer")]
+	static void Init () {
+		// Get existing open window or if none, make a new one:
+		window = (CloudImporter) EditorWindow.GetWindow<CloudImporter>();
+	}
+
+	void OnGUI() {
+		if (GUILayout.Button("Import clouds..."))
+			ImportClouds();
+	}
+	
+	void ImportClouds()
+	{
+		string path = EditorPrefs.GetString("IncomingCloudsFolder",".");		
+		path = EditorUtility.OpenFolderPanel("Incoming clouds directory", path, "");
+		//ExplodedPrefs prefs = ExplodedPrefs.Instance();
+		
+		if (path == null || path == "") 
+			return;
+		
+		foreach(string cloud_path in Directory.GetFiles(path, "*.cloud")) {
+			string prefab_path = Path.Combine(prefabsDir, Path.GetFileNameWithoutExtension(cloud_path) + ".prefab");
+			// Safety: don't overwrite prefabs
+			if (File.Exists( prefab_path )) {
+				Debug.LogError( string.Format("{0} already imported", Path.GetFileNameWithoutExtension(cloud_path)) );
+				                              
+				continue;
+			}
+						
+			// Sanity check: there should be a corresponding .bin next to the cloud
+			string bin_path = Path.ChangeExtension(cloud_path, ".bin");
+			if (!File.Exists(bin_path)) {
+				Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
+				continue;
+			}
+			// ready to import
+			Import(cloud_path, bin_path, prefab_path);
+		}
+		EditorPrefs.SetString("IncomingCloudsFolder", path);
+	}
+	
+	void Import(string cloud_path, string bin_path, string prefab_path)
+	{
+		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
+		
+		Object prefab = EditorUtility.CreateEmptyPrefab (prefab_path);
+		// create the hierarchy
+		GameObject root = new GameObject(baseName, typeof(ImportedCloud));
+		
+		try {
+			new GameObject("Preview").transform.parent = root.transform;
+			new GameObject("CutBoxes").transform.parent = root.transform;
+	
+			ImportedCloud iCloud = root.GetComponent<ImportedCloud>();
+			iCloud.prefabPath = prefab_path;
+			iCloud.cloudPath = cloud_path;
+			//iCloud.Shuffle();
+			iCloud.Sample();
+	
+			// save the branch into the prefab
+			EditorUtility.ReplacePrefab(root, prefab);
+		} catch {
+			// delete prefab if anything went wrong
+			if (File.Exists(prefab_path))
+				FileUtil.DeleteFileOrDirectory(prefab_path);
+		} finally {
+			// get rid of the temporary object (otherwise it stays over in scene)
+			Object.DestroyImmediate(root);
+		}
+	}
+	
+	
+	// old stuff
+#if __NEVER__	
 	static string locationsDir = "Assets/CompactPrefabs";
 
-    static void OnPostprocessAllAssets (
+    static void OnPostprocessAllAssets__disabled (
         string[] importedAssets,
         string[] deletedAssets,
         string[] movedAssets,
@@ -102,7 +179,7 @@ public class CloudImporter : AssetPostprocessor
         }
     }
 
-	void OnPreprocessAudio()
+	void OnPreprocessAudio__disabled()
 	{
 		AudioImporter ai = assetImporter as AudioImporter;
 		if (ai) {
@@ -111,7 +188,7 @@ public class CloudImporter : AssetPostprocessor
 		}
 	}
 
-	void OnPostprocessAudio (AudioClip clip)
+	void OnPostprocessAudio__disabled(AudioClip clip)
 	{
 		// find clip's cloud
 		string locPath = Path.Combine(locationsDir,
@@ -161,12 +238,5 @@ public class CloudImporter : AssetPostprocessor
 		}
 	}
 
-	static void StoreAndDestroy(GameObject obj, Object prefab) {
-		// save the branch into the prefab
-		EditorUtility.ReplacePrefab(obj, prefab);
-		// get rid of the temporary object (otherwise it stays over in scene)
-		Object.DestroyImmediate(obj);
-		// if obj was loaded from existing prefab it remains in scene. the following makes it disappear.
-		EditorUtility.UnloadUnusedAssets();
-	}
+#endif
 }

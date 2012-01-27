@@ -23,7 +23,7 @@ public class LodManager : MonoBehaviour {
 	public Material forcedBinMeshMaterial = null;
 
 	public float slideDelay = 3.0f;
-	public float rebalanceDelay = 1.0f;
+	public float rebalanceDistance = 20.0f;
 	
 	Transform theCamera;
 	CamsList slideShow = null;
@@ -135,6 +135,9 @@ public class LodManager : MonoBehaviour {
 	IEnumerator Balance()
 	{
 		while (true) {
+			
+		ReBalance:
+			
 			#region distribute the rest of the pool
 			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ?slideShow.Entitled : 0);
 			float totalWeight = 0;
@@ -154,22 +157,35 @@ public class LodManager : MonoBehaviour {
 				bm.Entitled = Mathf.FloorToInt(bm.weight * buffersLeft);
 			}
 			#endregion
-
+			
+			#region Load buffers
+			Inflatable rememberSlideShow = slideShow;
+			
 			while (slideShow != null && slideShow.Entitled > slideShow.DetailsCount) {
 				if (CloudMeshPool.HasFreeMeshes)
 					yield return StartCoroutine( slideShow.LoadOne( CloudMeshPool.Get() ) );
 				else
 					yield return null;
+				
+				if (slideShow != rememberSlideShow)
+					goto ReBalance;
 			}
-
+			
+			Vector3 rememberPos = transform.position;
+			
 			foreach(BinMesh bm in allBinMeshes) {
 				while (bm.Entitled > bm.DetailsCount) {
 					if (CloudMeshPool.HasFreeMeshes)
 						yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
 					else
 						yield return null;
+					
+					if (Vector3.Distance(rememberPos, transform.position) > rebalanceDistance ||
+					    slideShow != rememberSlideShow)
+						goto ReBalance;
 				}
 			}
+			#endregion
 
 			yield return null;
 		}
