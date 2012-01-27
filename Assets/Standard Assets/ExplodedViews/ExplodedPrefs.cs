@@ -4,10 +4,9 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 
-
 public class ExplodedPrefs : ScriptableObject
 {
-	public string binPath;
+	public string importedPath, incomingPath;
 	
 	public static ExplodedPrefs Instance()
 	{
@@ -23,7 +22,7 @@ public class ExplodedPrefs : ScriptableObject
 			Directory.CreateDirectory(res);
 		
 		ExplodedPrefs prefs = ScriptableObject.CreateInstance<ExplodedPrefs>();
-		prefs.binPath = Path.GetFullPath("Bin");
+		prefs.importedPath = Path.GetFullPath("Bin");
 		AssetDatabase.CreateAsset(prefs, Path.Combine(res, "ExplodedPrefs.asset"));
 		AssetDatabase.Refresh();
 	}

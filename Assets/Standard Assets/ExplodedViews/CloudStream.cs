@@ -21,12 +21,12 @@ public class CloudStream
     }
 
 	#region Relative paths utils
-	public static string binDir = "Bin";
+	public static string importedPath = "Bin";
 	public static string FindBin(string path) {
 		GameObject cloudsgo = GameObject.Find("Clouds");
 		if (cloudsgo != null) {
 			ExplodedPrefs prefs = ExplodedPrefs.Instance();
-			binDir = prefs.binPath;
+			importedPath = prefs.importedPath;
 		}
 
 		if (Path.IsPathRooted(path)) {
@@ -34,7 +34,7 @@ public class CloudStream
 			string discard = Path.GetDirectoryName(path),
 			       relative = Path.GetFileName(path);
 			while(true) {
-				string resolved = Path.Combine( binDir, relative );
+				string resolved = Path.Combine( importedPath, relative );
 				if (File.Exists(resolved))
 					return resolved;
 
@@ -46,7 +46,7 @@ public class CloudStream
 			}
 			// fall through to error below
 		} else {
-			string resolved = Path.Combine(binDir,path);
+			string resolved = Path.Combine(importedPath,path);
 			if (File.Exists(resolved))
 				return resolved;
 			// else fall through to error below
