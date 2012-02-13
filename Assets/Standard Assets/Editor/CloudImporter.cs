@@ -32,17 +32,24 @@ public class CloudImporter
 				string bin_path = prefs.IncomingBin(cloud_path);
 				string prefab_path = prefs.ImportedCloudPrefab(cloud_path);
 
-				// Safety: don't overwrite prefabs
-				if (File.Exists( prefab_path )) {
-					Debug.LogError( string.Format("'{0}' already imported", cloud_path) );
-					continue;
-				}
-	
 				// Sanity check: there should be a corresponding .bin next to the cloud
 				if (!File.Exists(bin_path)) {
 					Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
 					continue;
 				}
+
+				// Safety: don't overwrite prefabs
+				string[] sentinels = { prefab_path, prefs.ImportedBin(cloud_path), prefs.ImportedCloud(cloud_path)};
+				bool hitSentinel = false;
+				foreach(string sentinel in sentinels) {
+					if (File.Exists( sentinel )) {
+						Debug.LogError(string.Format("'{0}' is in the way when importing '{1}'", sentinel, cloud_path));
+						hitSentinel = true;
+					}
+				}
+				if (hitSentinel)
+					continue;
+
 				// ready to import
 				CloudImporter importer = new CloudImporter(prog.Sub());
 				importer.ImportCloud(cloud_path, bin_path, prefab_path);
