@@ -1,15 +1,14 @@
-using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
+using System.Linq;
+using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 // Maintains metadata of the original cloud and implements cloud finetuning GUI.
-// 
 // Upon exit from the game mode saves its state
 public class ImportedCloud : MonoBehaviour
 {
@@ -740,29 +739,6 @@ public class ImportedCloud : MonoBehaviour
 
 	#endregion
 
-	// create preview meshes per original slice
-	public void Sample ()
-	{
-		// TODO this should be similar to compact's min mesh creation
-		// may be abstract that away
-	}
-	
-	public void ParseCloud(string path)
-	{
-		using (TextReader mapReader = new StreamReader (path)) {
-			// skip the bin path
-			mapReader.ReadLine();
-
-			List<Slice> lst = new List<Slice> ();
-			string ln;
-			while ((ln = mapReader.ReadLine ()) != null) {
-				Slice slice = new Slice (ln, this);
-				lst.Add(slice);
-			}
-			slices = lst.ToArray ();
-		}
-	}
-	
 	// Save the state of itself on exit
 	public void UpdatePrefab() {
 		if (detailBranch)

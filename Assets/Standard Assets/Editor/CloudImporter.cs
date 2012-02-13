@@ -1,50 +1,76 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Collections.Generic;
+
+using Slice = ImportedCloud.Slice;
 
 public class CloudImporter
 {
+	#region static
     static string prefabsDir = "Assets/CloudPrefabs";
-	
+
 	[MenuItem ("Exploded Views/Import Clouds")]
 	static void ImportClouds () {
 		ExplodedPrefs prefs = ExplodedPrefs.Instance;
-		// Get existing open window or if none, make a new one:
 		if (EditorUtility.DisplayDialog("Import clouds",
 		                                string.Format(
-		                                "Folders are setup in Resources/ExplodedPrefs asset\n" +
+		                                "Folders are setup in Resources/ExplodedPrefs asset\n\n" +
 		                                "Incoming: {0}\n" +
 		                                "Imported: {1}", prefs.incomingPath, prefs.importedPath ),
 		                                "Import",
 		                                "Cancel")) {
+
+			// get a list of incoming .cloud files
 			string[] clouds = Directory.GetFiles(prefs.incomingPath, "*.cloud");
-	
+			// see if the list isn't empty
 			if (clouds.Length == 0) {
 				Debug.LogWarning(string.Format("No cloud files at incoming path: {0}", prefs.incomingPath));
 			}
-	
-			foreach(string cloud_path in clouds) {
-				string prefab_path = Path.Combine(prefabsDir, Path.GetFileNameWithoutExtension(cloud_path) + ".prefab");
+
+			Progressor prog = new Progressor("Importing clouds");
+			foreach(string cloud_path in prog.Iterate(clouds )) {
+				// derive .prefab / .bin paths from .cloud path
+				string base_name = Path.GetFileNameWithoutExtension(cloud_path);
+				string bin_path = Path.ChangeExtension(cloud_path, ".bin");
+				string prefab_path = Path.Combine(prefabsDir, base_name + ".prefab");
+
 				// Safety: don't overwrite prefabs
 				if (File.Exists( prefab_path )) {
-					Debug.LogError( string.Format("{0} already imported", Path.GetFileNameWithoutExtension(cloud_path)) );
+					Debug.LogError( string.Format("'{0}' already imported", base_name) );
 					continue;
 				}
 	
 				// Sanity check: there should be a corresponding .bin next to the cloud
-				string bin_path = Path.ChangeExtension(cloud_path, ".bin");
 				if (!File.Exists(bin_path)) {
-					Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
+					Debug.LogError(string.Format("No .bin file found for '{0}'", base_name));
 					continue;
 				}
 				// ready to import
-				ImportCloud(cloud_path, bin_path, prefab_path);
+				CloudImporter importer = new CloudImporter(prog.Sub());
+				importer.ImportCloud(cloud_path, bin_path, prefab_path);
 			}
 		}
 	}
-	
-	static void ImportCloud(string cloud_path, string bin_path, string prefab_path)
+	#endregion
+
+	#region instance
+	Progressor prog;
+	ImportedCloud iCloud;
+	CloudMeshConvertor meshConv;
+	int sliceSampleSize;
+
+	CloudImporter(Progressor _prog)
 	{
+		ExplodedPrefs prefs = ExplodedPrefs.Instance;
+
+		prog = _prog;
+		meshConv = new CloudMeshConvertor( prefs.origPreviewSize );
+	}
+
+	void ImportCloud(string cloud_path, string bin_path, string prefab_path)
+	{
+		ExplodedPrefs prefs = ExplodedPrefs.Instance;
 		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
 		
 		Object prefab = EditorUtility.CreateEmptyPrefab (prefab_path);
@@ -52,14 +78,29 @@ public class CloudImporter
 		GameObject root = new GameObject(baseName, typeof(ImportedCloud));
 		
 		try {
-			new GameObject("Preview").transform.parent = root.transform;
+			GameObject previewGo = new GameObject("Preview", typeof(MeshFilter), typeof(MeshRenderer));
+			previewGo.transform.parent = root.transform;
 			new GameObject("CutBoxes").transform.parent = root.transform;
 	
-			ImportedCloud iCloud = root.GetComponent<ImportedCloud>();
-			iCloud.ParseCloud(cloud_path);
+			iCloud = root.GetComponent<ImportedCloud>();
+			// parse the list of slices from .cloud file
+			List<Slice> sliceList = ParseCloud(cloud_path);
+			// sort slices on size
+			sliceList.Sort((slice1, slice2) => (slice2.size - slice1.size));
+			iCloud.slices = sliceList.ToArray ();
+
+			sliceSampleSize = prefs.origPreviewSize / System.Math.Min( prefs.previewSlicesCount, sliceList.Count );
+			// shuffle individual slices and sample prefs.origPreviewSize from first prefs.previewSlicesCount slices
+			// sampled points end up in meshConv
+			ShuffleSlicesAndSample(bin_path);
+			// generate preview mesh by sampling some number of points over the whole original
+			Mesh mesh = meshConv.MakeMesh();
+			meshConv.Convert(mesh);
+			// save mesh into prefab and attach it to the Preview game object
+			AssetDatabase.AddObjectToAsset(mesh, prefab);
+			previewGo.GetComponent<MeshFilter>().mesh = mesh;
+
 			iCloud.skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",typeof(GUISkin)) as GUISkin;
-			//iCloud.Shuffle();
-			//iCloud.Sample();
 
 			// save the branch into the prefab
 			EditorUtility.ReplacePrefab(root, prefab);
@@ -75,8 +116,67 @@ public class CloudImporter
 			// get rid of the temporary object (otherwise it stays over in scene)
 			Object.DestroyImmediate(root);
 			AssetDatabase.Refresh();
+
+			Debug.LogError("TODO: move the imported .bin/.cloud to the <ImportedPath>");
 		}
 	}
+
+	List<Slice> ParseCloud(string cloud_path)
+	{
+		using (TextReader mapReader = new StreamReader (cloud_path)) {
+			// skip the bin path
+			mapReader.ReadLine();
+
+			List<Slice> sliceList = new List<Slice> ();
+			string ln;
+			while ((ln = mapReader.ReadLine ()) != null) {
+				Slice slice = new Slice (ln, iCloud);
+				sliceList.Add(slice);
+			}
+			return sliceList;
+		}
+	}
+
+	void ShuffleSlicesAndSample(string bin_path)
+	{
+		using (FileStream stream = File.Open( bin_path, FileMode.Open)) {
+			CloudStream.Reader reader = new CloudStream.Reader(stream);
+			try {
+				foreach(Slice slice in prog.Iterate(iCloud.slices)) {
+					int byteCount = slice.size * CloudStream.pointRecSize;
+					byte[] sliceBytes = new byte[byteCount];
+
+					reader.SeekPoint(slice.offset, SeekOrigin.Begin);
+					stream.Read( sliceBytes, 0, byteCount );
+		
+					byte[] tmp = new byte[CloudStream.pointRecSize];
+		
+					ShuffleUtility.WithSwap(slice.size, (i, j) =>
+					{
+						/*
+			             * This is the fastest way I found to swap 16-byte long chunks in memory (tried MemoryStream and
+			             * byte-by-byte swap loop).
+			             */
+						System.Buffer.BlockCopy(sliceBytes, i * CloudStream.pointRecSize, tmp, 0, CloudStream.pointRecSize);
+						System.Buffer.BlockCopy(sliceBytes, j * CloudStream.pointRecSize, sliceBytes, i * CloudStream.pointRecSize, CloudStream.pointRecSize);
+						System.Buffer.BlockCopy(tmp, 0, sliceBytes, j * CloudStream.pointRecSize, CloudStream.pointRecSize);
+						// 'i' runs backwards from pointCount-1 to 0
+					});
+		
+					reader.SeekPoint(slice.offset, SeekOrigin.Begin);
+					stream.Write( sliceBytes, 0, byteCount );
+
+					// may be sample
+					CloudStream.Reader mem = new CloudStream.Reader(new MemoryStream(sliceBytes));
+					mem.DecodePoints(meshConv, sliceSampleSize);
+				}
+			} finally {
+				prog.Done("Shuffled orig bin in {tt}");
+			}
+		} // using(stream)
+	}
+
+	#endregion
 
 	// old stuff: sound association is there
 #if __NEVER__	
