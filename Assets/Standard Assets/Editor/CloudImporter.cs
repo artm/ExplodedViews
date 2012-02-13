@@ -6,9 +6,9 @@ public class CloudImporter
 {
     static string prefabsDir = "Assets/CloudPrefabs";
 	
-	[MenuItem ("Exploded Views/Import clouds")]
+	[MenuItem ("Exploded Views/Import Clouds")]
 	static void ImportClouds () {
-		ExplodedPrefs prefs = ExplodedPrefs.Instance();
+		ExplodedPrefs prefs = ExplodedPrefs.Instance;
 		// Get existing open window or if none, make a new one:
 		if (EditorUtility.DisplayDialog("Import clouds",
 		                                string.Format(
@@ -56,25 +56,29 @@ public class CloudImporter
 			new GameObject("CutBoxes").transform.parent = root.transform;
 	
 			ImportedCloud iCloud = root.GetComponent<ImportedCloud>();
-			iCloud.prefabPath = prefab_path;
-			iCloud.cloudPath = cloud_path;
+			iCloud.ParseCloud(cloud_path);
+			iCloud.skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",typeof(GUISkin)) as GUISkin;
 			//iCloud.Shuffle();
-			iCloud.Sample();
-	
+			//iCloud.Sample();
+
 			// save the branch into the prefab
 			EditorUtility.ReplacePrefab(root, prefab);
-		} catch {
+		} catch (System.Exception exception) {
+			Debug.Log("Cleaning up imported prefab because something went wrong (see below).");
+
 			// delete prefab if anything went wrong
 			if (File.Exists(prefab_path))
 				FileUtil.DeleteFileOrDirectory(prefab_path);
+
+			throw exception;
 		} finally {
 			// get rid of the temporary object (otherwise it stays over in scene)
 			Object.DestroyImmediate(root);
+			AssetDatabase.Refresh();
 		}
 	}
-	
-	
-	// old stuff
+
+	// old stuff: sound association is there
 #if __NEVER__	
 	static string locationsDir = "Assets/CompactPrefabs";
 
