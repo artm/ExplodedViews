@@ -8,8 +8,6 @@ using Slice = ImportedCloud.Slice;
 public class CloudImporter
 {
 	#region static
-    static string prefabsDir = "Assets/CloudPrefabs";
-
 	[MenuItem ("Exploded Views/Import Clouds")]
 	static void ImportClouds () {
 		ExplodedPrefs prefs = ExplodedPrefs.Instance;
@@ -31,19 +29,18 @@ public class CloudImporter
 			Progressor prog = new Progressor("Importing clouds");
 			foreach(string cloud_path in prog.Iterate(clouds )) {
 				// derive .prefab / .bin paths from .cloud path
-				string base_name = Path.GetFileNameWithoutExtension(cloud_path);
-				string bin_path = Path.ChangeExtension(cloud_path, ".bin");
-				string prefab_path = Path.Combine(prefabsDir, base_name + ".prefab");
+				string bin_path = prefs.IncomingBin(cloud_path);
+				string prefab_path = prefs.ImportedCloudPrefab(cloud_path);
 
 				// Safety: don't overwrite prefabs
 				if (File.Exists( prefab_path )) {
-					Debug.LogError( string.Format("'{0}' already imported", base_name) );
+					Debug.LogError( string.Format("'{0}' already imported", cloud_path) );
 					continue;
 				}
 	
 				// Sanity check: there should be a corresponding .bin next to the cloud
 				if (!File.Exists(bin_path)) {
-					Debug.LogError(string.Format("No .bin file found for '{0}'", base_name));
+					Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
 					continue;
 				}
 				// ready to import
@@ -109,6 +106,10 @@ public class CloudImporter
 
 			// save the branch into the prefab
 			EditorUtility.ReplacePrefab(root, prefab);
+
+			// do this last, after the rest succeeded
+			FileUtil.MoveFileOrDirectory(bin_path, prefs.ImportedBin(bin_path));
+			FileUtil.MoveFileOrDirectory(cloud_path, prefs.ImportedCloud(cloud_path));
 		} catch (System.Exception exception) {
 			Debug.Log("Cleaning up imported prefab because something went wrong (see below).");
 
@@ -124,10 +125,6 @@ public class CloudImporter
 
 		}
 
-		// Will only get here if everything went OK
-		Debug.LogError("TODO: move the imported .bin/.cloud to the <ImportedPath>");
-		//FileUtil.MoveFileOrDirectory(prefs.IncomingBin(baseName), prefs.ImportedBin(baseName));
-		//FileUtil.MoveFileOrDirectory(prefs.IncomingCloud(baseName), prefs.ImportedCloud(baseName));
 }
 
 	List<Slice> ParseCloud(string cloud_path)

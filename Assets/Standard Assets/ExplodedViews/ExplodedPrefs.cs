@@ -6,6 +6,7 @@ public class ExplodedPrefs : ScriptableObject
 	public string importedPath, incomingPath;
 	public int origPreviewSize = 5000;
 	public int previewSlicesCount = 7;
+    static string prefabsDir = "Assets/CloudPrefabs";
 
 	static ExplodedPrefs instance = null;
 	public static ExplodedPrefs Instance {
@@ -28,5 +29,6 @@ public class ExplodedPrefs : ScriptableObject
 	public string IncomingCloud(string from_path) { return derivePath(incomingPath, from_path, "cloud"); }
 	public string ImportedBin(string from_path) { return derivePath(importedPath, from_path, "bin"); }
 	public string ImportedCloud(string from_path) { return derivePath(importedPath, from_path, "cloud"); }
+	public string ImportedCloudPrefab(string from_path) { return derivePath(prefabsDir, from_path, "prefab"); }
 }
 
