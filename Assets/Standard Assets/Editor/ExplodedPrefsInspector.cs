@@ -8,10 +8,22 @@ public class ExplodedPrefsInspector : Editor
 {
 	ExplodedPrefs prefs { get { return target as ExplodedPrefs; } }
 
+	SerializedObject metaTarget;
+
+	void OnEnable() {
+		metaTarget = new SerializedObject(target);
+	}
+
 	public override void OnInspectorGUI()
 	{
+		metaTarget.Update();
 		pathButton("Incoming Dir", ref prefs.incomingPath);
 		pathButton("Imported Dir", ref prefs.importedPath);
+		GUILayout.Label("How many points per preview");
+		EditorGUILayout.PropertyField( metaTarget.FindProperty("origPreviewSize") );
+		GUILayout.Label("How many largest slices to consider");
+		EditorGUILayout.PropertyField( metaTarget.FindProperty("previewSlicesCount") );
+		metaTarget.ApplyModifiedProperties();
 	}
 
 	void pathButton(string label, ref string path)
