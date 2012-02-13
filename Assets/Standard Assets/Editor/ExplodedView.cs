@@ -19,7 +19,7 @@ public class ExplodedView : EditorWindow {
 
 	public class NoCloudsException : System.Exception {}
 
-	[MenuItem ("Window/Expoded View")]
+	[MenuItem ("Exploded Views/Exploded View (Utilities)")]
 	static void Init () {
 		// Get existing open window or if none, make a new one:
 		window = (ExplodedView) EditorWindow.GetWindow(typeof(ExplodedView));
