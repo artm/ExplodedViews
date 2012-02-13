@@ -111,6 +111,9 @@ public class CloudImporter
 
 			iCloud.skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",typeof(GUISkin)) as GUISkin;
 
+			// turn it -90 degrees...
+			root.transform.Rotate(-90,0,0);
+
 			// save the branch into the prefab
 			EditorUtility.ReplacePrefab(root, prefab);
 
