@@ -25,7 +25,7 @@ public class CloudStream
 	public static string FindBin(string path) {
 		GameObject cloudsgo = GameObject.Find("Clouds");
 		if (cloudsgo != null) {
-			ExplodedPrefs prefs = ExplodedPrefs.Instance();
+			ExplodedPrefs prefs = ExplodedPrefs.Instance;
 			importedPath = prefs.importedPath;
 		}
 

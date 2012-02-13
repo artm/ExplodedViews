@@ -11,7 +11,6 @@ using UnityEditor;
 // Maintains metadata of the original cloud and implements cloud finetuning GUI.
 // 
 // Upon exit from the game mode saves its state
-[AddComponentMenu("Exploded Views/Autoadded/Imported cloud")]
 public class ImportedCloud : MonoBehaviour
 {
 	[System.Serializable]
@@ -141,14 +140,13 @@ public class ImportedCloud : MonoBehaviour
 	}
 
 	#region Data fields
-	public int previewSliceSize = 500;
-	public Material previewMaterial;
+	// path of the imported .bin file
+	string BinPath {
+		get {
+			return Path.Combine( ExplodedPrefs.Instance.importedPath , name + ".bin" );
+		}
+	}
 
-	// FIXME in custom inspector just complain when some of these are missing...
-	public string cloudPath;
-	public string prefabPath;
-	public string binPath;
-	
 	public GUISkin skin;
 	
 	float loadProgress = 0f;
@@ -172,15 +170,13 @@ public class ImportedCloud : MonoBehaviour
 	public int selectionSize = 0;
 
 	GameObject detailBranch = null;
+
 	CloudStream.Reader _binReader = null;
-	
 	CloudStream.Reader binReader
 	{
 		get {
-			if (_binReader == null) {
-				binPath = binPath.Replace('\\','/');
-				_binReader = new CloudStream.Reader(new FileStream(binPath, FileMode.Open, FileAccess.Read));
-			}
+			if (_binReader == null)
+				_binReader = new CloudStream.Reader(new FileStream(BinPath, FileMode.Open, FileAccess.Read));
 			return _binReader;
 		}
 	}
@@ -213,7 +209,7 @@ public class ImportedCloud : MonoBehaviour
 	}
 
 	#endregion
-	
+
 	public string BoxBinPath(string boxName)
 	{
 		return "Bin/" + name + "--" + boxName + ".bin";
@@ -263,27 +259,6 @@ public class ImportedCloud : MonoBehaviour
 		initialMatrix = transform.worldToLocalMatrix;
 	}
 
-	/*
-	 * Save ourselves on quit. We do this because this script is really a cloud authoring tool.
-	 */
-	void OnApplicationQuit ()
-	{
-#if UNITY_EDITOR
-		if (!enabled)
-			return;
-		
-		if (initiallyEnabledSet.SetEquals ((new List<Slice> (slices).FindAll (s => s.selected)))
-			&& initiallyEnabledSet2.SetEquals ((new List<Slice> (slices).FindAll (s => s.selectedForCamview)))
-			&& transform.worldToLocalMatrix == initialMatrix) {
-			Debug.Log("Selection/transform haven't changed, don't have to save");
-			return;
-		}
-		
-		Debug.Log("Selection or transform changed, saving");
-		StopAllCoroutines();
-		UpdatePrefab();
-#endif
-	}
 	#endregion
 
 	#region Slices GUI
@@ -525,6 +500,28 @@ public class ImportedCloud : MonoBehaviour
 	#endregion
 
 #if UNITY_EDITOR
+	/*
+	 * Save ourselves on quit. We do this because this script is really a cloud authoring tool.
+	 */
+	void OnApplicationQuit ()
+	{
+		if (!enabled)
+			return;
+		
+		if (initiallyEnabledSet.SetEquals ((new List<Slice> (slices).FindAll (s => s.selected)))
+			&& initiallyEnabledSet2.SetEquals ((new List<Slice> (slices).FindAll (s => s.selectedForCamview)))
+			&& transform.worldToLocalMatrix == initialMatrix) {
+			Debug.Log("Selection/transform haven't changed, don't have to save");
+			return;
+		}
+		
+		Debug.Log("Selection or transform changed, saving");
+		StopAllCoroutines();
+		UpdatePrefab();
+	}
+
+
+
 	#region Export
     public class CutError : Pretty.Exception
     {
@@ -653,64 +650,6 @@ public class ImportedCloud : MonoBehaviour
 		#endregion
 	}
 
-	void GenerateCamTriggers(Transform location)
-	{
-		// find cams.txt
-		string cams_fname = string.Format ("cams/{0}/cams.txt", Path.GetFileNameWithoutExtension (binPath));
-		Debug.Log (string.Format ("Will look for cams in {0}", cams_fname));
-		TextReader tr;
-		try {
-			tr = new StreamReader (cams_fname);
-		} catch (DirectoryNotFoundException) {
-			Debug.LogWarning ("cam.txt not found :(");
-			return;
-		}
-
-		try {
-			Transform cameraStandIn = AssetDatabase.LoadAssetAtPath ("Assets/Prefabs/CamTriggerTemplate.prefab",
-				typeof(Transform)) as Transform;
-
-			string line;
-			while ((line = tr.ReadLine ()) != null) {
-				string[] words = line.Split (' ');
-				// find corresponding slice
-				Slice foundSlice = null;
-				foreach (Slice slice in slices) {
-					if (slice.name.Contains (words[0])) {
-						if (foundSlice == null)
-							foundSlice = slice;
-						else
-							throw new Pretty.Exception ("Ambiguous cam name: {0}, matches slices {1} and {2}", 
-								words[0], foundSlice.name, slice.name);
-					}
-				}
-				if (foundSlice != null) {
-					// do the do
-					if (foundSlice.selectedForCamview) {
-						// only add a CamTriggers node if have something to add to it
-
-						Transform trigger = Object.Instantiate (cameraStandIn) as Transform;
-						trigger.name = words[0];
-						ProceduralUtils.InsertAtOrigin (trigger, location);
-						trigger.localPosition = new Vector3(float.Parse (words[1]), 
-							-float.Parse (words[2]), 
-							float.Parse (words[3]));
-						
-						Transform ps = trigger.Find ("Particle System");
-						// force is in world coordinates
-						ps.GetComponent<ParticleAnimator> ().force = ps.TransformDirection (
-							new Vector3 (float.Parse (words[4]), -float.Parse (words[5]), float.Parse (words[6])));
-					}
-				} else {
-					Debug.LogWarning (string.Format ("Can't find a slice for camera {0} in ImportedCloud {1}", 
-							words[0], name));
-				}
-			}
-		} finally {
-			tr.Close();
-		}
-	}
-
 	[ContextMenu("Make compact")]
 	void MakeCompact()
 	{
@@ -800,106 +739,28 @@ public class ImportedCloud : MonoBehaviour
 	}
 
 	#endregion
-#endif
 
-	#region Utils
-#if UNITY_EDITOR
 	// create preview meshes per original slice
-	[ContextMenu("Re-sample")]
 	public void Sample ()
 	{
-		ReadCloudMap ();
-		Transform preview = transform.FindChild ("Preview");
-
-		if (prefabPath == null) {
-			Object prefab = EditorUtility.GetPrefabParent (gameObject);
-			prefabPath = AssetDatabase.GetAssetPath (prefab);
-			Debug.Log (string.Format("My prefab path seems to be {0}", prefabPath));
-		}
-		
-		Dictionary<string, Mesh> meshMap = new Dictionary<string, Mesh> ();
-		foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath (prefabPath)) {
-			Mesh m;
-			if (m = asset as Mesh) {
-				meshMap[m.name] = m;
-			}
-		}
-		
-		CloudStream.Reader reader = new CloudStream.Reader( new FileStream( binPath, FileMode.Open ) );
-		CloudMeshConvertor cloudMesh = new CloudMeshConvertor(previewSliceSize);
-
-		Progressor prog = new Progressor( "Sampling bin" );
-
-		try {
-			int i = 0;
-			foreach (Slice slice in slices) {
-
-				prog.Progress( (float)(i++) / slices.Length, "Sampling {0}. ETA: {eta}", slice.name );
-
-				Transform child = preview.FindChild (slice.name);
-				if (!child) {
-					GameObject go = new GameObject (slice.name);
-					go.transform.parent = preview;
-					child = go.transform;
-				}
-				
-				/*
-				 * this is more robust then adding components upon construction since it'll update older
-				 * assets if * the format changes.
-				 */
-				if (!child.GetComponent<MeshFilter> ())
-					child.gameObject.AddComponent<MeshFilter> ();
-				if (!child.GetComponent<MeshRenderer> ())
-					child.gameObject.AddComponent<MeshRenderer> ();
-
-				if (!previewMaterial) {
-					previewMaterial =
-						AssetDatabase.LoadAssetAtPath(defaultMaterialPath, typeof(Material)) as Material;
-				}
-				child.renderer.sharedMaterial = previewMaterial;
-				
-				/*
-				 * we have to make sure that the meshes are stored in the prefab where this object came from
-				 * and if the mesh is in there already - make sure that we update it, instead of appending a
-				 * new one, otherwise they keep accumulating.
-				 */
-				Mesh mesh;
-				if (meshMap.ContainsKey (slice.name)) {
-					mesh = meshMap[slice.name];
-					mesh.Clear ();
-				} else {
-					mesh = new Mesh ();
-					mesh.name = slice.name;
-					AssetDatabase.AddObjectToAsset (mesh, prefabPath);
-				}
-				child.GetComponent<MeshFilter> ().sharedMesh = mesh;
-	
-				Vector3[] v = new Vector3[ previewSliceSize ];
-				Color[] c = new Color[ previewSliceSize ];
-				reader.SampleSlice(v, c, slice.offset, slice.size);
-	
-				cloudMesh.Convert(mesh, v, c);
-			}
-		} finally {
-			reader.Close();
-			prog.Done("Sampling took {tt}");
-		}
+		// TODO this should be similar to compact's min mesh creation
+		// may be abstract that away
 	}
 	
-	void ReadCloudMap ()
+	public void ParseCloud(string path)
 	{
-		List<Slice> lst = new List<Slice> ();
-		TextReader mapReader;
-		mapReader = new StreamReader (cloudPath);
-		binPath = CloudStream.FindBin (mapReader.ReadLine ());
-		
-		string ln;
-		while ((ln = mapReader.ReadLine ()) != null) {
-			Slice slice = new Slice (ln, this);
-			lst.Add(slice);
+		using (TextReader mapReader = new StreamReader (path)) {
+			// skip the bin path
+			mapReader.ReadLine();
+
+			List<Slice> lst = new List<Slice> ();
+			string ln;
+			while ((ln = mapReader.ReadLine ()) != null) {
+				Slice slice = new Slice (ln, this);
+				lst.Add(slice);
+			}
+			slices = lst.ToArray ();
 		}
-		mapReader.Close ();
-		slices = lst.ToArray ();
 	}
 	
 	// Save the state of itself on exit
@@ -914,5 +775,4 @@ public class ImportedCloud : MonoBehaviour
 		EditorUtility.ReplacePrefab (gameObject, prefab);
 	}
 #endif
-	#endregion
 }
