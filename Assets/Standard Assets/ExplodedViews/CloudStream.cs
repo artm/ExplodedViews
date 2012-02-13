@@ -131,7 +131,7 @@ public class CloudStream
 			int amount = -1;
 			int bytesize = PrepareToRead(v, c, 0, 1f, ref amount);
 			Read(chbuffer, 0, bytesize);
-			DecodePoints(v, c, 0, 1f, bytesize/pointRecSize);
+			mem.DecodePoints(v, c, 0, bytesize/pointRecSize, 1f);
 		}
 		
 		byte[] chbuffer = null;
@@ -152,9 +152,22 @@ public class CloudStream
         		yield return null;
 			
 			BaseStream.EndRead(asyncRes);
-			buffer.Offset = DecodePoints(v, c, buffer.Offset, stride, bytesize/pointRecSize);
+			mem.DecodePoints(buffer, bytesize/pointRecSize, stride);
         }
-		
+
+		// try to convert no more then pointCount points from this to output
+		public void DecodePoints(CloudMeshConvertor output, int pointCount, float stride)
+		{
+			if (output.Full)
+				return;
+			output.Offset = DecodePoints(output.vBuffer, output.cBuffer, output.Offset, pointCount, stride);
+		}
+
+		public void DecodePoints(CloudMeshConvertor output, int pointCount)
+		{
+			DecodePoints(output, pointCount, 1.0f);
+		}
+
 		#region Guts
 		// Check parameters for sanity, allocate memory buffer if necessary.
 		int PrepareToRead(Vector3[] v, Color[] c, int offset, float stride, ref int amount)
@@ -189,17 +202,17 @@ public class CloudStream
 		}
 		
 		// Read the points from memory buffer into the arrays
-		int DecodePoints(Vector3[] v, Color[] c, int offset, float stride, int pointsRead)
+		int DecodePoints(Vector3[] v, Color[] c, int offset, int pointCount, float stride)
 		{
 			// decode the buffer into arrays
-			int i = offset, limit = Math.Min(v.Length,offset+pointsRead);
+			int i = offset, limit = Math.Min(v.Length,offset+pointCount);
 			
 			for(; i < limit; ++i) {
 				int seekPos = Mathf.FloorToInt(stride * i);
-				if (mem.BaseStream.Position != seekPos) {
-					mem.SeekPoint(seekPos, SeekOrigin.Begin);
+				if (BaseStream.Position != seekPos) {
+					SeekPoint(seekPos, SeekOrigin.Begin);
 				}
-				mem.ReadPointRef(ref v[i], ref c[i]);
+				ReadPointRef(ref v[i], ref c[i]);
 			}
 			return i;
 		}
