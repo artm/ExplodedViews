@@ -95,10 +95,15 @@ public class CloudImporter
 			ShuffleSlicesAndSample(bin_path);
 			// generate preview mesh by sampling some number of points over the whole original
 			Mesh mesh = meshConv.MakeMesh();
+			mesh.name = baseName + "-preview";
 			meshConv.Convert(mesh);
 			// save mesh into prefab and attach it to the Preview game object
 			AssetDatabase.AddObjectToAsset(mesh, prefab);
+
 			previewGo.GetComponent<MeshFilter>().mesh = mesh;
+			Material material
+				= AssetDatabase.LoadAssetAtPath("Assets/Materials/FastPoint.mat", typeof(Material)) as Material;
+			previewGo.GetComponent<MeshRenderer>().material = material;
 
 			iCloud.skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",typeof(GUISkin)) as GUISkin;
 
@@ -117,9 +122,13 @@ public class CloudImporter
 			Object.DestroyImmediate(root);
 			AssetDatabase.Refresh();
 
-			Debug.LogError("TODO: move the imported .bin/.cloud to the <ImportedPath>");
 		}
-	}
+
+		// Will only get here if everything went OK
+		Debug.LogError("TODO: move the imported .bin/.cloud to the <ImportedPath>");
+		//FileUtil.MoveFileOrDirectory(prefs.IncomingBin(baseName), prefs.ImportedBin(baseName));
+		//FileUtil.MoveFileOrDirectory(prefs.IncomingCloud(baseName), prefs.ImportedCloud(baseName));
+}
 
 	List<Slice> ParseCloud(string cloud_path)
 	{
