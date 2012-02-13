@@ -50,6 +50,9 @@ public class Progressor
         return new Progressor(this, progFrom, progTo);
     }
 
+	/// <summary>
+	/// Sub-progressor for iterating progressor
+	/// </summary>
 	public Progressor Sub()
 	{
 		return Sub( (float)iter.i / (float)iter.total , (float)(iter.i+1) / (float)iter.total );
