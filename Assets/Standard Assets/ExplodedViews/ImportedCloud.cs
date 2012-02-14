@@ -142,7 +142,7 @@ public class ImportedCloud : MonoBehaviour
 	// path of the imported .bin file
 	string BinPath {
 		get {
-			return Path.Combine( ExplodedPrefs.Instance.importedPath , name + ".bin" );
+			return Path.Combine( ExplodedPrefs.ImportedPath , name + ".bin" );
 		}
 	}
 

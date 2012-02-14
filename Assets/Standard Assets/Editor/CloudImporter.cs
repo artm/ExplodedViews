@@ -4,33 +4,33 @@ using System.IO;
 using System.Collections.Generic;
 
 using Slice = ImportedCloud.Slice;
+using Prefs = ExplodedPrefs;
 
 public class CloudImporter
 {
 	#region static
 	[MenuItem ("Exploded Views/Import Clouds")]
 	static void ImportClouds () {
-		ExplodedPrefs prefs = ExplodedPrefs.Instance;
 		if (EditorUtility.DisplayDialog("Import clouds",
 		                                string.Format(
 		                                "Folders are setup in Resources/ExplodedPrefs asset\n\n" +
 		                                "Incoming: {0}\n" +
-		                                "Imported: {1}", prefs.incomingPath, prefs.importedPath ),
+		                                "Imported: {1}", Prefs.IncomingPath, Prefs.ImportedPath ),
 		                                "Import",
 		                                "Cancel")) {
 
 			// get a list of incoming .cloud files
-			string[] clouds = Directory.GetFiles(prefs.incomingPath, "*.cloud");
+			string[] clouds = Directory.GetFiles(Prefs.IncomingPath, "*.cloud");
 			// see if the list isn't empty
 			if (clouds.Length == 0) {
-				Debug.LogWarning(string.Format("No cloud files at incoming path: {0}", prefs.incomingPath));
+				Debug.LogWarning(string.Format("No cloud files at incoming path: {0}", Prefs.IncomingPath));
 			}
 
 			Progressor prog = new Progressor("Importing clouds");
 			foreach(string cloud_path in prog.Iterate(clouds )) {
 				// derive .prefab / .bin paths from .cloud path
-				string bin_path = prefs.IncomingBin(cloud_path);
-				string prefab_path = prefs.ImportedCloudPrefab(cloud_path);
+				string bin_path = Prefs.IncomingBin(cloud_path);
+				string prefab_path = Prefs.ImportedCloudPrefab(cloud_path);
 
 				// Sanity check: there should be a corresponding .bin next to the cloud
 				if (!File.Exists(bin_path)) {
@@ -39,7 +39,7 @@ public class CloudImporter
 				}
 
 				// Safety: don't overwrite prefabs
-				string[] sentinels = { prefab_path, prefs.ImportedBin(cloud_path), prefs.ImportedCloud(cloud_path)};
+				string[] sentinels = { prefab_path, Prefs.ImportedBin(cloud_path), Prefs.ImportedCloud(cloud_path)};
 				bool hitSentinel = false;
 				foreach(string sentinel in sentinels) {
 					if (File.Exists( sentinel )) {
@@ -66,15 +66,12 @@ public class CloudImporter
 
 	CloudImporter(Progressor _prog)
 	{
-		ExplodedPrefs prefs = ExplodedPrefs.Instance;
-
 		prog = _prog;
-		meshConv = new CloudMeshConvertor( prefs.origPreviewSize );
+		meshConv = new CloudMeshConvertor( Prefs.OrigPreviewSize );
 	}
 
 	void ImportCloud(string cloud_path, string bin_path, string prefab_path)
 	{
-		ExplodedPrefs prefs = ExplodedPrefs.Instance;
 		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
 		
 		Object prefab = EditorUtility.CreateEmptyPrefab (prefab_path);
@@ -93,7 +90,7 @@ public class CloudImporter
 			sliceList.Sort((slice1, slice2) => (slice2.size - slice1.size));
 			iCloud.slices = sliceList.ToArray ();
 
-			sliceSampleSize = prefs.origPreviewSize / System.Math.Min( prefs.previewSlicesCount, sliceList.Count );
+			sliceSampleSize = Prefs.OrigPreviewSize / System.Math.Min( Prefs.PreviewSlicesCount, sliceList.Count );
 			// shuffle individual slices and sample prefs.origPreviewSize from first prefs.previewSlicesCount slices
 			// sampled points end up in meshConv
 			ShuffleSlicesAndSample(bin_path);
@@ -118,8 +115,8 @@ public class CloudImporter
 			EditorUtility.ReplacePrefab(root, prefab);
 
 			// do this last, after the rest succeeded
-			FileUtil.MoveFileOrDirectory(bin_path, prefs.ImportedBin(bin_path));
-			FileUtil.MoveFileOrDirectory(cloud_path, prefs.ImportedCloud(cloud_path));
+			FileUtil.MoveFileOrDirectory(bin_path, Prefs.ImportedBin(bin_path));
+			FileUtil.MoveFileOrDirectory(cloud_path, Prefs.ImportedCloud(cloud_path));
 		} catch (System.Exception exception) {
 			Debug.Log("Cleaning up imported prefab because something went wrong (see below).");
 

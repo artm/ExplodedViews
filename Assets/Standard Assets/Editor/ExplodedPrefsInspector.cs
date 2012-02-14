@@ -17,8 +17,8 @@ public class ExplodedPrefsInspector : Editor
 	public override void OnInspectorGUI()
 	{
 		metaTarget.Update();
-		pathButton("Incoming Dir", ref prefs.incomingPath);
-		pathButton("Imported Dir", ref prefs.importedPath);
+		pathButton("Incoming Dir", metaTarget.FindProperty("incomingPath"));
+		pathButton("Imported Dir", metaTarget.FindProperty("importedPath"));
 		GUILayout.Label("How many points per preview");
 		EditorGUILayout.PropertyField( metaTarget.FindProperty("origPreviewSize") );
 		GUILayout.Label("How many largest slices to consider");
@@ -26,20 +26,20 @@ public class ExplodedPrefsInspector : Editor
 		metaTarget.ApplyModifiedProperties();
 	}
 
-	void pathButton(string label, ref string path)
+	void pathButton(string label, SerializedProperty serializedPath)
 	{
 		GUILayout.Label( label );
-		if (GUILayout.Button( path )) {
-			string res = EditorUtility.OpenFolderPanel("Select " + label, path, "");
+		if (GUILayout.Button( serializedPath.stringValue )) {
+			string res = EditorUtility.OpenFolderPanel("Select " + label, serializedPath.stringValue, "");
 			if (res != null && res != "") {
-				path = res;
+				serializedPath.stringValue = res;
 				EditorUtility.SetDirty(prefs);
 			}
 
 		}
 	}
 
-	[MenuItem("Exploded Views/Prefs Asset")]
+	[MenuItem("Exploded Views/Utilities/Add Prefs Asset")]
 	static void CreateResource()
 	{
 		if (EditorUtility.DisplayDialog("Create Exploded Prefs",
@@ -52,7 +52,6 @@ public class ExplodedPrefsInspector : Editor
 				Directory.CreateDirectory(res);
 	
 			ExplodedPrefs prefs = ScriptableObject.CreateInstance<ExplodedPrefs>();
-			prefs.importedPath = Path.GetFullPath("Bin");
 			AssetDatabase.CreateAsset(prefs, Path.Combine(res, "ExplodedPrefs.asset"));
 			AssetDatabase.Refresh();
 		}
