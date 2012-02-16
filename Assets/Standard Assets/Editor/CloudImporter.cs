@@ -24,35 +24,39 @@ public class CloudImporter
 			// see if the list isn't empty
 			if (clouds.Length == 0) {
 				Debug.LogWarning(string.Format("No cloud files at incoming path: {0}", Prefs.IncomingPath));
+				return;
 			}
 
 			Progressor prog = new Progressor("Importing clouds");
-			foreach(string cloud_path in prog.Iterate(clouds )) {
-				// derive .prefab / .bin paths from .cloud path
-				string bin_path = Prefs.IncomingBin(cloud_path);
-				string prefab_path = Prefs.ImportedCloudPrefab(cloud_path);
 
-				// Sanity check: there should be a corresponding .bin next to the cloud
-				if (!File.Exists(bin_path)) {
-					Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
-					continue;
-				}
-
-				// Safety: don't overwrite prefabs
-				string[] sentinels = { prefab_path, Prefs.ImportedBin(cloud_path), Prefs.ImportedCloud(cloud_path)};
-				bool hitSentinel = false;
-				foreach(string sentinel in sentinels) {
-					if (File.Exists( sentinel )) {
-						Debug.LogError(string.Format("'{0}' is in the way when importing '{1}'", sentinel, cloud_path));
-						hitSentinel = true;
+			using(new EditorHelpers.AssetBatch() ) {
+				foreach(string cloud_path in prog.Iterate(clouds )) {
+					// derive .prefab / .bin paths from .cloud path
+					string bin_path = Prefs.IncomingBin(cloud_path);
+					string prefab_path = Prefs.ImportedCloudPrefab(cloud_path);
+	
+					// Sanity check: there should be a corresponding .bin next to the cloud
+					if (!File.Exists(bin_path)) {
+						Debug.LogError(string.Format("No .bin file found for '{0}'", cloud_path));
+						continue;
 					}
+	
+					// Safety: don't overwrite prefabs
+					string[] sentinels = { prefab_path, Prefs.ImportedBin(cloud_path), Prefs.ImportedCloud(cloud_path)};
+					bool hitSentinel = false;
+					foreach(string sentinel in sentinels) {
+						if (File.Exists( sentinel )) {
+							Debug.LogError(string.Format("'{0}' is in the way when importing '{1}'", sentinel, cloud_path));
+							hitSentinel = true;
+						}
+					}
+					if (hitSentinel)
+						continue;
+	
+					// ready to import
+					CloudImporter importer = new CloudImporter(prog.Sub());
+					importer.ImportCloud(cloud_path, bin_path, prefab_path);
 				}
-				if (hitSentinel)
-					continue;
-
-				// ready to import
-				CloudImporter importer = new CloudImporter(prog.Sub());
-				importer.ImportCloud(cloud_path, bin_path, prefab_path);
 			}
 		}
 	}
@@ -73,12 +77,9 @@ public class CloudImporter
 	void ImportCloud(string cloud_path, string bin_path, string prefab_path)
 	{
 		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
-		
-		Object prefab = EditorUtility.CreateEmptyPrefab (prefab_path);
-		// create the hierarchy
+
 		GameObject root = new GameObject(baseName, typeof(ImportedCloud));
-		
-		try {
+		using (EditorHelpers.TentativePrefab tentative = new EditorHelpers.TentativePrefab(prefab_path, root)) {
 			GameObject previewGo = new GameObject("Preview", typeof(MeshFilter), typeof(MeshRenderer));
 			previewGo.transform.parent = root.transform;
 			new GameObject("CutBoxes").transform.parent = root.transform;
@@ -94,45 +95,34 @@ public class CloudImporter
 			// shuffle individual slices and sample prefs.origPreviewSize from first prefs.previewSlicesCount slices
 			// sampled points end up in meshConv
 			ShuffleSlicesAndSample(bin_path);
+			Material material
+				= AssetDatabase.LoadAssetAtPath("Assets/Materials/FastPoint.mat", typeof(Material)) as Material;
+			previewGo.GetComponent<MeshRenderer>().material = material;
+
 			// generate preview mesh by sampling some number of points over the whole original
 			Mesh mesh = meshConv.MakeMesh();
 			mesh.name = baseName + "-preview";
 			meshConv.Convert(mesh);
-			// save mesh into prefab and attach it to the Preview game object
-			AssetDatabase.AddObjectToAsset(mesh, prefab);
-
+			// it's ok, it's just a preview mesh, this will stop Unity from complaining...
+			mesh.RecalculateNormals();
 			previewGo.GetComponent<MeshFilter>().mesh = mesh;
-			Material material
-				= AssetDatabase.LoadAssetAtPath("Assets/Materials/FastPoint.mat", typeof(Material)) as Material;
-			previewGo.GetComponent<MeshRenderer>().material = material;
+
+			// save mesh into prefab and attach it to the Preview game object
+			AssetDatabase.AddObjectToAsset(mesh, tentative.Prefab);
 
 			iCloud.skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",typeof(GUISkin)) as GUISkin;
 
 			// turn it -90 degrees...
 			root.transform.Rotate(-90,0,0);
 
-			// save the branch into the prefab
-			EditorUtility.ReplacePrefab(root, prefab);
-
 			// do this last, after the rest succeeded
 			FileUtil.MoveFileOrDirectory(bin_path, Prefs.ImportedBin(bin_path));
 			FileUtil.MoveFileOrDirectory(cloud_path, Prefs.ImportedCloud(cloud_path));
-		} catch (System.Exception exception) {
-			Debug.Log("Cleaning up imported prefab because something went wrong (see below).");
 
-			// delete prefab if anything went wrong
-			if (File.Exists(prefab_path))
-				FileUtil.DeleteFileOrDirectory(prefab_path);
-
-			throw exception;
-		} finally {
-			// get rid of the temporary object (otherwise it stays over in scene)
-			Object.DestroyImmediate(root);
-			AssetDatabase.Refresh();
-
+			// save the branch into the prefab
+			tentative.Commit();
 		}
-
-}
+	}
 
 	List<Slice> ParseCloud(string cloud_path)
 	{
