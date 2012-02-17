@@ -4,7 +4,8 @@ using System.IO;
 using System.Collections.Generic;
 
 /// <summary>
-/// Load an object from a prefab and destroy it when done, but allow committing it back to the prefab.
+/// Create a temporary instance of a prefab (either by its path or by finding its true origin).
+/// Allow the instance to replace what is saved in the prefab.
 /// </summary>
 public class TemporaryPrefabInstance : TemporaryObject {
 	Object prefab = null;
