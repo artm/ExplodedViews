@@ -1,2 +1,2 @@
 #!/bin/bash
-ls *.cloud | perl -lne 's/^\d+_//;s/_/+/;s/[_ ].*$//;print "<a href=\"http://maps.google.com/maps?f=q&hl=en&geocode=&q=$_\">$_</a><br>";'
+ls *.cloud | perl -lne 'if ( s/\d+_(-?\d+\.\d++)_(-?\d+\.\d+).*/\1+\2/ ) { print "<a href=\"http://maps.google.com/maps?f=q&hl=en&geocode=&q=$_\">$_</a><br>"; } '
