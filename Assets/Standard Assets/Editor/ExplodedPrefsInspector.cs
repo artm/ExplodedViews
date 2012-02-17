@@ -17,8 +17,9 @@ public class ExplodedPrefsInspector : Editor
 	public override void OnInspectorGUI()
 	{
 		metaTarget.Update();
-		pathButton("Incoming Dir", metaTarget.FindProperty("incomingPath"));
-		pathButton("Imported Dir", metaTarget.FindProperty("importedPath"));
+		pathButton("Incoming Path", metaTarget.FindProperty("incomingPath"));
+		pathButton("Imported Path", metaTarget.FindProperty("importedPath"));
+		pathButton("Compact Bin Path", metaTarget.FindProperty("compactBinPath"));
 		GUILayout.Label("How many points per preview");
 		EditorGUILayout.PropertyField( metaTarget.FindProperty("origPreviewSize") );
 		GUILayout.Label("How many largest slices to consider");
