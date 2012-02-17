@@ -5,9 +5,15 @@ using System.Collections.Generic;
 
 public class EditorHelpers
 {
+	/// <summary>
+	/// Iterate over a list of prefab files specified by the path pattern.
+	/// </summary>
+	/// <param name="pattern">
+	/// A  path pattern to iterate over.
+	/// </param>
 	public static IEnumerable<T> ProcessPrefabList<T>(string pattern) where T : Object
 	{
-		using (new AssetBatch()) {
+		using (new AssetEditBatch()) {
 			string path = Path.GetDirectoryName(pattern);
 			string filePattern = Path.GetFileName(pattern);
 			foreach(string fpath in Directory.GetFiles(path , filePattern)) {
@@ -21,59 +27,5 @@ public class EditorHelpers
 		}
 	}
 
-	public class AssetBatch : System.IDisposable {
-		private bool disposed = false;
-
-		public AssetBatch() {
-			AssetDatabase.StartAssetEditing();
-		}
-
-		public void Dispose() {
-			if (!disposed) {
-				AssetDatabase.StopAssetEditing();
-				EditorApplication.SaveAssets();
-				EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
-				AssetDatabase.Refresh();
-				disposed = true;
-			}
-		}
-	}
-
-	public class TentativePrefab : System.IDisposable {
-		bool disposed = false;
-		bool committed = false;
-		string prefab_path;
-		Object prefab;
-		GameObject root;
-
-		public TentativePrefab(string path, GameObject r) {
-			prefab_path = path;
-			prefab = EditorUtility.CreateEmptyPrefab (prefab_path);
-			root = r;
-		}
-
-		public void Commit() {
-			committed = true;
-		}
-
-		public Object Prefab { get { return prefab; } }
-		public GameObject Root { get { return root; } }
-
-		public void Dispose() {
-			if (!disposed) {
-				if (committed) {
-					EditorUtility.ReplacePrefab(root, prefab);
-				} else {
-					Debug.LogWarning(string.Format("Removing tentative prefab {0} because it" +
-						" wasn't committed (see the log for reasons)", prefab_path));
-					// delete prefab if anything went wrong
-					if (File.Exists(prefab_path))
-						FileUtil.DeleteFileOrDirectory(prefab_path);
-				}
-				Object.DestroyImmediate(root);
-				disposed = true;
-			}
-		}
-	}
 }
 

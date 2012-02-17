@@ -29,7 +29,7 @@ public class CloudImporter
 
 			Progressor prog = new Progressor("Importing clouds");
 
-			using(new EditorHelpers.AssetBatch() ) {
+			using(new AssetEditBatch() ) {
 				foreach(string cloud_path in prog.Iterate(clouds )) {
 					// derive .prefab / .bin paths from .cloud path
 					string bin_path = Prefs.IncomingBin(cloud_path);
@@ -78,8 +78,8 @@ public class CloudImporter
 	{
 		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
 
-		GameObject root = new GameObject(baseName, typeof(ImportedCloud));
-		using (EditorHelpers.TentativePrefab tentative = new EditorHelpers.TentativePrefab(prefab_path, root)) {
+		using (TemporaryObject tmp = new TemporaryObject(baseName, typeof(ImportedCloud)) ) {
+			GameObject root = tmp.Instance;
 			GameObject previewGo = new GameObject("Preview", typeof(MeshFilter), typeof(MeshRenderer));
 			previewGo.transform.parent = root.transform;
 			new GameObject("CutBoxes").transform.parent = root.transform;
@@ -107,20 +107,20 @@ public class CloudImporter
 			mesh.RecalculateNormals();
 			previewGo.GetComponent<MeshFilter>().mesh = mesh;
 
-			// save mesh into prefab and attach it to the Preview game object
-			AssetDatabase.AddObjectToAsset(mesh, tentative.Prefab);
-
 			iCloud.skin = AssetDatabase.LoadAssetAtPath("Assets/GUI/ExplodedGUI.GUISkin",typeof(GUISkin)) as GUISkin;
 
 			// turn it -90 degrees...
 			root.transform.Rotate(-90,0,0);
 
+			// save the branch into the prefab
+			Object prefab = EditorUtility.CreateEmptyPrefab(prefab_path);
+			// save mesh into prefab and attach it to the Preview game object
+			EditorUtility.ReplacePrefab(root, prefab);
+			AssetDatabase.AddObjectToAsset(mesh, prefab);
+
 			// do this last, after the rest succeeded
 			FileUtil.MoveFileOrDirectory(bin_path, Prefs.ImportedBin(bin_path));
 			FileUtil.MoveFileOrDirectory(cloud_path, Prefs.ImportedCloud(cloud_path));
-
-			// save the branch into the prefab
-			tentative.Commit();
 		}
 	}
 

@@ -1,0 +1,59 @@
+using UnityEditor;
+using UnityEngine;
+using System.IO;
+using System.Collections.Generic;
+
+/// <summary>
+/// Load an object from a prefab and destroy it when done, but allow committing it back to the prefab.
+/// </summary>
+public class TemporaryPrefabInstance : TemporaryObject {
+	Object prefab = null;
+
+	public TemporaryPrefabInstance(Object prefab_asset)
+	{
+		Prefab = FindPrefabAncestor( prefab_asset );
+	}
+
+	public TemporaryPrefabInstance(string prefab_path)
+	{
+		Prefab = AssetDatabase.LoadAssetAtPath(prefab_path, typeof(GameObject));
+	}
+
+	public void Commit() {
+		EditorUtility.ReplacePrefab(obj, prefab);
+	}
+
+	public Object Prefab {
+		get { return prefab; }
+		protected set {
+			if (value == null)
+				throw new Pretty.Exception("Mustn't set Prefab to null");
+			prefab = value;
+			obj = EditorUtility.InstantiatePrefab(prefab) as GameObject;
+			if (obj == null)
+				throw new Pretty.Exception("Couldn't instantiate {0}", prefab);
+		}
+	}
+
+	/// <summary>
+	/// Return the root GameObject of a source prefab. If Object is in a prefab - of that prefab, if object is an
+	/// instance - of its original.
+	/// </summary>
+	/// <param name="o">
+	/// An <see cref="Object"/> to trace the ancestor of.
+	/// </param>
+	/// <returns>
+	/// A root <see cref="GameObject"/> in a source prefab (the ancestor).
+	/// </returns>
+	GameObject FindPrefabAncestor(Object o) {
+		if ( EditorUtility.GetPrefabType(o) == PrefabType.PrefabInstance )
+			return FindPrefabAncestor( EditorUtility.GetPrefabParent( o ) );
+		else if (o is GameObject )
+			return EditorUtility.FindPrefabRoot( o as GameObject);
+		else if (o is Component)
+			return FindPrefabAncestor( (o as Component).gameObject );
+		else
+			throw new Pretty.Exception("Can't trance ancestor of {0} ({1})", o.name, o.GetType().Name);
+	}
+
+}
