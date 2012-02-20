@@ -11,8 +11,12 @@ public class ExplodedPrefs : ScriptableObject
 	[SerializeField] string compactBinPath;
 	[SerializeField] int origPreviewSize = 16000;
 	[SerializeField] int previewSlicesCount = 5;
+	[SerializeField] int maxCompactSize = 500000;
+
 	// less interesting
     string prefabsPath = "Assets/CloudPrefabs";
+	string compactPrefabsPath = "Assets/CompactPrefabs";
+	int compactionPortionSize = 1024; // points
 
 	static ExplodedPrefs instance = null;
 	public static ExplodedPrefs Instance {
@@ -46,6 +50,7 @@ public class ExplodedPrefs : ScriptableObject
 	public static string ImportedBin(string from_path) { return derivePath(ImportedPath, from_path, "bin"); }
 	public static string ImportedCloud(string from_path) { return derivePath(ImportedPath, from_path, "cloud"); }
 	public static string ImportedCloudPrefab(string from_path) { return derivePath(PrefabsPath, from_path, "prefab"); }
+	public static string CompactPrefab(string from_path) { return derivePath(CompactPrefabsPath, from_path, "prefab"); }
 	public static string BoxBin(string orig_path, string box_name)
 	{
 		return derivePath(CompactBinPath,
@@ -58,8 +63,12 @@ public class ExplodedPrefs : ScriptableObject
 	public static string IncomingPath { get { return Instance.incomingPath; } }
 	public static string CompactBinPath { get { return Instance.compactBinPath; } }
 	public static string PrefabsPath { get { return Instance.prefabsPath; } }
+	public static string CompactPrefabsPath { get { return Instance.compactPrefabsPath; } }
+
 	public static int OrigPreviewSize { get { return Instance.origPreviewSize; } }
 	public static int PreviewSlicesCount { get { return Instance.previewSlicesCount; } }
+	public static int MaxCompactSize { get { return Instance.maxCompactSize; } }
+	public static int CompactionPortionSize { get { return Instance.compactionPortionSize; } }
 
 	public class Test : Case {
 		ExplodedPrefs savedPrefs;
@@ -72,6 +81,7 @@ public class ExplodedPrefs : ScriptableObject
 			Instance.incomingPath = "/tmp/incoming";
 			Instance.compactBinPath = "/tmp/compact";
 			Instance.prefabsPath = "/tmp/prefabs";
+			Instance.compactPrefabsPath = "/tmp/compact-prefabs";
 		}
         public override void Dispose()
         {
@@ -88,6 +98,7 @@ public class ExplodedPrefs : ScriptableObject
 			Assert_Equal( "/tmp/incoming", IncomingPath );
 			Assert_Equal( "/tmp/compact", CompactBinPath );
 			Assert_Equal( "/tmp/prefabs", PrefabsPath );
+			Assert_Equal( "/tmp/compact-prefabs", CompactPrefabsPath );
 		}
 
 		void Test_IncomingBin() {
@@ -123,6 +134,13 @@ public class ExplodedPrefs : ScriptableObject
 			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("/tmp/some/path/10_20.00_30.00.bin") );
 			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("Assets/some/path/10_20.00_30.00.prefab") );
 			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("10_20.00_30.00") );
+		}
+
+		void Test_CompactPrefab() {
+			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("/tmp/some/path/10_20.00_30.00.cloud") );
+			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("/tmp/some/path/10_20.00_30.00.bin") );
+			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("Assets/some/path/10_20.00_30.00.prefab") );
+			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("10_20.00_30.00") );
 		}
 
 		void Test_BoxBin() {
