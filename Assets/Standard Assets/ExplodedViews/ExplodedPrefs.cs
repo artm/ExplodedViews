@@ -17,6 +17,7 @@ public class ExplodedPrefs : ScriptableObject
     string prefabsPath = "Assets/CloudPrefabs";
 	string compactPrefabsPath = "Assets/CompactPrefabs";
 	int compactionPortionSize = 1024; // points
+	int minMeshSize = 4096;
 
 	static ExplodedPrefs instance = null;
 	public static ExplodedPrefs Instance {
@@ -57,6 +58,8 @@ public class ExplodedPrefs : ScriptableObject
 		                  string.Format("{0}--{1}",baseName(orig_path), box_name),
 		                  "bin");
 	}
+	// derrive path from already suffixed name
+	public static string BoxBin(string compound_name) { return derivePath(CompactBinPath, compound_name, "bin"); }
 
 	// static acessors
 	public static string ImportedPath { get { return Instance.importedPath; } }
@@ -69,6 +72,7 @@ public class ExplodedPrefs : ScriptableObject
 	public static int PreviewSlicesCount { get { return Instance.previewSlicesCount; } }
 	public static int MaxCompactSize { get { return Instance.maxCompactSize; } }
 	public static int CompactionPortionSize { get { return Instance.compactionPortionSize; } }
+	public static int MinMeshSize { get { return Instance.minMeshSize; } }
 
 	public class Test : Case {
 		ExplodedPrefs savedPrefs;
@@ -148,6 +152,9 @@ public class ExplodedPrefs : ScriptableObject
 			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00.bin", "cutbox") );
 			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("Assets/some/path/10_20.00_30.00.prefab", "cutbox") );
 			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("10_20.00_30.00", "cutbox") );
+
+			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00--cutbox.bin") );
+			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("10_20.00_30.00--cutbox") );
 		}
 
 	}
