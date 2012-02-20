@@ -28,6 +28,7 @@ public class CloudCompactor
 	#endregion
 
 	#region Instance API (compact one cloud)
+	string base_name;
 	List<Transform> cutBoxes = new List<Transform>();
 	List<Transform> shadowBoxes = new List<Transform>();
 	LinkedList<BoxHelper> cutBoxHelpers = null;
@@ -41,6 +42,9 @@ public class CloudCompactor
 		using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(cloud)) {
 			if (tmp.Instance == null)
 				throw new Pretty.AssertionFailed("Bad tmp.Instance");
+
+			base_name = tmp.Instance.name;
+
 			EnsureCutBoxes( tmp.Instance );
 			if (cutBoxHelpers != null && shadowBoxHelpers != null)
 				CutToBoxes( tmp.Instance );
@@ -55,9 +59,7 @@ public class CloudCompactor
 			 */
 	
 			Debug.LogError("FIXME shuffle the cut / shadow box bins");
-			CreateCompactPrefab(tmp.Instance.name, cutBoxes, shadowBoxes);
-
-
+			CreateCompactPrefab(cutBoxes, shadowBoxes);
 			// don't commit, any changes to tmp.Instance are interim, only for compaction to work
 		}
 	}
@@ -211,30 +213,81 @@ public class CloudCompactor
 		return false;
 	}
 
-	void CreateCompactPrefab(string base_name, List<Transform> cutBoxes, List<Transform> shadowBoxes)
+	void CreateCompactPrefab(List<Transform> cutBoxes, List<Transform> shadowBoxes)
 	{
 		Debug.LogError("FIXME construct the compact prefab (--loc, --cutboxes, sound, slideshow)");
-
-		using(TemporaryObject tmp = new TemporaryObject(base_name + "--loc")) {
+		Debug.LogError("FIXME copy preview mesh from the orig");
+		using(TemporaryObject tmp = new TemporaryObject(base_name + "--loc", typeof(SlideShow))) {
 			GameObject root_go = tmp.Instance;
 
 			GameObject node = new GameObject("Objects");
 			ProceduralUtils.InsertAtOrigin(node.transform, root_go.transform);
 			foreach(Transform box in cutBoxes) {
-				string boxName = Path.GetFileNameWithoutExtension(Prefs.BoxBin(base_name, box.name));
-				GameObject box_node = new GameObject(boxName);
-				ProceduralUtils.InsertAtOrigin(box_node.transform, node.transform);
+				SetupBoxCloud(node.transform, box);
 			}
 			GameObject shadows_node = new GameObject("Shadow");
 			ProceduralUtils.InsertAtOrigin(shadows_node.transform, node.transform);
 			foreach(Transform box in shadowBoxes) {
-				string boxName = Path.GetFileNameWithoutExtension(Prefs.BoxBin(base_name, box.name));
-				GameObject box_node = new GameObject(boxName);
-				ProceduralUtils.InsertAtOrigin(box_node.transform, shadows_node.transform);
+				SetupBoxCloud(shadows_node.transform, box);
 			}
+
+			LookForSound();
 
 			tmp.Leak();
 		}
+	}
+
+	void SetupBoxCloud(Transform parent, Transform orig_box) {
+		string boxName = Path.GetFileNameWithoutExtension(Prefs.BoxBin(base_name, orig_box.name));
+		GameObject box_node =
+			new GameObject(boxName,
+			               typeof(CompactCloud),
+			               typeof(MeshFilter),
+			               typeof(MeshRenderer));
+		ProceduralUtils.InsertAtOrigin(box_node.transform, parent);
+
+		#region ... copy collider box ...
+		Transform box_tr = new GameObject("Box", typeof(BoxCollider)).transform;
+		box_tr.parent = box_node.transform;
+		box_tr.position = orig_box.position;
+		box_tr.rotation = orig_box.rotation;
+		box_tr.localScale = orig_box.localScale;
+		box_tr.GetComponent<BoxCollider>().center = orig_box.GetComponent<BoxCollider>().center;
+		box_tr.GetComponent<BoxCollider>().size = orig_box.GetComponent<BoxCollider>().size;
+		#endregion
+
+		Debug.LogError("FIXME Generate min mesh");
+		Debug.LogError("FIXME don't forget to save mesh into a prefab");
+		SampleMinMesh(box_node);
+	}
+
+	public Mesh SampleMinMesh( GameObject go )
+	{
+		using( CloudStream.Reader reader =
+		      new CloudStream.Reader(new FileStream( Prefs.BoxBin( go.name ) , FileMode.Open)) ) {
+
+			int size = (int)System.Math.Min( (long)Prefs.MinMeshSize, reader.PointCount );
+
+			CloudMeshConvertor conv = new CloudMeshConvertor( size );
+			Mesh mesh = conv.MakeMesh();
+			reader.ReadPoints(conv.vBuffer, conv.cBuffer);
+			conv.Convert(mesh);
+			go.GetComponent<MeshFilter>().mesh = mesh;
+			mesh.name = go.name + "-minMesh";
+			return mesh;
+		}
+	}
+	
+
+
+
+	void LookForSound()
+	{
+		Debug.LogError("FIXME look for sound and attach if found");
+		/*
+		 * May be sound finder should be completelly separate and use a rule like "match node name / sound name" for
+		 * nodes up to some depth in compact prefabs.
+		 */
 	}
 
 	class BoxHelper {
