@@ -20,40 +20,10 @@ public class CloudStream
         return stream.Position / pointRecSize;
     }
 
-	#region Relative paths utils
-	public static string importedPath = "Bin";
-	public static string FindBin(string path) {
-		GameObject cloudsgo = GameObject.Find("Clouds");
-		if (cloudsgo != null) {
-			importedPath = ExplodedPrefs.ImportedPath;
-		}
-
-		if (Path.IsPathRooted(path)) {
-			// FIXME this is ugly :(
-			string discard = Path.GetDirectoryName(path),
-			       relative = Path.GetFileName(path);
-			while(true) {
-				string resolved = Path.Combine( importedPath, relative );
-				if (File.Exists(resolved))
-					return resolved;
-
-				if (discard.Length > 1) {
-					relative = Path.Combine( Path.GetFileName(discard), relative );
-					discard = Path.GetDirectoryName(discard);
-				} else
-					break;
-			}
-			// fall through to error below
-		} else {
-			string resolved = Path.Combine(importedPath,path);
-			if (File.Exists(resolved))
-				return resolved;
-			// else fall through to error below
-		}
-
-		return null;
+	public static long PointCount(Stream stream)
+	{
+		return stream.Length / pointRecSize;
 	}
-	#endregion
 
     public class Reader : BinaryReader
     {
@@ -93,23 +63,6 @@ public class CloudStream
             BaseStream.Seek(1, SeekOrigin.Current); // skip padding byte
         }
 
-		public void SampleSlice(Vector3[] v, Color[] c, int sliceOffset, int sliceLength) {
-			int stride = sliceLength / v.Length;
-			SeekPoint( sliceOffset, SeekOrigin.Begin );
-			for(int i = 0; i<v.Length; ++i) {
-				SeekPoint( sliceOffset + i*stride + Random.Range(0, stride), SeekOrigin.Begin );
-				ReadPoint( out v[i], out c[i] );
-			}
-		}
-
-		// Copy a slice from this cloud to the one pointed to by writer. Writer should be positioned 
-		// at the right offset already.
-		public void CopySlice(int sliceOffset, int sliceLength, CloudStream.Writer writer)
-		{
-			SeekPoint(sliceOffset, SeekOrigin.Begin);
-			writer.Write( ReadBytes( sliceLength * pointRecSize ));
-		}
-		
         public void SeekPoint(int offset, SeekOrigin origin)
         {
             CloudStream.SeekPoint(BaseStream, offset, origin);
@@ -124,6 +77,12 @@ public class CloudStream
 				return CloudStream.PointPosition(BaseStream);
 			}
 		}
+
+		public long PointCount {
+			get {
+				return CloudStream.PointCount(BaseStream);
+			}
+		}
 		
 		public void ReadPoints(Vector3[] v, Color[] c)
 		{
@@ -133,8 +92,6 @@ public class CloudStream
 			mem.DecodePoints(v, c, 0, bytesize/pointRecSize, 1f);
 		}
 		
-		byte[] chbuffer = null;
-		Reader mem = null;
 		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride) {
 			return ReadPointsAsync(buffer, stride, -1);
 		}
@@ -168,6 +125,9 @@ public class CloudStream
 		}
 
 		#region Guts
+		byte[] chbuffer = null;
+		Reader mem = null;
+
 		// Check parameters for sanity, allocate memory buffer if necessary.
 		int PrepareToRead(Vector3[] v, Color[] c, int offset, float stride, ref int amount)
 		{
@@ -203,6 +163,7 @@ public class CloudStream
 		// Read the points from memory buffer into the arrays
 		int DecodePoints(Vector3[] v, Color[] c, int offset, int pointCount, float stride)
 		{
+			stride = Mathf.Max(1,stride);
 			// decode the buffer into arrays
 			int i = offset, limit = Math.Min(v.Length,offset+pointCount);
 			

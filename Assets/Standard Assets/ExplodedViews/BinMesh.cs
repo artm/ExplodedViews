@@ -60,10 +60,13 @@ public class BinMesh : Inflatable
 
 	public void Start()
 	{
+		throw new System.NotSupportedException("Port this to Prefs");
+		/*
 		if (CloudStream.FindBin(bin + ".bin")==null) {
 			Object.DestroyImmediate( this );
 			return;
 		}
+		*/
 
 		if (lodManager && lodManager.forcedBinMeshMaterial!=null) {
 			material  = lodManager.forcedBinMeshMaterial;
@@ -102,8 +105,8 @@ public class BinMesh : Inflatable
 	set {
 			if (base.Managed = value && binReader == null) {
 				// FIXME: should use open/close and not new to avoid garbage generation
-				binReader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
-				                                                  FileMode.Open, FileAccess.Read));
+				throw new System.NotImplementedException("Port this to Prefs");
+				//binReader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"), FileMode.Open, FileAccess.Read));
 				// skip the minmeshsized chunk
 				binReader.SeekPoint(minMeshSize);
 				enabled = true;
@@ -244,6 +247,8 @@ public class BinMesh : Inflatable
 	
 	public void Shuffle()
 	{
+		throw new System.NotImplementedException("Prot this to Prefs");
+		/*
 		string fname = CloudStream.FindBin(bin + ".bin");
 		FileInfo fi = new FileInfo(fname);
 		pointCount = (int) fi.Length / CloudStream.pointRecSize;
@@ -257,6 +262,7 @@ public class BinMesh : Inflatable
 				Pretty.Count(pointCount), Pretty.Count((float)pointCount / progressor.elapsed));
 			RefreshMinMesh();
 		}
+		*/
 	}
 	
 	public void Shuffle(FileStream stream, Progressor prog)
@@ -308,8 +314,9 @@ public class BinMesh : Inflatable
 
 		CloudStream.Reader reader = null;
 		try {
-			reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"),
-			                                                                  FileMode.Open));
+			throw new System.NotImplementedException("Port this to Prefs");
+			/*
+			reader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"), FileMode.Open));
 			CloudMeshConvertor conv = new CloudMeshConvertor(minMeshSize);
 			if (mesh == null)
 				mesh = conv.MakeMesh();
@@ -318,6 +325,7 @@ public class BinMesh : Inflatable
 			minMeshFilter.mesh = mesh;
 			mesh.name = name + "-miniMesh";
 			return mesh;
+			*/
 		} catch {
 			return null;
 		} finally {
