@@ -64,80 +64,6 @@ public class ImportedCloud : MonoBehaviour
 		}
 	}
 
-	class BoxHelper {
-		Matrix4x4 cloud2box;
-		CloudStream.Writer writer = null;
-		string path = null;
-		int count;
-		Transform transform, cloud;
-		
-		public string Path {
-			get { return path; }
-		}
-		public Transform Transform {
-			get { return transform; }
-		}
-		public CloudStream.Writer Writer {
-			get { return writer; }
-		}
-		
-		public BoxHelper (Transform box, Transform cloud, string path)
-		{
-			writer = new CloudStream.Writer (new FileStream (path, FileMode.Create));
-			this.path = path;
-			setup(box, cloud);
-		}
-
-		public BoxHelper (Transform box, Transform cloud)
-		{
-			setup(box, cloud);
-		}
-
-		void setup(Transform box, Transform cloud)
-		{
-			// find a matrix to convert cloud vertex coordinate into box coordinate...
-			cloud2box = box.worldToLocalMatrix * cloud.localToWorldMatrix;
-			count = 0;
-			transform = box;
-			this.cloud = cloud;
-		}
-		
-		public void Finish()
-		{
-			writer.Close();
-		}
-		
-		// return true if point belongs in this box
-		public bool saveIfBelongs (Vector3 cloudPoint, Color color)
-		{
-			return saveIfBelongs(cloudPoint, color, writer);
-		}
-
-		public bool saveIfBelongs (Vector3 cloudPoint, Color color, CloudStream.Writer writer)
-		{
-			Vector3 point = cloud2box.MultiplyPoint3x4 (cloudPoint);
-			if (Mathf.Abs (point.x) < 0.5f && Mathf.Abs (point.y) < 0.5f && Mathf.Abs (point.z) < 0.5f) {
-				save (cloudPoint, color, writer);
-				return true;
-			}
-			return false;
-		}
-		
-		void save(Vector3 point, Color color, CloudStream.Writer writer)
-		{
-			if (this.writer == null) {
-				// this is a shadow box - drop the point...
-				point = cloud.TransformPoint(point);
-				point.y = 0;
-				point = cloud.InverseTransformPoint(point);
-			}
-			writer.WritePoint(point, color);
-			count++;
-		}
-		
-		public int Count { get { return count; } }
-	}
-
 	#region Data fields
 	// path of the imported .bin file
 	string BinPath {
@@ -522,100 +448,6 @@ public class ImportedCloud : MonoBehaviour
 
 
 	#region Export
-    public class CutError : Pretty.Exception
-    {
-        public CutError(string format, params object[] args) : base(format,args) { }
-    }
-
-	public void CutToBoxes( Transform location )
-	{
-		UpdateSelectionSize();
-
-		#region setup cut/shadow boxes
-		Transform boxes = transform.FindChild ("CutBoxes");
-
-		List<Transform> cutBoxes = new List<Transform>();
-		List<Transform> shadowBoxes = new List<Transform>();
-
-		if (boxes) {
-			foreach(Transform box in boxes) {
-				// anything without a "shadow" in its name is a cut box!
-				if (box.name.ToLower().Contains("shadow"))
-					shadowBoxes.Add(box);
-				else
-					cutBoxes.Add(box);
-			}
-		}
-
-		// using linked list so we can change order on the fly
-		LinkedList<BoxHelper>
-			cutBoxHelpers = new LinkedList<BoxHelper>( 
-				cutBoxes.Select( box => new BoxHelper(box, transform, BoxBinPath(box.name)) ) ),
-			// shadow boxes have no own writer
-			shadowBoxHelpers = new LinkedList<BoxHelper>( 
-				shadowBoxes.Select( box => new BoxHelper(box, transform)));
-		
-		// sort the points in selection
-		Vector3 v = new Vector3 (0, 0, 0);
-		Color c = new Color (0, 0, 0);
-		#endregion
-		
-		if (cutBoxes.Count < 1) {
-			throw new CutError("No cut boxes defined for {0}, skipping", name);
-		}
-
-		int done = 0;
-		Progressor prog = new Progressor ("Cutting " + name + " according to boxes");
-		try {
-			foreach (Slice slice in Selection) {
-				#region sort points of this slice
-				binReader.SeekPoint (slice.offset);
-				int slice_end = (slice.offset + slice.size) * CloudStream.pointRecSize;
-				while (binReader.BaseStream.Position < slice_end)
-				{
-					binReader.ReadPointRef (ref v, ref c);
-					LinkedListNode<BoxHelper> iter = cutBoxHelpers.First;
-					do {
-						if (iter.Value.saveIfBelongs (v, c)) {
-							if (iter != cutBoxHelpers.First) {
-								cutBoxHelpers.Remove (iter);
-								cutBoxHelpers.AddFirst (iter);
-							}
-
-							// check if the point is in a shadow box as well
-							LinkedListNode<BoxHelper> shIter = shadowBoxHelpers.First;
-							do {
-								if (shIter.Value.saveIfBelongs( v, c, iter.Value.Writer )) {
-									if (shIter != shadowBoxHelpers.First) {
-										shadowBoxHelpers.Remove(shIter);
-										shadowBoxHelpers.AddFirst(shIter);
-									}
-									break;
-								}
-							} while((shIter = shIter.Next) != null);
-
-							break;
-						}
-					} while ((iter = iter.Next) != null);
-					done++;
-					prog.Progress ((float)done / selectionSize, "Sorting {0}, ETA: {eta}", slice.name);
-				}
-				#endregion
-			}
-		} catch (Progressor.Cancel) {
-			return;
-		} finally {
-			prog.Done ();
-			// close all writers
-			foreach (BoxHelper box in cutBoxHelpers) 
-				box.Finish ();
-	}
-		
-		// continue only if wasn't cancelled
-		foreach (BoxHelper box in cutBoxHelpers)
-			WrapBinMesh (box.Path, location, box.Transform, box.Count);
-	}
-
 	void WrapBinMesh(string compactPath, Transform location, Transform box, int pointCount)
 	{
 		#region ... load and instantiate the template ...
@@ -649,12 +481,6 @@ public class ImportedCloud : MonoBehaviour
 		#endregion
 	}
 
-	[ContextMenu("Make compact")]
-	void MakeCompact()
-	{
-		MakeCompact(true);
-	}
-
 	public void MakeCompact(bool overwrite)
 	{
 		#region ... load or create output prefab ...
@@ -673,20 +499,23 @@ public class ImportedCloud : MonoBehaviour
 		#endregion
 
 		try {
-			RefreshCompact(location, locPath, prefab);
+			//RefreshCompact(location, locPath, prefab);
 			// save the branch into the prefab
 			EditorUtility.ReplacePrefab(location, prefab);
 			Debug.Log("Saved exported cloud to "+ locPath +" (click to see)", prefab);
+			/*
 		} catch (ImportedCloud.CutError ex) {
 			Debug.LogWarning( ex.Message );
 			FileUtil.DeleteFileOrDirectory(locPath);
 			AssetDatabase.Refresh();
+			*/
 		} finally {
 			Object.DestroyImmediate(location);
 			EditorUtility.UnloadUnusedAssets();
 		}
 	}
 
+	/*
 	public void RefreshCompact(GameObject location, string locPath, Object prefab)
 	{
 		#region ... place location at the same position as orig ...
@@ -736,6 +565,7 @@ public class ImportedCloud : MonoBehaviour
 		}
 		#endregion
 	}
+	*/
 
 	#endregion
 
