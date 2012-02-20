@@ -35,10 +35,15 @@ namespace Test {
 											tests_failed++;
 										else
 											tests_succeded++;
-									} catch(Exception ex) {
+									} catch(TargetInvocationException ex) {
+										// we're interested in actual error...
+										Exception iex = ex.InnerException;
 										Debug.LogError(string.Format("Test {0} in {1} failed: {2}\n{3}\n{4}\n",
-										                             method.Name, type.FullName, ex.Message,
-										                             ex.GetType().FullName, ex.StackTrace));
+										                             method.Name,
+										                             type.FullName,
+										                             iex.Message,
+										                             iex.GetType().FullName,
+										                             iex.StackTrace));
 										tests_failed++;
 									} finally {
 										tests_run++;
@@ -48,10 +53,16 @@ namespace Test {
 	
 									}
 								}
-							} catch (Exception ex) {
+							} catch (TargetInvocationException ex) {
+								// we're interested in actual error...
+								Exception iex = ex.InnerException;
 								Debug.LogError(string.Format("Constructing {0} failed: {1}\n{2}\n{3}\n",
-								                             type.FullName, ex.Message,
-								                             ex.GetType().FullName, ex.StackTrace));
+								                             type.FullName,
+								                             iex.Message,
+								                             iex.GetType().FullName,
+								                             iex.StackTrace));
+								tests_run++;
+								tests_failed++;
 								break;
 							}
 	
