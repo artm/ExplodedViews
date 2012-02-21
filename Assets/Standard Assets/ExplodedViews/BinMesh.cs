@@ -61,12 +61,11 @@ public class BinMesh : Inflatable
 	public void Start()
 	{
 		throw new System.NotSupportedException("Port this to Prefs");
-		/*
+#if NEVER
 		if (CloudStream.FindBin(bin + ".bin")==null) {
 			Object.DestroyImmediate( this );
 			return;
 		}
-		*/
 
 		if (lodManager && lodManager.forcedBinMeshMaterial!=null) {
 			material  = lodManager.forcedBinMeshMaterial;
@@ -99,6 +98,7 @@ public class BinMesh : Inflatable
 		material.SetFloat("_TunnelD", lodBreakDistances[lodBreakDistances.Length-1]);
 
 		enabled = false; // will get enabled by lod manager
+#endif
 	}
 
 	public override bool Managed {
@@ -106,10 +106,12 @@ public class BinMesh : Inflatable
 			if (base.Managed = value && binReader == null) {
 				// FIXME: should use open/close and not new to avoid garbage generation
 				throw new System.NotImplementedException("Port this to Prefs");
+				/*
 				//binReader = new CloudStream.Reader(new FileStream(CloudStream.FindBin(bin + ".bin"), FileMode.Open, FileAccess.Read));
 				// skip the minmeshsized chunk
 				binReader.SeekPoint(minMeshSize);
 				enabled = true;
+				*/
 			} else if (binReader != null) {
 				binReader.Close();
 				binReader = null;
