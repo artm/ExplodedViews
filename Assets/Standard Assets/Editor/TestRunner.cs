@@ -9,6 +9,8 @@ public class TestRunner
 	{
 		Test.Harness.Run(typeof(ExplodedPrefs.Test),
 		                 typeof(CloudStream_Test),
-		                 typeof(CloudStream_Test.ReaderTest));
+		                 typeof(CloudStream_Test.ReaderTest),
+		                 typeof(CloudStream_Test.WriterTest),
+		                 typeof(CloudMeshConvertor_Test));
 	}
 }

@@ -37,7 +37,7 @@ public class CamsList : Inflatable {
 	}
 
 	public CamDesc[] cams;
-	CloudStream.Reader binReader;
+	CloudStream.Reader binReader = null;
 	LodManager lodManager;
 
 	public override void Awake()

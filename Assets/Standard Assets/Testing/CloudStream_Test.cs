@@ -22,7 +22,8 @@ public class CloudStream_Test : Test.Case
 
 	};
 	string testFileName;
-	FileStream TestFileStream() { return new FileStream( testFileName, FileMode.Open); }
+	FileStream TmpFileStream() { return new FileStream( testFileName, FileMode.Open); }
+	FileStream TmpFileStream(FileMode mode) { return new FileStream( testFileName, mode); }
 
 	const float bytePrecision = 1.0f / 255.0f;
 
@@ -55,9 +56,9 @@ public class CloudStream_Test : Test.Case
 			File.Delete( testFileName );
 	}
 
-	void Test_TestSetup()
+	void Test_Setup()
 	{
-		using( FileStream fs = TestFileStream() ) {
+		using( FileStream fs = TmpFileStream() ) {
 			BinaryReader reader = new BinaryReader( fs );
 
 			foreach(ColoredPoint cp in mockCloud) {
@@ -82,15 +83,15 @@ public class CloudStream_Test : Test.Case
 		CloudStream.Reader reader;
 
 		public ReaderTest() {
-			reader = new CloudStream.Reader( TestFileStream() );
+			reader = new CloudStream.Reader( TmpFileStream() );
 		}
 		public override void Dispose()
 		{
 			reader.Close();
-			//Base.Dispose();
+			base.Dispose();
 		}
 
-		void Test_ReaderSimpleAPI()
+		public void Test_ReaderSimpleAPI()
 		{
 			Assert_Equal( mockCloud.Length, reader.PointCount );
 			Vector3 v;
@@ -203,6 +204,51 @@ public class CloudStream_Test : Test.Case
 			}
 		}
 
+	}
+
+	public class WriterTest : CloudStream_Test {
+		CloudStream.Writer writer;
+
+		public WriterTest() {
+			writer = new CloudStream.Writer( TmpFileStream(FileMode.Truncate) );
+			Assert_Equal(0, writer.BaseStream.Length);
+			foreach(ColoredPoint cp in mockCloud) {
+				writer.WritePoint(cp.v, cp.c);
+			}
+		}
+
+		public override void Dispose()
+		{
+			writer.Close();
+			base.Dispose();
+		}
+
+		void Test_ReadBack() {
+			// and now test case is using a test case like ... wicked!
+			using(CloudStream_Test.ReaderTest readerTest = new CloudStream_Test.ReaderTest()) {
+				readerTest.Test_ReaderSimpleAPI();
+			}
+		}
+
+		void Test_PointPosition() {
+			Assert_Equal(mockCloud.Length, writer.PointPosition);
+		}
+
+		void Test_Seek() {
+			// some seeking...
+			writer.SeekPoint(-1, SeekOrigin.Current);
+			Assert_Equal( (mockCloud.Length-1) * CloudStream.pointRecSize, writer.BaseStream.Position );
+			Assert_Equal( (mockCloud.Length-1), writer.PointPosition );
+			writer.SeekPoint(0, SeekOrigin.Begin);
+			Assert_Equal( 0 * CloudStream.pointRecSize, writer.BaseStream.Position );
+			Assert_Equal( 0, writer.PointPosition );
+			writer.SeekPoint(1, SeekOrigin.Begin);
+			Assert_Equal( 1 * CloudStream.pointRecSize, writer.BaseStream.Position );
+			Assert_Equal( 1, writer.PointPosition );
+			writer.SeekPoint(-2, SeekOrigin.End);
+			Assert_Equal( (mockCloud.Length - 2) * CloudStream.pointRecSize, writer.BaseStream.Position );
+			Assert_Equal( (mockCloud.Length - 2), writer.PointPosition );
+		}
 	}
 }
 
