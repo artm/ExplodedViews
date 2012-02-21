@@ -6,7 +6,6 @@ using System.Linq;
 
 using Slice = ImportedCloud.Slice;
 using Prefs = ExplodedPrefs;
-using Case = Test.Case;
 
 public class CloudCompactor
 {
@@ -364,23 +363,6 @@ public class CloudCompactor
 	}
 
 	#endregion
-
-	public class CloudCompactorTester : Case {
-		// setup
-		CloudCompactorTester() {
-
-		}
-		// tear-down
-		public override void Dispose() {
-
-		}
-
-		// tests
-		void Test_Something()
-		{
-
-		}
-	}
 
 }
 
