@@ -15,7 +15,6 @@ public class TestRunner
 		                 typeof(CloudStream_Test.ReaderTest),
 		                 typeof(CloudStream_Test.WriterTest));
 
-		Debug.LogWarning("FIXME find the right place for this");
 		EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
 	}
 }

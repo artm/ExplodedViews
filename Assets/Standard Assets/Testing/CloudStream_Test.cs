@@ -162,7 +162,6 @@ public class CloudStream_Test : Test.Case
 			CloudMeshConvertor conv = new CloudMeshConvertor(mockCloud.Length);
 			reader.DecodePoints(conv, mockCloud.Length, 1);
 
-			Debug.LogWarning("FIXME should test CloudMeshConvertor first");
 			for(int i = 0; i<mockCloud.Length; ++i) {
 				Assert_Approximately(mockCloud[i].v, conv.vBuffer[i]);
 				Assert_Approximately(mockCloud[i].c, conv.cBuffer[i], bytePrecision);
@@ -174,7 +173,6 @@ public class CloudStream_Test : Test.Case
 			CloudMeshConvertor conv = new CloudMeshConvertor(mockCloud.Length);
 			reader.DecodePoints(conv, mockCloud.Length);
 
-			Debug.LogWarning("FIXME should test CloudMeshConvertor first");
 			for(int i = 0; i<mockCloud.Length; ++i) {
 				Assert_Approximately(mockCloud[i].v, conv.vBuffer[i]);
 				Assert_Approximately(mockCloud[i].c, conv.cBuffer[i], bytePrecision);
@@ -186,7 +184,6 @@ public class CloudStream_Test : Test.Case
 			CloudMeshConvertor conv = new CloudMeshConvertor(mockCloud.Length);
 			reader.DecodePoints(conv, mockCloud.Length, 0.5f);
 
-			Debug.LogWarning("FIXME should test CloudMeshConvertor first");
 			for(int i = 0; i<mockCloud.Length; ++i) {
 				Assert_Approximately(mockCloud[i].v, conv.vBuffer[i]);
 				Assert_Approximately(mockCloud[i].c, conv.cBuffer[i], bytePrecision);
@@ -197,7 +194,6 @@ public class CloudStream_Test : Test.Case
 			CloudMeshConvertor conv = new CloudMeshConvertor(mockCloud.Length / 2);
 			reader.DecodePoints(conv, mockCloud.Length, 2.0f);
 
-			Debug.LogWarning("FIXME should test CloudMeshConvertor first");
 			for(int i = 0; i<mockCloud.Length/2; ++i) {
 				Assert_Approximately(mockCloud[i*2].v, conv.vBuffer[i]);
 				Assert_Approximately(mockCloud[i*2].c, conv.cBuffer[i], bytePrecision);
