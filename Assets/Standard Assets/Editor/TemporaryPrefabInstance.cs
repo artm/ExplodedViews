@@ -21,7 +21,7 @@ public class TemporaryPrefabInstance : TemporaryObject {
 	}
 
 	public void Commit() {
-		EditorUtility.ReplacePrefab(obj, prefab);
+		EditorUtility.ReplacePrefab(obj as GameObject, prefab);
 	}
 
 	public Object Prefab {

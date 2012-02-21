@@ -78,8 +78,8 @@ public class CloudImporter
 	{
 		string baseName = Path.GetFileNameWithoutExtension(cloud_path);
 
-		using (TemporaryObject tmp = new TemporaryObject(baseName, typeof(ImportedCloud)) ) {
-			GameObject root = tmp.Instance;
+		using (TemporaryObject tmp = new TemporaryObject(new GameObject(baseName, typeof(ImportedCloud))) ) {
+			GameObject root = tmp.Instance as GameObject;
 			GameObject previewGo = new GameObject("Preview", typeof(MeshFilter), typeof(MeshRenderer));
 			previewGo.transform.parent = root.transform;
 			new GameObject("CutBoxes").transform.parent = root.transform;

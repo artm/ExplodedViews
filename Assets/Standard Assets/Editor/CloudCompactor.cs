@@ -45,9 +45,9 @@ public class CloudCompactor
 
 			base_name = tmp.Instance.name;
 
-			EnsureCutBoxes( tmp.Instance );
+			EnsureCutBoxes( tmp.Instance as GameObject );
 			if (cutBoxHelpers != null && shadowBoxHelpers != null)
-				CutToBoxes( tmp.Instance );
+				CutToBoxes( tmp.Instance as GameObject );
 			/*
 			 * - requires post-shuffle of the cut-bins
 			 * - shadows are separate BinMesh'es with their own bin
@@ -217,8 +217,8 @@ public class CloudCompactor
 	{
 		Debug.LogError("FIXME construct the compact prefab (--loc, --cutboxes, sound, slideshow)");
 		Debug.LogError("FIXME copy preview mesh from the orig");
-		using(TemporaryObject tmp = new TemporaryObject(base_name + "--loc", typeof(SlideShow))) {
-			GameObject root_go = tmp.Instance;
+		using(TemporaryObject tmp = new TemporaryObject(new GameObject(base_name + "--loc", typeof(SlideShow)))) {
+			GameObject root_go = tmp.Instance as GameObject;
 
 			GameObject node = new GameObject("Objects");
 			ProceduralUtils.InsertAtOrigin(node.transform, root_go.transform);
