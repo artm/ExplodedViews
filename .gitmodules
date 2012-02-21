@@ -1,0 +1,3 @@
+[submodule "Assets/Standard Assets/Testing/Framework"]
+	path = Assets/Standard Assets/Testing/Framework
+	url = git@github.com:artm/ExploTest.git
