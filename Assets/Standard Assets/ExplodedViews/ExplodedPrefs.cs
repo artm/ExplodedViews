@@ -27,7 +27,9 @@ public class ExplodedPrefs : ScriptableObject
 			return instance;
 		}
 
-		protected set {
+		set {
+			if (instance)
+				Object.DestroyImmediate(instance);
 			instance = value;
 		}
 	}
@@ -74,22 +76,29 @@ public class ExplodedPrefs : ScriptableObject
 	public static int CompactionPortionSize { get { return Instance.compactionPortionSize; } }
 	public static int MinMeshSize { get { return Instance.minMeshSize; } }
 
+	// returns old instance!
+	public static ExplodedPrefs ReplaceInstance(string assetPrefix, string binPrefix) {
+		ExplodedPrefs oldInstance = Instance;
+
+		instance = ScriptableObject.CreateInstance<ExplodedPrefs>();
+		instance.importedPath = Path.Combine(binPrefix, "imported");
+		instance.incomingPath = Path.Combine(binPrefix, "incoming");
+		instance.compactBinPath = Path.Combine(binPrefix, "compact");
+		instance.prefabsPath = Path.Combine(assetPrefix, "prefabs");
+		instance.compactPrefabsPath = Path.Combine(assetPrefix, "compact-prefabs");
+
+		return oldInstance;
+	}
+
 	public class Test : Case {
 		ExplodedPrefs savedPrefs;
 
         public Test()
         {
-			savedPrefs = Instance;
-			Instance = ScriptableObject.CreateInstance<ExplodedPrefs>();
-			Instance.importedPath = "/tmp/imported";
-			Instance.incomingPath = "/tmp/incoming";
-			Instance.compactBinPath = "/tmp/compact";
-			Instance.prefabsPath = "/tmp/prefabs";
-			Instance.compactPrefabsPath = "/tmp/compact-prefabs";
+			savedPrefs = ReplaceInstance("/tmp", "/tmp");
 		}
         public override void Dispose()
         {
-			Object.DestroyImmediate(Instance);
 			Instance = savedPrefs;
 		}
 
