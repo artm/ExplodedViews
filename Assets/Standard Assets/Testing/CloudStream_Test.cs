@@ -1,16 +1,10 @@
 using System.IO;
 using UnityEngine;
 
+using ColoredPoint = ExplodedTests.ColoredPoint;
+
 public class CloudStream_Test : Test.Case
 {
-	struct ColoredPoint {
-		public Vector3 v;
-		public Color c;
-		public ColoredPoint(float x, float y, float z, float r, float g, float b) {
-			v = new Vector3(x,y,z);
-			c = new Color(r,g,b);
-		}
-	};
 	ColoredPoint[] mockCloud = {
 		new ColoredPoint( 0, 0, 0,   0.00f, 1.00f, 0.70f),
 		new ColoredPoint( 1, 2,-1,   0.01f, 0.09f, 0.60f),
