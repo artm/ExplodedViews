@@ -11,11 +11,12 @@ public class CloudCompactor
 {
 	#region Static API (menu action)
 	[MenuItem ("Exploded Views/Compact Clouds")]
-	static void CompactClouds() {
+	public static void CompactClouds() {
 		// this one walks all over Prefs.PrefabsPath, compacts prefabs and moves originals out of the way
-		Debug.LogError("FIXME asset edit batch?");
-		foreach(ImportedCloud cloud in EditorHelpers.ProcessPrefabList<ImportedCloud>( Prefs.ImportedCloudPrefab("*") )) {
-			new CloudCompactor(cloud);
+		using(new AssetEditBatch()) {
+			foreach(ImportedCloud cloud in EditorHelpers.ProcessPrefabList<ImportedCloud>( Prefs.ImportedCloudPrefab("*") )) {
+				new CloudCompactor(cloud);
+			}
 		}
 	}
 
@@ -39,8 +40,7 @@ public class CloudCompactor
 
 	CloudCompactor(ImportedCloud cloud) {
 		using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(cloud)) {
-			if (tmp.Instance == null)
-				throw new Pretty.AssertionFailed("Bad tmp.Instance");
+			Debug.Log(string.Format("Compacting {0}", cloud.name));
 
 			base_name = tmp.Instance.name;
 
@@ -295,7 +295,7 @@ public class CloudCompactor
 
 		bool shadow = false;
 
-		public string Path {
+		public string BoxPath {
 			get { return path; }
 		}
 		public Transform BoxTransform {
@@ -317,6 +317,7 @@ public class CloudCompactor
 
 		void setup (Transform box, Transform cloud, string path, bool shadow)
 		{
+			IOExt.Directory.EnsureExists( Path.GetDirectoryName(path) );
 			writer = new CloudStream.Writer (new FileStream (path, FileMode.Create));
 			this.path = path;
 			// find a matrix to convert cloud vertex coordinate into box coordinate...
