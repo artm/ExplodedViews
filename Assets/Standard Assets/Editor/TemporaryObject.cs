@@ -21,7 +21,6 @@ public class TemporaryObject : System.IDisposable {
 	/// <summary>
 	/// Don't destroy object when done (handy for debugging).
 	/// </summary>
-	[System.ObsoleteAttribute("Don't forget to remove the Leak")]
 	public void Leak() {
 		leak = true;
 	}
