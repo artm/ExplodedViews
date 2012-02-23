@@ -276,9 +276,6 @@ public class CloudCompactor
 			return mesh;
 		}
 	}
-	
-
-
 
 	void LookForSound()
 	{
