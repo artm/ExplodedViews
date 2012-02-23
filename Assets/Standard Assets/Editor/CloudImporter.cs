@@ -5,12 +5,13 @@ using System.Collections.Generic;
 
 using Slice = ImportedCloud.Slice;
 using Prefs = ExplodedPrefs;
+using Math = System.Math;
 
 public class CloudImporter
 {
 	#region static
 	[MenuItem ("Exploded Views/Import Clouds")]
-	static void ImportClouds () {
+	public static void ImportClouds () {
 		if (EditorUtility.DisplayDialog("Import clouds",
 		                                string.Format(
 		                                "Folders are setup in Resources/ExplodedPrefs asset\n\n" +
@@ -113,12 +114,14 @@ public class CloudImporter
 			root.transform.Rotate(-90,0,0);
 
 			// save the branch into the prefab
+			IOExt.Directory.EnsureExists(Prefs.PrefabsPath);
 			Object prefab = EditorUtility.CreateEmptyPrefab(prefab_path);
 			// save mesh into prefab and attach it to the Preview game object
 			EditorUtility.ReplacePrefab(root, prefab);
 			AssetDatabase.AddObjectToAsset(mesh, prefab);
 
 			// do this last, after the rest succeeded
+			IOExt.Directory.EnsureExists(Prefs.ImportedPath);
 			FileUtil.MoveFileOrDirectory(bin_path, Prefs.ImportedBin(bin_path));
 			FileUtil.MoveFileOrDirectory(cloud_path, Prefs.ImportedCloud(cloud_path));
 		}
@@ -171,7 +174,8 @@ public class CloudImporter
 
 					// may be sample
 					CloudStream.Reader mem = new CloudStream.Reader(new MemoryStream(sliceBytes));
-					mem.DecodePoints(meshConv, sliceSampleSize);
+					int sampleSize = Math.Min( sliceSampleSize, (int)mem.PointCount );
+					mem.DecodePoints(meshConv, sampleSize );
 				}
 			} finally {
 				prog.Done("Shuffled orig bin in {tt}");

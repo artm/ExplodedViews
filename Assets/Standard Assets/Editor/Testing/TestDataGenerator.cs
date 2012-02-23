@@ -6,7 +6,7 @@ using ColoredPoint = ExplodedTests.ColoredPoint;
 
 public class TestDataGenerator : System.IDisposable
 {
-	string testAssetsPath = "Aseets/Test Assets";
+	string testAssetsPath = "Assets/Test Assets";
 	string testDataPath = "Test Data";
 
 	ExplodedPrefs savedPrefs;
@@ -63,6 +63,25 @@ public class TestDataGenerator : System.IDisposable
 		using(TestDataGenerator gen = new TestDataGenerator()) {
 			string name = string.Format("{0}_{1}", Random.value * 360 - 180, Random.value * 360 - 180);
 			gen.GenerateBin(name, 1000, 20);
+		}
+	}
+
+	[MenuItem("Exploded Views/Testing/Import Test Bins")]
+	static void ImportTestBins() {
+		using(TestDataGenerator gen = new TestDataGenerator()) {
+			CloudImporter.ImportClouds();
+		}
+	}
+
+	[MenuItem("Exploded Views/Testing/Unimport Test Bins")]
+	static void UnimportTestBins() {
+		using(TestDataGenerator gen = new TestDataGenerator()) {
+			foreach(string fname in Directory.GetFiles(ExplodedPrefs.ImportedPath,"*.bin"))
+				FileUtil.MoveFileOrDirectory(fname,ExplodedPrefs.IncomingBin(fname));
+			foreach(string fname in Directory.GetFiles(ExplodedPrefs.ImportedPath,"*.cloud"))
+				FileUtil.MoveFileOrDirectory(fname,ExplodedPrefs.IncomingCloud(fname));
+			foreach(string fname in Directory.GetFiles(ExplodedPrefs.PrefabsPath,"*.prefab"))
+				FileUtil.DeleteFileOrDirectory(fname);
 		}
 	}
 }
