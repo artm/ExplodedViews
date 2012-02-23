@@ -76,12 +76,27 @@ public class TestDataGenerator : System.IDisposable
 	[MenuItem("Exploded Views/Testing/Unimport Test Bins")]
 	static void UnimportTestBins() {
 		using(TestDataGenerator gen = new TestDataGenerator()) {
-			foreach(string fname in Directory.GetFiles(ExplodedPrefs.ImportedPath,"*.bin"))
-				FileUtil.MoveFileOrDirectory(fname,ExplodedPrefs.IncomingBin(fname));
-			foreach(string fname in Directory.GetFiles(ExplodedPrefs.ImportedPath,"*.cloud"))
-				FileUtil.MoveFileOrDirectory(fname,ExplodedPrefs.IncomingCloud(fname));
-			foreach(string fname in Directory.GetFiles(ExplodedPrefs.PrefabsPath,"*.prefab"))
+			foreach(string fname in Directory.GetFiles(ExplodedPrefs.ImportedPath,"*.bin")) {
+				string cloud = ExplodedPrefs.ImportedCloud(fname);
+				if (File.Exists( cloud )) {
+					Debug.Log(string.Format("Unimporting {0} .bin + .cloud", Path.GetFileNameWithoutExtension(fname)));
+					FileUtil.MoveFileOrDirectory(fname,ExplodedPrefs.IncomingBin(fname));
+					FileUtil.MoveFileOrDirectory(cloud,ExplodedPrefs.IncomingCloud(cloud));
+				} else {
+					Debug.LogWarning(string.Format("Removing {0} - no corresponding .cloud found", Path.GetFileName(fname)));
+					FileUtil.DeleteFileOrDirectory(fname);
+				}
+			}
+			// remove clouds with no corresponding bin
+			foreach(string fname in Directory.GetFiles(ExplodedPrefs.ImportedPath,"*.cloud")) {
 				FileUtil.DeleteFileOrDirectory(fname);
+				Debug.LogWarning(string.Format("Removing {0} - no corresponding .bin found", Path.GetFileName(fname)));
+			}
+			foreach(string fname in Directory.GetFiles(ExplodedPrefs.PrefabsPath,"*.prefab")) {
+				Debug.Log(string.Format("Removing {0} (unimport)", Path.GetFileName(fname)));
+				FileUtil.DeleteFileOrDirectory(fname);
+			}
+			AssetDatabase.Refresh();
 		}
 	}
 }
