@@ -194,6 +194,12 @@ public class CloudStream
             CloudStream.SeekPoint(BaseStream, offset, origin);
         }
 
+        public void SeekPoint (int offset)
+        {
+			SeekPoint(offset, SeekOrigin.Begin);
+		}
+
+
 		public long PointPosition {
 			get {
 				return CloudStream.PointPosition(BaseStream);
