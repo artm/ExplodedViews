@@ -116,8 +116,8 @@ public class CloudImporter
 			// save the branch into the prefab
 			IOExt.Directory.EnsureExists(Prefs.PrefabsPath);
 			Object prefab = EditorUtility.CreateEmptyPrefab(prefab_path);
-			// save mesh into prefab and attach it to the Preview game object
 			EditorUtility.ReplacePrefab(root, prefab);
+			// save mesh into prefab and attach it to the Preview game object
 			AssetDatabase.AddObjectToAsset(mesh, prefab);
 
 			// do this last, after the rest succeeded
@@ -156,7 +156,6 @@ public class CloudImporter
 					stream.Read( sliceBytes, 0, byteCount );
 		
 					byte[] tmp = new byte[CloudStream.pointRecSize];
-		
 					ShuffleUtility.WithSwap(slice.size, (i, j) =>
 					{
 						/*
