@@ -162,6 +162,23 @@ public class CloudStream_Test : Test.Case
 			}
 		}
 
+		void Test_ReaderSmallSlicesSequence() {
+			CloudMeshConvertor conv = new CloudMeshConvertor(mockCloud.Length * 2);
+			reader.DecodePoints(conv, mockCloud.Length);
+			Assert_Equal(mockCloud.Length, conv.Offset);
+			reader.SeekPoint(0);
+			reader.DecodePoints(conv, mockCloud.Length);
+			Assert_Equal(mockCloud.Length*2, conv.Offset);
+
+			for(int i = 0; i<mockCloud.Length; ++i) {
+				Assert_Approximately(mockCloud[i].v, conv.vBuffer[i]);
+				Assert_Approximately(mockCloud[i].c, conv.cBuffer[i], bytePrecision);
+
+				Assert_Approximately(mockCloud[i].v, conv.vBuffer[mockCloud.Length + i]);
+				Assert_Approximately(mockCloud[i].c, conv.cBuffer[mockCloud.Length + i], bytePrecision);
+			}
+		}
+
 		void Test_ReaderDecode_DefaultStride() {
 			// decoding points with stride
 			CloudMeshConvertor conv = new CloudMeshConvertor(mockCloud.Length);

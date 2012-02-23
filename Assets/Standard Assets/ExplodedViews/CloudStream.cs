@@ -160,21 +160,25 @@ public class CloudStream
 			return bytesize;
 		}
 		
-		// Read the points from memory buffer into the arrays
+		// Read the points from the stream into the arrays
 		int DecodePoints(Vector3[] v, Color[] c, int offset, int pointCount, float stride)
 		{
 			stride = Mathf.Max(1,stride);
+
+			long startPos = PointPosition;
+
 			// decode the buffer into arrays
-			int i = offset, limit = Math.Min(v.Length,offset+pointCount);
-			
-			for(; i < limit; ++i) {
-				int seekPos = Mathf.FloorToInt(stride * i);
-				if (BaseStream.Position != seekPos) {
+			pointCount = Math.Min( pointCount, (int)(PointCount - PointPosition) );
+			pointCount = Math.Min( pointCount, v.Length - offset );
+
+			for(int i = 0; i<pointCount; i++) {
+				int seekPos = Mathf.FloorToInt(startPos + stride * i);
+				if (BaseStream.Position != seekPos)
 					SeekPoint(seekPos, SeekOrigin.Begin);
-				}
-				ReadPointRef(ref v[i], ref c[i]);
+				ReadPointRef(ref v[offset], ref c[offset]);
+				offset++;
 			}
-			return i;
+			return offset;
 		}
 		#endregion
 	}
