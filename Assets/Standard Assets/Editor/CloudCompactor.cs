@@ -13,10 +13,8 @@ public class CloudCompactor
 	[MenuItem ("Exploded Views/Compact Clouds")]
 	public static void CompactClouds() {
 		// this one walks all over Prefs.PrefabsPath, compacts prefabs and moves originals out of the way
-		using(new AssetEditBatch()) {
-			foreach(ImportedCloud cloud in EditorHelpers.ProcessPrefabList<ImportedCloud>( Prefs.ImportedCloudPrefab("*") )) {
-				new CloudCompactor(cloud);
-			}
+		foreach(ImportedCloud cloud in EditorHelpers.ProcessPrefabList<ImportedCloud>( Prefs.ImportedCloudPrefab("*") )) {
+			new CloudCompactor(cloud);
 		}
 	}
 
@@ -56,10 +54,34 @@ public class CloudCompactor
 			 * - Look for the sound then as well
 			 *
 			 */
-	
-			Debug.LogError("FIXME shuffle the cut / shadow box bins");
+
+			foreach(Transform box in cutBoxes)
+				ShuffleBin( Prefs.BoxBin(cloud.name, box.name));
+			foreach(Transform box in shadowBoxes)
+				ShuffleBin( Prefs.BoxBin(cloud.name, box.name));
+
 			CreateCompactPrefab(cutBoxes, shadowBoxes);
 			// don't commit, any changes to tmp.Instance are interim, only for compaction to work
+		}
+	}
+
+	void ShuffleBin(string path) {
+		using(FileStream fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite)) {
+			CloudStream.Reader reader = new CloudStream.Reader(fs);
+			CloudStream.Writer writer = new CloudStream.Writer(fs);
+
+			byte[] tmp_i = new byte[CloudStream.pointRecSize] , tmp_j = new byte[CloudStream.pointRecSize];
+			ShuffleUtility.WithSwap((int)fs.Length / CloudStream.pointRecSize,
+			                        (i, j) => {
+				reader.SeekPoint(i);
+				tmp_i = reader.ReadBytes( tmp_i.Length);
+				reader.SeekPoint(j);
+				tmp_j = reader.ReadBytes( tmp_j.Length);
+				writer.SeekPoint(j);
+				writer.Write(tmp_i);
+				writer.SeekPoint(i);
+				writer.Write(tmp_j);
+			});
 		}
 	}
 
@@ -154,8 +176,6 @@ public class CloudCompactor
 		} finally {
 			prog.Done();
 		}
-		return;
-
 	}
 
 	void SortSlicePortion(LinkedListNode<Slice> slice_iter,
@@ -214,8 +234,6 @@ public class CloudCompactor
 
 	void CreateCompactPrefab(List<Transform> cutBoxes, List<Transform> shadowBoxes)
 	{
-		Debug.LogError("FIXME construct the compact prefab (--loc, --cutboxes, sound, slideshow)");
-		Debug.LogError("FIXME copy preview mesh from the orig");
 		using(TemporaryObject tmp = new TemporaryObject(new GameObject(base_name + "--loc", typeof(SlideShow)))) {
 			GameObject root_go = tmp.Instance as GameObject;
 
@@ -230,9 +248,13 @@ public class CloudCompactor
 				SetupBoxCloud(shadows_node.transform, box);
 			}
 
+			Debug.LogError("FIXME copy preview mesh from the orig");
 			LookForSound();
 
-			tmp.Leak();
+			IOExt.Directory.EnsureExists(Prefs.CompactPrefabsPath);
+			Object prefab = EditorUtility.CreateEmptyPrefab(Prefs.CompactPrefab( root_go.name ));
+			EditorUtility.ReplacePrefab(root_go, prefab);
+			Debug.LogError("Save more stuff into compact prefab");
 		}
 	}
 
