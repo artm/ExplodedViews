@@ -99,5 +99,13 @@ public class TestDataGenerator : System.IDisposable
 			AssetDatabase.Refresh();
 		}
 	}
+
+	[MenuItem("Exploded Views/Testing/Compact Test Bins")]
+	static void CompactTestBins() {
+		using(TestDataGenerator gen = new TestDataGenerator()) {
+			CloudCompactor.CompactClouds();
+		}
+	}
+
 }
 
