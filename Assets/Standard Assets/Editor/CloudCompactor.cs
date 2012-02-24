@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEditorExt;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,9 +39,16 @@ public class CloudCompactor
 
 	CloudCompactor(ImportedCloud cloud) {
 		using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(cloud)) {
-			Debug.Log(string.Format("Compacting {0}", cloud.name));
-
 			base_name = tmp.Instance.name;
+
+			string targetFName = Prefs.CompactPrefab(base_name + "--loc");
+			if (File.Exists( targetFName )) {
+				Debug.Log(string.Format("{0} is in the way when compacting the cloud. Remove to recompact",
+				                        targetFName), AssetDatabase.LoadMainAssetAtPath(targetFName));
+				return;
+			}
+
+			Debug.Log(string.Format("Compacting {0}", base_name));
 
 			EnsureCutBoxes( tmp.Instance as GameObject );
 			if (cutBoxHelpers != null && shadowBoxHelpers != null)
@@ -60,7 +68,7 @@ public class CloudCompactor
 			foreach(Transform box in shadowBoxes)
 				ShuffleBin( Prefs.BoxBin(cloud.name, box.name));
 
-			CreateCompactPrefab(cutBoxes, shadowBoxes);
+			CreateCompactPrefab(cutBoxes, shadowBoxes, tmp.Instance as GameObject);
 			// don't commit, any changes to tmp.Instance are interim, only for compaction to work
 		}
 	}
@@ -232,29 +240,38 @@ public class CloudCompactor
 		return false;
 	}
 
-	void CreateCompactPrefab(List<Transform> cutBoxes, List<Transform> shadowBoxes)
+	void CreateCompactPrefab(List<Transform> cutBoxes, List<Transform> shadowBoxes, GameObject orig)
 	{
 		using(TemporaryObject tmp = new TemporaryObject(new GameObject(base_name + "--loc", typeof(SlideShow)))) {
 			GameObject root_go = tmp.Instance as GameObject;
 
+			Debug.LogError("FIXME copy slice list to the SlideShow component");
+
 			GameObject node = new GameObject("Objects");
-			ProceduralUtils.InsertAtOrigin(node.transform, root_go.transform);
+			ProceduralUtils.InsertAtOrigin(node, root_go);
 			foreach(Transform box in cutBoxes) {
 				SetupBoxCloud(node.transform, box);
 			}
 			GameObject shadows_node = new GameObject("Shadow");
-			ProceduralUtils.InsertAtOrigin(shadows_node.transform, node.transform);
+			ProceduralUtils.InsertAtOrigin(shadows_node, node);
 			foreach(Transform box in shadowBoxes) {
 				SetupBoxCloud(shadows_node.transform, box);
 			}
 
-			Debug.LogError("FIXME copy preview mesh from the orig");
+			GameObject preview = Object.Instantiate( orig.transform.FindChild("Preview").gameObject ) as GameObject;
+			preview.name = "Full Cloud Preview";
+			ProceduralUtils.InsertAtOrigin(preview, root_go);
+
 			LookForSound();
 
 			IOExt.Directory.EnsureExists(Prefs.CompactPrefabsPath);
 			Object prefab = EditorUtility.CreateEmptyPrefab(Prefs.CompactPrefab( root_go.name ));
 			EditorUtility.ReplacePrefab(root_go, prefab);
-			Debug.LogError("Save more stuff into compact prefab");
+
+			// save minimeshes...
+			foreach(MeshFilter mf in node.GetComponentsInChildren<MeshFilter>()) {
+				AssetDatabase.AddObjectToAsset(mf.sharedMesh, prefab);
+			}
 		}
 	}
 
@@ -277,8 +294,6 @@ public class CloudCompactor
 		box_tr.GetComponent<BoxCollider>().size = orig_box.GetComponent<BoxCollider>().size;
 		#endregion
 
-		Debug.LogError("FIXME Generate min mesh");
-		Debug.LogError("FIXME don't forget to save mesh into a prefab");
 		SampleMinMesh(box_node);
 	}
 
@@ -293,8 +308,12 @@ public class CloudCompactor
 			Mesh mesh = conv.MakeMesh();
 			reader.ReadPoints(conv.vBuffer, conv.cBuffer);
 			conv.Convert(mesh);
-			go.GetComponent<MeshFilter>().mesh = mesh;
+			// shut up the editor about the "shader wants normals" nonsense
+			mesh.RecalculateNormals();
 			mesh.name = go.name + "-minMesh";
+			go.GetComponent<MeshFilter>().sharedMesh = mesh;
+			go.GetComponent<MeshRenderer>().sharedMaterial =
+				AssetDatabaseExt.LoadAssetAtPath<Material>("Assets/Materials/TrillingFastPoint.mat");
 			return mesh;
 		}
 	}
