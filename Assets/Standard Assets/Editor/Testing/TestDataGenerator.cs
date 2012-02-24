@@ -107,5 +107,19 @@ public class TestDataGenerator : System.IDisposable
 		}
 	}
 
+	[MenuItem("Exploded Views/Testing/Attach Sounds")]
+	static void AttachTestSounds() {
+		using(TestDataGenerator gen = new TestDataGenerator()) {
+			CloudCompactor.AttachSounds();
+		}
+	}
+
+	[MenuItem("Exploded Views/Testing/Clean Up Memory")]
+	static void CleanupMemory() {
+		EditorUtility.UnloadUnusedAssetsIgnoreManagedReferences();
+		AssetDatabase.Refresh();
+	}
+
+
 }
 

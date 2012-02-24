@@ -19,10 +19,56 @@ public class CloudCompactor
 		}
 	}
 
+	[MenuItem ("Exploded Views/Find and Attach Sounds")]
+	public static void AttachSounds() {
+		foreach(GameObject compact in EditorHelpers.ProcessPrefabList<GameObject>( Prefs.CompactPrefab("*") )) {
+			using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(compact)) {
+				if (LookForSound( tmp.Instance as GameObject )) {
+					tmp.Commit();
+				}
+			}
+		}
+	}
+
 	[MenuItem ("CONTEXT/ImportedCloud/Compact Cloud")]
 	static void CompactCloud(MenuCommand command) {
 		// this one asks wether to move the files on success
 		new CloudCompactor(command.context as ImportedCloud);
+	}
+
+	[MenuItem ("CONTEXT/SlideShow/Look For Sound")]
+	static void FindPrefabAndLookForSound(MenuCommand command) {
+		Object compactFragment = command.context as SlideShow;
+		using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(compactFragment)) {
+			GameObject root = tmp.Instance as GameObject;
+
+			if (LookForSound(root))
+				tmp.Commit();
+		}
+	}
+
+	/*
+	 * root is the prefab root of a compact cloud (--loc)
+	 */
+	static bool LookForSound(GameObject root) {
+		if (root.transform.FindChild("Sound") != null) {
+			Debug.LogWarning(string.Format("Compact cloud {0} already has 'Sound' node, skipping. " +
+			 	"Remove node and 'Apply' to reattach", root.name));
+			return false;
+		}
+
+		string soundPath = Prefs.Sound(root.name);
+		if (File.Exists(soundPath)) {
+			// attach
+			Debug.Log(string.Format("Attaching sound to {0}", root.name));
+			GameObject sound_node = new GameObject("Sound", typeof(AudioSource), typeof(AudioGizmo));
+			sound_node.GetComponent<AudioSource>().clip = AssetDatabaseExt.LoadAssetAtPath<AudioClip>(soundPath);
+			ProceduralUtils.InsertAtOrigin(sound_node, root);
+			return true;
+		}
+
+		Debug.LogWarning(string.Format("No sound for {0} found at {1}", root.name, Prefs.SoundsPath));
+		return false;
 	}
 	#endregion
 
@@ -262,7 +308,7 @@ public class CloudCompactor
 			preview.name = "Full Cloud Preview";
 			ProceduralUtils.InsertAtOrigin(preview, root_go);
 
-			LookForSound();
+			LookForSound(root_go);
 
 			IOExt.Directory.EnsureExists(Prefs.CompactPrefabsPath);
 			Object prefab = EditorUtility.CreateEmptyPrefab(Prefs.CompactPrefab( root_go.name ));
@@ -316,15 +362,6 @@ public class CloudCompactor
 				AssetDatabaseExt.LoadAssetAtPath<Material>("Assets/Materials/TrillingFastPoint.mat");
 			return mesh;
 		}
-	}
-
-	void LookForSound()
-	{
-		Debug.LogError("FIXME look for sound and attach if found");
-		/*
-		 * May be sound finder should be completelly separate and use a rule like "match node name / sound name" for
-		 * nodes up to some depth in compact prefabs.
-		 */
 	}
 
 	class BoxHelper {
