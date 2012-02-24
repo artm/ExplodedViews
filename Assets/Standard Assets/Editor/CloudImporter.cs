@@ -47,7 +47,7 @@ public class CloudImporter
 					bool hitSentinel = false;
 					foreach(string sentinel in sentinels) {
 						if (File.Exists( sentinel )) {
-							Debug.LogError(string.Format("'{0}' is in the way when importing '{1}'", sentinel, cloud_path));
+							Debug.LogWarning(string.Format("'{0}' is in the way when importing '{1}'", sentinel, cloud_path));
 							hitSentinel = true;
 						}
 					}

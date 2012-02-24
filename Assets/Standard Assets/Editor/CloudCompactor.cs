@@ -43,7 +43,7 @@ public class CloudCompactor
 
 			string targetFName = Prefs.CompactPrefab(base_name + "--loc");
 			if (File.Exists( targetFName )) {
-				Debug.Log(string.Format("{0} is in the way when compacting the cloud. Remove to recompact",
+				Debug.LogWarning(string.Format("{0} is in the way when compacting the cloud. Remove to recompact",
 				                        targetFName), AssetDatabase.LoadMainAssetAtPath(targetFName));
 				return;
 			}
