@@ -245,7 +245,7 @@ public class CloudCompactor
 		using(TemporaryObject tmp = new TemporaryObject(new GameObject(base_name + "--loc", typeof(SlideShow)))) {
 			GameObject root_go = tmp.Instance as GameObject;
 
-			Debug.LogError("FIXME copy slice list to the SlideShow component");
+			root_go.GetComponent<SlideShow>().slices = orig.GetComponent<ImportedCloud>().slices;
 
 			GameObject node = new GameObject("Objects");
 			ProceduralUtils.InsertAtOrigin(node, root_go);
