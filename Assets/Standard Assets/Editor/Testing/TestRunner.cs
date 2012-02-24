@@ -8,6 +8,7 @@ public class TestRunner
 	static void UnitTests()
 	{
 		Test.Harness.Run(typeof(TemporaryObject_Test),
+		                 typeof(TemporaryPrefabInstance_Test),
 
 		                 typeof(ExplodedPrefs.Test),
 		                 typeof(CloudMeshConvertor_Test),

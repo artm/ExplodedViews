@@ -49,9 +49,13 @@ public class TemporaryPrefabInstance : TemporaryObject {
 	GameObject FindPrefabAncestor(Object o) {
 		if ( EditorUtility.GetPrefabType(o) == PrefabType.PrefabInstance )
 			return FindPrefabAncestor( EditorUtility.GetPrefabParent( o ) );
-		else if (o is GameObject )
-			return EditorUtility.FindPrefabRoot( o as GameObject);
-		else if (o is Component)
+		else if ( EditorUtility.GetPrefabType(o) == PrefabType.Prefab && o is GameObject ) {
+			GameObject go = o as GameObject;
+			while (go.transform.parent != null) {
+				go = go.transform.parent.gameObject;
+			}
+			return EditorUtility.FindPrefabRoot( go );
+		} else if ( EditorUtility.GetPrefabType(o) == PrefabType.Prefab && o is Component )
 			return FindPrefabAncestor( (o as Component).gameObject );
 		else
 			throw new Pretty.Exception("Can't trance ancestor of {0} ({1})", o.name, o.GetType().Name);
