@@ -16,6 +16,22 @@ public class ProceduralUtils : MonoBehaviour {
 		child.transform.localScale = new Vector3(1, 1, 1);
 	}
 
+	public static void InsertAtOrigin(Object child, Object parent)
+	{
+		InsertAtOrigin(FindTransform(child), FindTransform(parent));
+	}
+
+	static Transform FindTransform(Object o)
+	{
+		if (o is Transform)
+			return o as Transform;
+		if (o is GameObject)
+			return (o as GameObject).transform;
+		if (o is Component)
+			return (o as Component).transform;
+		throw new Pretty.Exception("Argument must be GameObject or Component: {0}", o);
+	}
+
 	/// <summary>
 	/// insert child into parent keeping child's local transform
 	/// </summary>
