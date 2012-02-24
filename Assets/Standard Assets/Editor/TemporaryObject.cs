@@ -13,8 +13,9 @@ public class TemporaryObject : System.IDisposable {
 	public Object Instance { get { return obj; } }
 
 	public void Dispose() {
-		if (obj != null && !leak)
+		if (obj != null && !leak) {
 			Object.DestroyImmediate(obj);
+		}
 		obj = null;
 	}
 
