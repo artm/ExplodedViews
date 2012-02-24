@@ -16,6 +16,7 @@ public class ExplodedPrefs : ScriptableObject
 	// less interesting
     string prefabsPath = "Assets/CloudPrefabs";
 	string compactPrefabsPath = "Assets/CompactPrefabs";
+	string soundsPath = "Assets/sounds";
 	int compactionPortionSize = 1024; // points
 	int minMeshSize = 4096;
 
@@ -37,7 +38,7 @@ public class ExplodedPrefs : ScriptableObject
 	// removes some hardcoded expected extensions if present
 	static string baseName(string path)
 	{
-		return Regex.Replace(Path.GetFileName(path),@"\.(bin|cloud|prefab)$", "");
+		return Regex.Replace(Path.GetFileName(path),@"(--loc)?(\.(bin|cloud|prefab|ogg))?$", "");
 	}
 
 	// derive paths from paths
@@ -54,6 +55,8 @@ public class ExplodedPrefs : ScriptableObject
 	public static string ImportedCloud(string from_path) { return derivePath(ImportedPath, from_path, "cloud"); }
 	public static string ImportedCloudPrefab(string from_path) { return derivePath(PrefabsPath, from_path, "prefab"); }
 	public static string CompactPrefab(string from_path) { return derivePath(CompactPrefabsPath, from_path, "prefab"); }
+	public static string Sound(string from_path) { return derivePath(SoundsPath, from_path, "ogg"); }
+
 	public static string BoxBin(string orig_path, string box_name)
 	{
 		return derivePath(CompactBinPath,
@@ -69,6 +72,7 @@ public class ExplodedPrefs : ScriptableObject
 	public static string CompactBinPath { get { return Instance.compactBinPath; } }
 	public static string PrefabsPath { get { return Instance.prefabsPath; } }
 	public static string CompactPrefabsPath { get { return Instance.compactPrefabsPath; } }
+	public static string SoundsPath { get { return Instance.soundsPath; } }
 
 	public static int OrigPreviewSize { get { return Instance.origPreviewSize; } }
 	public static int PreviewSlicesCount { get { return Instance.previewSlicesCount; } }
@@ -86,6 +90,7 @@ public class ExplodedPrefs : ScriptableObject
 		instance.compactBinPath = Path.Combine(binPrefix, "compact");
 		instance.prefabsPath = Path.Combine(assetPrefix, "prefabs");
 		instance.compactPrefabsPath = Path.Combine(assetPrefix, "compact-prefabs");
+		instance.soundsPath = Path.Combine(assetPrefix, "sounds");
 
 		return oldInstance;
 	}
@@ -112,49 +117,54 @@ public class ExplodedPrefs : ScriptableObject
 			Assert_Equal( "/tmp/compact", CompactBinPath );
 			Assert_Equal( "/tmp/prefabs", PrefabsPath );
 			Assert_Equal( "/tmp/compact-prefabs", CompactPrefabsPath );
+			Assert_Equal( "/tmp/sounds", SoundsPath );
 		}
 
+		string[] possibleInputPaths = {
+			"/tmp/some/path/10_20.00_30.00.cloud",
+			"/tmp/some/path/10_20.00_30.00.bin",
+			"Assets/some/path/10_20.00_30.00.prefab",
+			"Assets/some/path/10_20.00_30.00--loc.prefab",
+			"Assets/sounds/10_20.00_30.00.ogg",
+			"10_20.00_30.00",
+			"10_20.00_30.00--loc",
+		};
+
 		void Test_IncomingBin() {
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin("/tmp/some/path/10_20.00_30.00.cloud") );
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin("/tmp/some/path/10_20.00_30.00.bin") );
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin("Assets/some/path/10_20.00_30.00.prefab") );
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin("10_20.00_30.00") );
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin(input));
 		}
 
 		void Test_IncomingCloud() {
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud("/tmp/some/path/10_20.00_30.00.cloud") );
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud("/tmp/some/path/10_20.00_30.00.bin") );
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud("Assets/some/path/10_20.00_30.00.prefab") );
-			Assert_Equal( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud("10_20.00_30.00") );
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud(input));
 		}
 
 		void Test_ImportedBin() {
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.bin", ImportedBin("/tmp/some/path/10_20.00_30.00.cloud") );
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.bin", ImportedBin("/tmp/some/path/10_20.00_30.00.bin") );
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.bin", ImportedBin("Assets/some/path/10_20.00_30.00.prefab") );
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.bin", ImportedBin("10_20.00_30.00") );
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/imported/10_20.00_30.00.bin", ImportedBin(input));
 		}
 
 		void Test_ImportedCloud() {
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud("/tmp/some/path/10_20.00_30.00.cloud") );
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud("/tmp/some/path/10_20.00_30.00.bin") );
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud("Assets/some/path/10_20.00_30.00.prefab") );
-			Assert_Equal( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud("10_20.00_30.00") );
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud(input));
 		}
 
 		void Test_ImportedCloudPrefab() {
-			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("/tmp/some/path/10_20.00_30.00.cloud") );
-			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("/tmp/some/path/10_20.00_30.00.bin") );
-			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("Assets/some/path/10_20.00_30.00.prefab") );
-			Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab("10_20.00_30.00") );
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab(input));
 		}
 
 		void Test_CompactPrefab() {
-			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("/tmp/some/path/10_20.00_30.00.cloud") );
-			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("/tmp/some/path/10_20.00_30.00.bin") );
-			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("Assets/some/path/10_20.00_30.00.prefab") );
-			Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab("10_20.00_30.00") );
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab(input));
 		}
+
+		void Test_Sound() {
+			foreach(string input in possibleInputPaths)
+				Assert_Equal( "/tmp/sounds/10_20.00_30.00.ogg", Sound(input));
+		}
+
 
 		void Test_BoxBin() {
 			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00.cloud", "cutbox") );
