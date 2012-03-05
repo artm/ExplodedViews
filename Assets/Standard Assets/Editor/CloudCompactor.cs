@@ -23,7 +23,7 @@ public class CloudCompactor
 	public static void AttachSounds() {
 		foreach(GameObject compact in EditorHelpers.ProcessPrefabList<GameObject>( Prefs.CompactPrefab("*") )) {
 			using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(compact)) {
-				if (LookForSound( tmp.Instance as GameObject )) {
+				if (SetupSound( tmp.Instance as GameObject )) {
 					tmp.Commit();
 				}
 			}
@@ -36,13 +36,13 @@ public class CloudCompactor
 		new CloudCompactor(command.context as ImportedCloud);
 	}
 
-	[MenuItem ("CONTEXT/SlideShow/Look For Sound")]
+	[MenuItem ("CONTEXT/SlideShow/Setup Sound")]
 	static void FindPrefabAndLookForSound(MenuCommand command) {
 		Object compactFragment = command.context as SlideShow;
 		using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(compactFragment)) {
 			GameObject root = tmp.Instance as GameObject;
 
-			if (LookForSound(root))
+			if (SetupSound(root))
 				tmp.Commit();
 		}
 	}
@@ -50,11 +50,11 @@ public class CloudCompactor
 	/*
 	 * root is the prefab root of a compact cloud (--loc)
 	 */
-	static bool LookForSound(GameObject root) {
-		if (root.transform.FindChild("Sound") != null) {
-			Debug.LogWarning(string.Format("Compact cloud {0} already has 'Sound' node, skipping. " +
-			 	"Remove node and 'Apply' to reattach", root.name));
-			return false;
+	static bool SetupSound(GameObject root) {
+		Transform sound_node_transform = root.transform.FindChild("Sound");
+		if (sound_node_transform != null) {
+			SetSoundDefaults( sound_node_transform.audio );
+			return true;
 		}
 
 		string soundPath = Prefs.Sound(root.name);
@@ -62,13 +62,22 @@ public class CloudCompactor
 			// attach
 			Debug.Log(string.Format("Attaching sound to {0}", root.name));
 			GameObject sound_node = new GameObject("Sound", typeof(AudioSource), typeof(AudioGizmo));
-			sound_node.GetComponent<AudioSource>().clip = AssetDatabaseExt.LoadAssetAtPath<AudioClip>(soundPath);
+			sound_node.audio.clip = AssetDatabaseExt.LoadAssetAtPath<AudioClip>(soundPath);
+
+			SetSoundDefaults(sound_node.audio);
+
 			ProceduralUtils.InsertAtOrigin(sound_node, root);
 			return true;
 		}
 
 		Debug.LogWarning(string.Format("No sound for {0} found at {1}", root.name, Prefs.SoundsPath));
 		return false;
+	}
+
+	static void SetSoundDefaults(AudioSource audio) {
+		audio.loop = true;
+		audio.minDistance = 5;
+		audio.maxDistance = 25;
 	}
 	#endregion
 
@@ -308,7 +317,7 @@ public class CloudCompactor
 			preview.name = "Full Cloud Preview";
 			ProceduralUtils.InsertAtOrigin(preview, root_go);
 
-			LookForSound(root_go);
+			SetupSound(root_go);
 
 			IOExt.Directory.EnsureExists(Prefs.CompactPrefabsPath);
 			Object prefab = EditorUtility.CreateEmptyPrefab(Prefs.CompactPrefab( root_go.name ));
