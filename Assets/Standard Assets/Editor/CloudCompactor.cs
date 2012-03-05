@@ -301,6 +301,7 @@ public class CloudCompactor
 			GameObject root_go = tmp.Instance as GameObject;
 
 			root_go.GetComponent<SlideShow>().slices = orig.GetComponent<ImportedCloud>().slices;
+			root_go.transform.localRotation = orig.transform.localRotation;
 
 			GameObject node = new GameObject("Objects");
 			ProceduralUtils.InsertAtOrigin(node, root_go);
