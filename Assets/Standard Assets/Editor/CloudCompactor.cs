@@ -76,8 +76,8 @@ public class CloudCompactor
 
 	static void SetSoundDefaults(AudioSource audio) {
 		audio.loop = true;
-		audio.minDistance = 5;
-		audio.maxDistance = 25;
+		audio.minDistance = Prefs.MinSoundDistance;
+		audio.maxDistance = Prefs.MaxSoundDistance;
 	}
 	#endregion
 

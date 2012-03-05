@@ -24,6 +24,9 @@ public class ExplodedPrefsInspector : Editor
 		EditorGUILayout.PropertyField( metaTarget.FindProperty("origPreviewSize") );
 		GUILayout.Label("How many largest slices to consider");
 		EditorGUILayout.PropertyField( metaTarget.FindProperty("previewSlicesCount") );
+		
+		EditorGUILayout.PropertyField( metaTarget.FindProperty("minSoundDistanceDefault") );
+		EditorGUILayout.PropertyField( metaTarget.FindProperty("maxSoundDistanceDefault") );
 		metaTarget.ApplyModifiedProperties();
 	}
 
