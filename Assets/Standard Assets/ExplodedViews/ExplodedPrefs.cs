@@ -112,12 +112,12 @@ public class ExplodedPrefs : ScriptableObject
 		}
 
 		void Test_SetPaths() {
-			Assert_Equal( "/tmp/imported", ImportedPath );
-			Assert_Equal( "/tmp/incoming", IncomingPath );
-			Assert_Equal( "/tmp/compact", CompactBinPath );
-			Assert_Equal( "/tmp/prefabs", PrefabsPath );
-			Assert_Equal( "/tmp/compact-prefabs", CompactPrefabsPath );
-			Assert_Equal( "/tmp/sounds", SoundsPath );
+			Assert_SamePath( "/tmp/imported", ImportedPath );
+			Assert_SamePath( "/tmp/incoming", IncomingPath );
+			Assert_SamePath( "/tmp/compact", CompactBinPath );
+			Assert_SamePath( "/tmp/prefabs", PrefabsPath );
+			Assert_SamePath( "/tmp/compact-prefabs", CompactPrefabsPath );
+			Assert_SamePath( "/tmp/sounds", SoundsPath );
 		}
 
 		string[] possibleInputPaths = {
@@ -132,48 +132,48 @@ public class ExplodedPrefs : ScriptableObject
 
 		void Test_IncomingBin() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin(input));
+				Assert_SamePath( "/tmp/incoming/10_20.00_30.00.bin", IncomingBin(input));
 		}
 
 		void Test_IncomingCloud() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud(input));
+				Assert_SamePath( "/tmp/incoming/10_20.00_30.00.cloud", IncomingCloud(input));
 		}
 
 		void Test_ImportedBin() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/imported/10_20.00_30.00.bin", ImportedBin(input));
+				Assert_SamePath( "/tmp/imported/10_20.00_30.00.bin", ImportedBin(input));
 		}
 
 		void Test_ImportedCloud() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud(input));
+				Assert_SamePath( "/tmp/imported/10_20.00_30.00.cloud", ImportedCloud(input));
 		}
 
 		void Test_ImportedCloudPrefab() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab(input));
+				Assert_SamePath( "/tmp/prefabs/10_20.00_30.00.prefab", ImportedCloudPrefab(input));
 		}
 
 		void Test_CompactPrefab() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab(input));
+				Assert_SamePath( "/tmp/compact-prefabs/10_20.00_30.00.prefab", CompactPrefab(input));
 		}
 
 		void Test_Sound() {
 			foreach(string input in possibleInputPaths)
-				Assert_Equal( "/tmp/sounds/10_20.00_30.00.ogg", Sound(input));
+				Assert_SamePath( "/tmp/sounds/10_20.00_30.00.ogg", Sound(input));
 		}
 
 
 		void Test_BoxBin() {
-			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00.cloud", "cutbox") );
-			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00.bin", "cutbox") );
-			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("Assets/some/path/10_20.00_30.00.prefab", "cutbox") );
-			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("10_20.00_30.00", "cutbox") );
+			Assert_SamePath( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00.cloud", "cutbox") );
+			Assert_SamePath( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00.bin", "cutbox") );
+			Assert_SamePath( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("Assets/some/path/10_20.00_30.00.prefab", "cutbox") );
+			Assert_SamePath( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("10_20.00_30.00", "cutbox") );
 
-			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00--cutbox.bin") );
-			Assert_Equal( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("10_20.00_30.00--cutbox") );
+			Assert_SamePath( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("/tmp/some/path/10_20.00_30.00--cutbox.bin") );
+			Assert_SamePath( "/tmp/compact/10_20.00_30.00--cutbox.bin", BoxBin("10_20.00_30.00--cutbox") );
 		}
 
 	}
