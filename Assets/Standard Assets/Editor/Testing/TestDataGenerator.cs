@@ -37,9 +37,17 @@ public class TestDataGenerator : System.IDisposable
 		}
 
 		using( FileStream fs = new FileStream( binPath, FileMode.Create ) ) {
+
+			Vector3 scale = 2.0f * Vector3.one + Random.insideUnitSphere;
+
 			CloudStream.Writer writer = new CloudStream.Writer(fs);
 			for(int i = 0; i<size; ++i) {
 				Vector3 v = Random.insideUnitSphere;
+
+				v.x *= scale.x;
+				v.y *= scale.y;
+				v.z *= scale.z;
+
 				Color c = RandomExt.color;
 				writer.WritePoint(v, c);
 			}
