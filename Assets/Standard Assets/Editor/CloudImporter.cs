@@ -61,6 +61,60 @@ public class CloudImporter
 			}
 		}
 	}
+
+	[MenuItem("Exploded Views/Copy Old Boxes", true)]
+	static bool CopyBoxesValidator() {
+		foreach(Object o in Selection.objects) {
+			ImportedCloud ic = null;
+			Component comp = o as Component;
+			GameObject go = o as GameObject;
+			if (comp != null)
+				ic = comp.GetComponent<ImportedCloud>();
+			else if (go != null)
+				ic = go.GetComponent<ImportedCloud>();
+
+			if (ic != null)
+				return true;
+		}
+		return false;
+	}
+
+	[MenuItem("Exploded Views/Copy Old Boxes")]
+	static void CopyBoxes() {
+		foreach(Object o in Selection.objects) {
+			ImportedCloud ic = null;
+			Component comp = o as Component;
+			GameObject go = o as GameObject;
+			if (comp != null)
+				ic = comp.GetComponent<ImportedCloud>();
+			else if (go != null)
+				ic = go.GetComponent<ImportedCloud>();
+
+			if (ic == null)
+				continue;
+
+			Transform oldBoxes = ic.transform.FindChild("CutBoxes");
+
+			if (oldBoxes != null && oldBoxes.childCount > 0) {
+				// see if there is a new original without children...
+				string newPath = Prefs.ImportedCloudPrefab( ic.name );
+				if (File.Exists(newPath)) {
+					using( TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(newPath) ) {
+						GameObject newGo = tmp.Instance as GameObject;
+						Transform newBoxes = newGo.transform.FindChild("CutBoxes");
+						if (newBoxes != null && newBoxes.childCount == 0) {
+							// clone the original boxes...
+							GameObject boxNodeClone = GameObject.Instantiate(oldBoxes.gameObject) as GameObject;
+							ProceduralUtils.InsertAtOrigin(boxNodeClone, newGo);
+							Object.DestroyImmediate(newBoxes.gameObject);
+							boxNodeClone.name = "CutBoxes"; // remove "(clone)" suffix
+							tmp.Commit();
+						}
+					}
+				}
+			}
+		}
+	}
 	#endregion
 
 	#region instance
