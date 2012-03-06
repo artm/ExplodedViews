@@ -414,7 +414,7 @@ public class CloudCompactor
 			count = 0;
 			boxTransform = box;
 			this.cloudRootTransform = cloud;
-			this.shadow = true;
+			this.shadow = shadow;
 		}
 		
 		public void Finish()
