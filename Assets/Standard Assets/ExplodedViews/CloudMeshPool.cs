@@ -65,20 +65,15 @@ public class CloudMeshPool : MonoBehaviour {
 	}
 	public static Material GetMaterial() { return singleton.material; }
 	
-	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go) {
-		yield return singleton.StartCoroutine( ReadFrom( reader, go, 1f, -1, 1f) );
-	}
-	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go, float stride) {
-		yield return singleton.StartCoroutine( ReadFrom(reader, go, stride, -1, 1f) );
-	}
-	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go, float stride, int amount, float scale) {
+	public static IEnumerator ReadFrom(CloudStream.Reader reader, GameObject go,
+	                                   float stride = 1f, int amount = -1, float scale = 1f) {
 		singleton.generator.Offset = 0;
 		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride, amount ));
 		singleton.generator.Convert(go.GetComponent<MeshFilter>().sharedMesh, scale);
 	}
 
 	// filling the buffer...
-	public static IEnumerator ReadFrom(CloudStream.Reader reader, float stride) {
+	public static IEnumerator ReadFrom(CloudStream.Reader reader, float stride = 1f) {
 		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride )); 
 	}
 	

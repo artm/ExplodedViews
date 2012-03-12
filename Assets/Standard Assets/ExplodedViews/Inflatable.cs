@@ -49,11 +49,7 @@ public abstract class Inflatable : MonoBehaviour {
 		}
 	}
 
-	public IEnumerator LoadOne(GameObject go) {
-		yield return StartCoroutine( LoadOne(go,1) );
-	}
-
-	public IEnumerator LoadOne(GameObject go, float stride)
+	public IEnumerator LoadOne(GameObject go, float stride = 1f)
 	{
 		PreLoad(go);
 		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go, stride, NextChunkSize, scale));

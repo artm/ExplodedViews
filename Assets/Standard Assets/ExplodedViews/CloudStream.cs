@@ -92,11 +92,7 @@ public class CloudStream
 			mem.DecodePoints(v, c, 0, bytesize/pointRecSize, 1f);
 		}
 		
-		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride) {
-			return ReadPointsAsync(buffer, stride, -1);
-		}
-		
-		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride, int amount)
+		public IEnumerator ReadPointsAsync (CloudMeshConvertor buffer, float stride = 1f, int amount = -1)
 		{
 			Vector3[] v = buffer.vBuffer;
 			Color[] c = buffer.cBuffer;
