@@ -31,7 +31,6 @@ public class ExplodedView : EditorWindow {
 	
 			if (GUILayout.Button("List compacts")) ListCompacts();
 			linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
-			if (GUILayout.Button("Make compacts from origs")) MakeCompacts();
 	
 			if (GUILayout.Button("Refresh compacts' cam lists")) RefreshCamLists();
 			GUILayout.Label("MinMesh size = A * log( B * volume ) + C");
@@ -176,23 +175,6 @@ public class ExplodedView : EditorWindow {
 			ProceduralUtils.InsertKeepingLocalTransform(go.transform, root);
 			// save so we can continue after crash
 			EditorApplication.SaveScene(EditorApplication.currentScene);
-		}
-	}
-
-	void MakeCompacts()
-	{
-		foreach(string path in OrigPaths)
-		{
-			GameObject origGO = AssetDatabase.LoadMainAssetAtPath(path) as GameObject;
-			ImportedCloud orig = origGO.GetComponent<ImportedCloud>();
-
-			if (orig) {
-				orig.MakeCompact(false); // don't overwrite existing compacts
-				long memory = System.GC.GetTotalMemory(false);
-				System.GC.Collect();
-				Debug.Log("Cleaned up garbage: " + Pretty.Count(memory - System.GC.GetTotalMemory(false)));
-			}
-
 		}
 	}
 
