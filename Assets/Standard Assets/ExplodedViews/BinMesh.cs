@@ -17,7 +17,7 @@ public class BinMesh : Inflatable
 	int pointCount = 0;
 
 	Transform mainCameraTransform;
-	LodManager lodManager;
+	//LodManager lodManager = null;
 	Collider box;
 	
 	// distance -> LOD
@@ -53,7 +53,7 @@ public class BinMesh : Inflatable
 	public override void Awake()
 	{
 		mainCameraTransform = GameObject.Find("Camera").transform;
-		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
+		//lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
 		box = transform.FindChild("Box").collider;
 		base.Awake();
 	}
