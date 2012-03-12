@@ -64,14 +64,9 @@ public class ImportedCloud : MonoBehaviour
 		}
 	}
 
+	CloudStream.Reader binReader;
+	
 	#region Data fields
-	// path of the imported .bin file
-	string BinPath {
-		get {
-			return Path.Combine( ExplodedPrefs.ImportedPath , name + ".bin" );
-		}
-	}
-
 	public GUISkin skin;
 	
 	float loadProgress = 0f;
@@ -81,8 +76,7 @@ public class ImportedCloud : MonoBehaviour
 	// Link to the mouse orbit
 	// 
 	// Used to:
-	//   - switch orbiting on/off in GUI. 
-	//   - adjust orbit center to be in the middle of the displayed cloud.
+	//   - switch orbiting on/off when dragging in GUI. 
 	MouseOrbit orbit;
 
 	string guiMessage = "";
@@ -96,16 +90,6 @@ public class ImportedCloud : MonoBehaviour
 
 	GameObject detailBranch = null;
 
-	CloudStream.Reader _binReader = null;
-	CloudStream.Reader binReader
-	{
-		get {
-			if (_binReader == null)
-				_binReader = new CloudStream.Reader(new FileStream(BinPath, FileMode.Open, FileAccess.Read));
-			return _binReader;
-		}
-	}
-	
 	const string defaultMaterialPath = "Assets/Materials/FastPoint.mat";
 
 		void UpdateSelectionSize()
@@ -145,8 +129,9 @@ public class ImportedCloud : MonoBehaviour
 		return BoxBinPath(box.name);
 	}
 	
-	#region Start/Stop
 	void Start() {
+		binReader = new CloudStream.Reader(new FileStream(ExplodedPrefs.ImportedBin(name), FileMode.Open, FileAccess.Read));
+		
 		/* hide the boxes */
 		transform.FindChild("CutBoxes").gameObject.SetActiveRecursively(false);
 
@@ -169,8 +154,6 @@ public class ImportedCloud : MonoBehaviour
 		initiallyEnabledSet2 = new HashSet<Slice> (new List<Slice> (slices).FindAll (s => s.selectedForCamview));
 		initialMatrix = transform.worldToLocalMatrix;
 	}
-
-	#endregion
 
 	#region Slices GUI
 	enum ShowMode { Preview, Selection, Solo };
@@ -420,7 +403,7 @@ public class ImportedCloud : MonoBehaviour
 			DestroyImmediate(detailBranch);
 		if (binReader != null) {
 			binReader.Close();
-			_binReader = null;
+			binReader = null;
 		}
 		Object prefab = EditorUtility.GetPrefabParent (gameObject);
 		EditorUtility.ReplacePrefab (gameObject, prefab);
