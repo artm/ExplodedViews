@@ -108,16 +108,11 @@ public class CloudStream
         }
 
 		// try to convert no more then pointCount points from this to output
-		public void DecodePoints(CloudMeshConvertor output, int pointCount, float stride)
+		public void DecodePoints(CloudMeshConvertor output, int pointCount, float stride = 1f)
 		{
 			if (output.Full)
 				return;
 			output.Offset = DecodePoints(output.vBuffer, output.cBuffer, output.Offset, pointCount, stride);
-		}
-
-		public void DecodePoints(CloudMeshConvertor output, int pointCount)
-		{
-			DecodePoints(output, pointCount, 1.0f);
 		}
 
 		#region Guts
