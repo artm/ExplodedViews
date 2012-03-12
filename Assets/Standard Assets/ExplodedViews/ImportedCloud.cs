@@ -248,7 +248,10 @@ public class ImportedCloud : MonoBehaviour
 				// load chunk ...
 				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
 				
-				if (CloudMeshPool.BufferFull || (binReader.Eof && i==lst.Count)) {
+				if (CloudMeshPool.BufferFull 
+				    || (binReader.PointPosition >= slice.offset + slice.size)
+				    // FIXME not sure about this
+				    || (binReader.Eof && i==lst.Count)) {
 					ProceduralUtils.InsertAtOrigin(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
 					loadProgress = (float)detailBranch.transform.childCount / (float)CloudMeshPool.Capacity;
 					// FIXME, do we have to skip one here?
@@ -260,20 +263,6 @@ public class ImportedCloud : MonoBehaviour
 		guiMessage = string.Format ("Loaded in {0}", Pretty.Seconds (sw.elapsed));
 	}
 	
-	Dictionary<Transform, Slice> _sliceByTransform = null;
-	Dictionary<Transform, Slice> sliceByTransform {
-		get {
-			Transform preview = transform.FindChild("Preview");
-			if (_sliceByTransform == null) {
-				_sliceByTransform = new Dictionary<Transform, Slice>();
-				foreach(Slice slice in slices) {
-					_sliceByTransform[ preview.FindChild(slice.name) ] = slice;
-				}
-			}
-			return _sliceByTransform;
-		}
-	}
-
 	void OnGUI() {
 		Event e = Event.current;
 		if (e.type == EventType.KeyUp && e.keyCode == KeyCode.Tab) {
@@ -385,9 +374,7 @@ public class ImportedCloud : MonoBehaviour
 	// depending on current show mode either hide or show preview child
 	// also update orbit center if in ShowMode.Preview
 	void ShowOrHidePreview() {
-		foreach(Transform slice in transform.FindChild("Preview")) {
-			slice.gameObject.active = (show == ShowMode.Preview);
-		}
+		transform.FindChild("Preview").gameObject.active = (show == ShowMode.Preview);
 	}
 
 	void SelectAll(bool state) {
