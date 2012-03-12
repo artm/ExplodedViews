@@ -169,12 +169,13 @@ public class ImportedCloud : MonoBehaviour
 			else
 				b.Encapsulate(child.renderer.bounds);
 		}
+		/*
 		if (orbit != null) {
 			Vector3 sz = 0.5f * b.size;
 			sz.y = 0;
 			orbit.zoomMinLimit = sz.magnitude * 0.03f;
 			orbit.zoomMaxLimit = sz.magnitude * 30.0f;
-		}
+		}*/
 
 		/* order slices by size */
 		System.Array.Sort(slices, (s1,s2) => (s2.size - s1.size));
