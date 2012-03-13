@@ -73,8 +73,8 @@ public class CloudMeshPool : MonoBehaviour {
 	}
 
 	// filling the buffer...
-	public static IEnumerator ReadFrom(CloudStream.Reader reader, float stride = 1f) {
-		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride )); 
+	public static IEnumerator ReadFrom(CloudStream.Reader reader, float stride = 1f, int amount = -1) {
+		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride, amount ));
 	}
 	
 	public static GameObject PopBuffer() {

@@ -228,9 +228,12 @@ public class ImportedCloud : MonoBehaviour
 			binReader.SeekPoint (slice.offset, SeekOrigin.Begin);
 
 			while (CloudMeshPool.HasFreeMeshes
-			       && binReader.PointPosition < (slice.offset + slice.size)) {
-				// load chunk ...
-				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
+			       && ((slice.offset + slice.size - binReader.PointPosition) > stride)) {
+				int amount = Mathf.CeilToInt((float)(slice.offset + slice.size - binReader.PointPosition) / stride);
+				if (amount > CloudMeshPool.pointsPerMesh)
+					amount = CloudMeshPool.pointsPerMesh;
+
+				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride, amount));
 
 				if (CloudMeshPool.BufferFull) {
 					ProceduralUtils.InsertAtOrigin(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
