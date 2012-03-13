@@ -229,9 +229,11 @@ public class ImportedCloud : MonoBehaviour
 
 			while (!binReader.Eof && CloudMeshPool.HasFreeMeshes) {
 				// load chunk ...
+				if (CloudMeshPool.Generator.Full)
+					throw new Pretty.Exception("Shouldn't happen");
 				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
-				
-				if (CloudMeshPool.BufferFull 
+
+				if (CloudMeshPool.BufferFull
 				    || (binReader.PointPosition >= slice.offset + slice.size)
 				    // FIXME not sure about this
 				    || (binReader.Eof && i==lst.Count)) {
@@ -295,7 +297,6 @@ public class ImportedCloud : MonoBehaviour
 			if (GUILayout.Button("All"))
 				SelectAll(true);
 			GUILayout.EndHorizontal();
-			*/
 
 			GUILayout.BeginHorizontal();
 			GUILayout.Label("Camview Selection:");
@@ -304,6 +305,7 @@ public class ImportedCloud : MonoBehaviour
 			if (GUILayout.Button("All"))
 				SelectAllForCamview(true);
 			GUILayout.EndHorizontal();
+			*/
 
 			
 			if (GUILayout.Button("Reload")) {
@@ -319,9 +321,10 @@ public class ImportedCloud : MonoBehaviour
 					GUI.backgroundColor = Color.red;
 				else if (i == soloIdx+1)
 					GUI.backgroundColor = saveColor;
+				/*
 				slices[i].selected = GUILayout.Toggle(slices[i].selected, "");
-				
 				slices[i].selectedForCamview = GUILayout.Toggle(slices[i].selectedForCamview, "");
+				*/
 				
 				if (GUILayout.Button(slices[i].ToString()))
 					soloIdx = i;
