@@ -229,8 +229,6 @@ public class ImportedCloud : MonoBehaviour
 
 			while (!binReader.Eof && CloudMeshPool.HasFreeMeshes) {
 				// load chunk ...
-				if (CloudMeshPool.Generator.Full)
-					throw new Pretty.Exception("Shouldn't happen");
 				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
 
 				if (CloudMeshPool.BufferFull
