@@ -227,20 +227,20 @@ public class ImportedCloud : MonoBehaviour
 			guiMessage = slice.name + "...";
 			binReader.SeekPoint (slice.offset, SeekOrigin.Begin);
 
-			while (!binReader.Eof && CloudMeshPool.HasFreeMeshes) {
+			while (CloudMeshPool.HasFreeMeshes
+			       && binReader.PointPosition < (slice.offset + slice.size)) {
 				// load chunk ...
 				yield return StartCoroutine(CloudMeshPool.ReadFrom(binReader, stride));
 
-				if (CloudMeshPool.BufferFull
-				    || (binReader.PointPosition >= slice.offset + slice.size)
-				    // FIXME not sure about this
-				    || (binReader.Eof && i==lst.Count)) {
+				if (CloudMeshPool.BufferFull) {
 					ProceduralUtils.InsertAtOrigin(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
 					loadProgress = (float)detailBranch.transform.childCount / (float)CloudMeshPool.Capacity;
-					// FIXME, do we have to skip one here?
-					// yield return null;
 				}
 			}
+		}
+		if ( !CloudMeshPool.BufferEmpty ) {
+			ProceduralUtils.InsertAtOrigin(CloudMeshPool.PopBuffer().transform, detailBranch.transform);
+			loadProgress = (float)detailBranch.transform.childCount / (float)CloudMeshPool.Capacity;
 		}
 
 		guiMessage = string.Format ("Loaded in {0}", Pretty.Seconds (sw.elapsed));

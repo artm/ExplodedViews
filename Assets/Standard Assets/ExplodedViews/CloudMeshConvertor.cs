@@ -31,12 +31,9 @@ public class CloudMeshConvertor
 	public Vector3[] vBuffer { get {return _vBuffer;} }
 	public Color[] cBuffer { get {return _cBuffer;} }
 	
-	public bool Full {
-		get {
-			return offset == vBuffer.Length;
-		}
-	}
-	
+	public bool Full { get { return offset == vBuffer.Length; } }
+	public bool Empty { get { return offset == 0; } }
+
 	public int Offset { 
 		get { return offset; } 
 		set { offset = value; }

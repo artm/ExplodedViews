@@ -89,7 +89,8 @@ public class CloudMeshPool : MonoBehaviour {
 	public static int Capacity { get { return singleton.capacity; } }
 	public static int PointCapacity { get { return singleton.capacity * pointsPerMesh; } }
 	public static bool BufferFull { get { return singleton.generator.Full; } }
-	
+	public static bool BufferEmpty { get { return singleton.generator.Empty; } }
+
 	public static int LoadedPointsCount {
 		get {
 			return (singleton.capacity - singleton.freeMeshes.Count) * pointsPerMesh;
