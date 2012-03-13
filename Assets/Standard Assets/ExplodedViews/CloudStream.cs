@@ -146,6 +146,8 @@ public class CloudStream
 					Debug.LogError(string.Format("BaseStream.Length: {0}, Position: {1}",
 					                             BaseStream.Length, BaseStream.Position));
 				}
+			} else {
+				mem.SeekPoint(0);
 			}
 			
 			return bytesize;
