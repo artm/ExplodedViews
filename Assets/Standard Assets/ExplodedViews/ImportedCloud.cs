@@ -131,9 +131,6 @@ public class ImportedCloud : MonoBehaviour
 	
 	void Start() {
 		binReader = new CloudStream.Reader(new FileStream(ExplodedPrefs.ImportedBin(name), FileMode.Open, FileAccess.Read));
-		
-		/* hide the boxes */
-		transform.FindChild("CutBoxes").gameObject.SetActiveRecursively(false);
 
 		/* pre-calculate selection size */
 		UpdateSelectionSize();
@@ -390,17 +387,19 @@ public class ImportedCloud : MonoBehaviour
 	 */
 	void OnApplicationQuit ()
 	{
+		/*
 		if (!enabled)
 			return;
-		
+
 		if (initiallyEnabledSet.SetEquals ((new List<Slice> (slices).FindAll (s => s.selected)))
 			&& initiallyEnabledSet2.SetEquals ((new List<Slice> (slices).FindAll (s => s.selectedForCamview)))
 			&& transform.worldToLocalMatrix == initialMatrix) {
 			Debug.Log("Selection/transform haven't changed, don't have to save");
 			return;
 		}
-		
+
 		Debug.Log("Selection or transform changed, saving");
+		*/
 		StopAllCoroutines();
 
 		if (detailBranch)
