@@ -9,12 +9,24 @@ public class SlideShow : MonoBehaviour
 
 	// Awake is called before all Start()s
 	public void Awake() {
-		transform.FindChild("Full Cloud Preview").gameObject.SetActiveRecursively(false);
+		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
+		FloorShadow(transform.Find("Objects/Shadow"));
 	}
 
 	// Start is called after all Awake()s
 	public void Start() {
 		//...
+	}
+
+	void FloorShadow(Transform shadow)
+	{
+		if (shadow == null) {
+			Debug.LogWarning("W00t, no shadow?");
+			return;
+		}
+		Vector3 pos = shadow.position;
+		pos.y = 0;
+		shadow.position = pos;
 	}
 
 }
