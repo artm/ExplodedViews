@@ -58,7 +58,7 @@ public class ImportedCloud : MonoBehaviour
 		public override string ToString()
 		{
 			if (_toString == null) {
-				_toString = string.Format("{0} ({1})", name, Pretty.Count(size));
+				_toString = string.Format("Slice({0}, {1}+{2})", name, offset, Pretty.Count(size));
 			}
 			return _toString;
 		}
