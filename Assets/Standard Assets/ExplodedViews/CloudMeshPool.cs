@@ -39,7 +39,7 @@ public class CloudMeshPool : MonoBehaviour {
 			go.transform.parent = transform;
 			freeMeshes.Push(go);
 		}
-		
+		Debug.Log("Cloud mesh pull is good for " + Pretty.Count( PointCapacity ) + " points");
 	}
 	#endregion
 
