@@ -169,8 +169,10 @@ public class LodManager : MonoBehaviour {
 				else
 					yield return null;
 				
-				if (slideShow != rememberSlideShow)
+				if (slideShow != rememberSlideShow) {
+					rememberSlideShow.ReturnDetails( rememberSlideShow.DetailsCount );
 					goto ReBalance;
+				}
 			}
 			
 			Vector3 rememberPos = transform.position;
