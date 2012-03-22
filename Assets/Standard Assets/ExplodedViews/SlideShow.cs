@@ -2,16 +2,22 @@ using UnityEngine;
 using System.Collections;
 
 using Slice = ImportedCloud.Slice;
+using System.IO;
+using Prefs = ExplodedPrefs;
 
 public class SlideShow : Inflatable
 {
 	public Slice[] slices;
 	public bool applyScale = true;
 
+	CloudStream.Reader reader = null;
+	int currentSlide = 0;
+
 	// Awake is called before all Start()s
 	override public void Awake() {
-		base.Awake();
+		reader = new CloudStream.Reader( new FileStream( Prefs.ImportedBin(name), FileMode.Open, FileAccess.Read ) );
 
+		base.Awake();
 		ApplyScale();
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
 		FloorShadow(transform.Find("Objects/Shadow"));
@@ -49,20 +55,17 @@ public class SlideShow : Inflatable
 	{
 		get
 		{
-			return null;
+			return reader;
 		}
 	}
 
 	public override int NextChunkSize
 	{
 		get {
-			return 0;
-			/*
 			return System.Math.Min(CloudMeshPool.pointsPerMesh,
-			                       cams[currentSlide].slice.offset
-			                       + cams[currentSlide].slice.length
-			                       - (int)binReader.PointPosition);
-			                       */
+			                       slices[currentSlide].offset
+			                       + slices[currentSlide].size
+			                       - (int)reader.PointPosition);
 		}
 	}
 
