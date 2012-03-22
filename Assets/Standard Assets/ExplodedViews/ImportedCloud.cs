@@ -81,9 +81,11 @@ public class ImportedCloud : MonoBehaviour
 
 	string guiMessage = "";
 	public Slice[] slices;
-	
+
+	/*
 	HashSet<Slice> initiallyEnabledSet, initiallyEnabledSet2;
 	Matrix4x4 initialMatrix;
+	*/
 	
 	[SerializeField,HideInInspector]
 	public int selectionSize = 0;
@@ -146,10 +148,12 @@ public class ImportedCloud : MonoBehaviour
 
 		/* order slices by size */
 		System.Array.Sort(slices, (s1,s2) => (s2.size - s1.size));
-		
+
+		/*
 		initiallyEnabledSet = new HashSet<Slice>( new List<Slice>(slices).FindAll(s => s.selected) );
 		initiallyEnabledSet2 = new HashSet<Slice> (new List<Slice> (slices).FindAll (s => s.selectedForCamview));
 		initialMatrix = transform.worldToLocalMatrix;
+		*/
 	}
 
 	#region Slices GUI
