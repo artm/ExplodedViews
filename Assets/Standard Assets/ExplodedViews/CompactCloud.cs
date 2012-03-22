@@ -8,6 +8,12 @@ using UnityEngineExt;
  */
 public class CompactCloud : Inflatable
 {
+	void Start() {
+
+		transform.Find("Box").gameObject.AddComponent(typeof(CollisionNotify));
+	}
+
+
 	void SetScale(float s) {
 		scale = s;
 		GetComponent<MeshFilter>().mesh.Scale(scale);
