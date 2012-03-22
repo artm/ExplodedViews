@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngineExt;
 using System.Collections;
 
 using Slice = ImportedCloud.Slice;
@@ -11,16 +12,24 @@ public class SlideShow : Inflatable
 	public bool applyScale = true;
 
 	CloudStream.Reader reader = null;
-	int currentSlide = 0;
+	int currentSlide;
+	// how many of our boxes are touched by slide show trigger
+	int touchCount = 0;
+	LodManager lodManager = null;
 
 	// Awake is called before all Start()s
 	override public void Awake() {
 		reader = new CloudStream.Reader( new FileStream( Prefs.ImportedBin(name), FileMode.Open, FileAccess.Read ) );
-
+		lodManager = Helpers.FindSceneObjects<LodManager>()[0];
 		base.Awake();
 		ApplyScale();
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
 		FloorShadow(transform.Find("Objects/Shadow"));
+
+		gameObject.setLayer( "Clouds" );
+
+		currentSlide = -1;
+		NextSlide();
 	}
 
 	// Start is called after all Awake()s
@@ -85,20 +94,46 @@ public class SlideShow : Inflatable
 	}
 
 	public bool StartSlideShow() {
+		Debug.Log("Asked to start slide show");
 		return true;
 	}
 
 	public void StopSlideShow() {
-
+		Debug.Log("Asked to stop slide show");
 	}
 
 	public int CurrentSlideSize() {
-		return slices[currentSlide].size;
+		return slices[currentSlide].size / CloudMeshPool.pointsPerMesh;
 	}
 
 	public void NextSlide() {
-		
+		int previousSlide = currentSlide;
+		do { currentSlide = Random.Range(0, slices.Length ); } while( currentSlide == previousSlide );
+
+		// FIXME debugging here
+		//currentSlide = 77;
+
+		reader.SeekPoint( slices[currentSlide].offset );
+		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]));
 	}
 
+
+	void TriggerEnter( CollisionNotify.CollisionInfo info )
+	{
+		if (info.other.CompareTag("SlideShowTrigger")) {
+			touchCount ++;
+			Debug.Log("Requesting to start slide show");
+			lodManager.MaybeStartSlideShow(this);
+		}
+	}
+	void TriggerExit( CollisionNotify.CollisionInfo info )
+	{
+		if (info.other.CompareTag("SlideShowTrigger")) {
+			if (--touchCount == 0) {
+				Debug.Log("Requesting to stop slide show");
+				lodManager.MaybeStopSlideShow(this);
+			}
+		}
+	}
 }
 

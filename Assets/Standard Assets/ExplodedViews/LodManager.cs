@@ -50,7 +50,7 @@ public class LodManager : MonoBehaviour {
 		center.z = theCamera.camera.farClipPlane * relativeCenterOffset;
 		ball.center = center;
 		maxManagementDist = ball.radius = theCamera.camera.farClipPlane * (1.0f - relativeCenterOffset) * radiusScale;
-		
+
 		StartCoroutine( Balance() );
 		StartCoroutine( ProcessUnloadQueue() );
 		StartCoroutine( RunSlideShow() );
@@ -84,6 +84,7 @@ public class LodManager : MonoBehaviour {
 			slideShow.StopSlideShow();
 			slideShow.ReturnDetails(slideShow.DetailsCount);
 			slideShow = null;
+			Debug.Log("Switched slide show off");
 		}
 	}
 
