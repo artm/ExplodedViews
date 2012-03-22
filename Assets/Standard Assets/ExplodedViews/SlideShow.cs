@@ -94,12 +94,10 @@ public class SlideShow : Inflatable
 	}
 
 	public bool StartSlideShow() {
-		Debug.Log("Asked to start slide show");
 		return true;
 	}
 
 	public void StopSlideShow() {
-		Debug.Log("Asked to stop slide show");
 	}
 
 	public int CurrentSlideSize() {
@@ -122,7 +120,6 @@ public class SlideShow : Inflatable
 	{
 		if (info.other.CompareTag("SlideShowTrigger")) {
 			touchCount ++;
-			Debug.Log("Requesting to start slide show");
 			lodManager.MaybeStartSlideShow(this);
 		}
 	}
@@ -130,7 +127,6 @@ public class SlideShow : Inflatable
 	{
 		if (info.other.CompareTag("SlideShowTrigger")) {
 			if (--touchCount == 0) {
-				Debug.Log("Requesting to stop slide show");
 				lodManager.MaybeStopSlideShow(this);
 			}
 		}
