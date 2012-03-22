@@ -10,12 +10,15 @@ namespace UnityEngineExt {
 		}
 	}
 
+	public static class Helpers {
+		public static T[] FindSceneObjects<T>() {
+			return Object.FindSceneObjectsOfType(typeof(T)) as T[];
+		}
+	}
+
 	// true extensions
 	public static class TrueExt {
 		public static void Scale(this Mesh mesh, float scale) {
-
-			Debug.Log("Scaling by " + scale);
-
 			Vector3[] v = mesh.vertices;
 			for(int i = 0; i<v.Length; ++i) {
 				v[i] = v[i] * scale;
@@ -27,6 +30,10 @@ namespace UnityEngineExt {
 		public static void AdjustScale(this Transform t, float scale) {
 			t.localPosition = t.localPosition * scale;
 			t.localScale = t.localScale * scale;
+		}
+
+		public static void setLayer( this GameObject go, string name ) {
+			go.layer = LayerMask.NameToLayer( name );
 		}
 	}
 }
