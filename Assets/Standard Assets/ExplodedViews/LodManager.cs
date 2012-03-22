@@ -26,7 +26,7 @@ public class LodManager : MonoBehaviour {
 	public float rebalanceDistance = 20.0f;
 	
 	Transform theCamera;
-	CamsList slideShow = null;
+	SlideShow slideShow = null;
 	float maxManagementDist;
 	
 	BinMesh[] allBinMeshes;
@@ -72,14 +72,14 @@ public class LodManager : MonoBehaviour {
 	}
 
 	// only start if this node isn't a slide show yet
-	public void MaybeStartSlideShow(CamsList node) {
+	public void MaybeStartSlideShow(SlideShow node) {
 		if (node != slideShow && node.StartSlideShow()) {
 			slideShow = node;
 		}
 	}
 
 	// only stop if this node is current slide show
-	public void MaybeStopSlideShow(CamsList node) {
+	public void MaybeStopSlideShow(SlideShow node) {
 		if (node == slideShow) {
 			slideShow.StopSlideShow();
 			slideShow.ReturnDetails(slideShow.DetailsCount);
@@ -93,7 +93,8 @@ public class LodManager : MonoBehaviour {
 			while(slideShow) {
 				slideShow.ReturnDetails( slideShow.DetailsCount );
 				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), CloudMeshPool.Capacity / 2 );
-				CamsList tmp = slideShow;
+				SlideShow tmp = slideShow;
+				// FIXME must it be here?
 				Balance();
 				while(slideShow == tmp && slideShow.DetailsCount < slideShow.Entitled)
 					yield return null;

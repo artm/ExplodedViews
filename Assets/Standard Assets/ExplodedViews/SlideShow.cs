@@ -84,5 +84,21 @@ public class SlideShow : Inflatable
 		// what should we do here?
 	}
 
+	public bool StartSlideShow() {
+		return true;
+	}
+
+	public void StopSlideShow() {
+
+	}
+
+	public int CurrentSlideSize() {
+		return slices[currentSlide].size;
+	}
+
+	public void NextSlide() {
+		
+	}
+
 }
 

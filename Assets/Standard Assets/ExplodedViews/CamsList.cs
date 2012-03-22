@@ -38,7 +38,7 @@ public class CamsList : Inflatable {
 
 	public CamDesc[] cams;
 	CloudStream.Reader binReader = null;
-	LodManager lodManager;
+	//LodManager lodManager;
 
 	public override void Awake()
 	{
@@ -46,7 +46,7 @@ public class CamsList : Inflatable {
 		cams = cams.Where(c => c.slice != null).ToArray();
 		if (cams.Length == 0)
 			cams = null;
-		lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
+		//lodManager = GameObject.Find("LodManager").GetComponent<LodManager>();
 		base.Awake();
 	}
 
@@ -188,13 +188,13 @@ public class CamsList : Inflatable {
 	public void AskSlideShowStart()
 	{
 		slideShowVotes++;
-		lodManager.MaybeStartSlideShow(this);
+		//lodManager.MaybeStartSlideShow(this);
 	}
 
 	public void AskSlideShowStop()
 	{
 		if (--slideShowVotes == 0) {
-			lodManager.MaybeStopSlideShow(this);
+			//lodManager.MaybeStopSlideShow(this);
 		}
 	}
 
