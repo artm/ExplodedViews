@@ -132,8 +132,8 @@ public class CloudStream
 				amount = v.Length - offset;
 			}
 			
-			int bytesize = Math.Min(Mathf.CeilToInt(stride * (amount - 1) + 1) * pointRecSize,
-			                        (int)(BaseStream.Length - BaseStream.Position));
+			int bytesize = (int)Math.Min((long)Mathf.CeilToInt(stride * (amount - 1) + 1) * pointRecSize,
+			                        	(BaseStream.Length - BaseStream.Position));
 			
 			if (chbuffer == null || chbuffer.Length < bytesize) {
 				try {
