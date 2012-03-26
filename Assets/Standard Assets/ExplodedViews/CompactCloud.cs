@@ -1,6 +1,9 @@
 using UnityEngine;
 using System.Collections;
+using System.IO;
 using UnityEngineExt;
+
+using Prefs = ExplodedPrefs;
 
 /*
  * this is a cleaned up version of a class formerly known as BinMesh
@@ -8,9 +11,22 @@ using UnityEngineExt;
  */
 public class CompactCloud : Inflatable
 {
-	void Start() {
+	Collider box;
+	Transform mainCameraTransform;
+	public float distanceFromCamera = 0.0f;
 
-		transform.Find("Box").gameObject.AddComponent(typeof(CollisionNotify));
+	public override void Awake() {
+		box = transform.Find("Box").collider;
+		box.gameObject.AddComponent(typeof(CollisionNotify));
+		mainCameraTransform =
+			GameObject.FindWithTag("MainCamera").transform;
+		base.Awake();
+	}
+
+	void Update() {
+		// update distance to camera
+		Vector3 closestPoint = box.ClosestPointOnBounds(mainCameraTransform.position);
+		distanceFromCamera = Vector3.Distance(mainCameraTransform.position, closestPoint);
 	}
 
 
@@ -20,21 +36,17 @@ public class CompactCloud : Inflatable
 		transform.Find("Box").AdjustScale(scale);
 	}
 
-	public override CloudStream.Reader Stream
-	{
-		get
-		{
-			return null;
-		}
-	}
+	public override string BinPath { get { return Prefs.BoxBin(name); } }
 
 	public override int NextChunkSize
 	{
 		get {
-			return CloudMeshPool.pointsPerMesh;
+
+			long left = Stream.PointCount - Stream.PointPosition;
+
+			return (int)System.Math.Min(left, CloudMeshPool.pointsPerMesh);
 		}
 	}
-
 
 	public override void PreLoad(GameObject go)
 	{
@@ -46,16 +58,12 @@ public class CompactCloud : Inflatable
 	}
 	public override void PostUnload()
 	{
-		/*
-		if (binReader == null || binReader.PointPosition == 0)
-			return;
+		 // if last loaded chunk was smaller than pointsPerMesh ...
+		int tail = (int)(Stream.PointPosition % CloudMeshPool.pointsPerMesh);
+		// ... else
+		if (tail == 0) tail = CloudMeshPool.pointsPerMesh;
 
-		int tail = (int)(binReader.PointPosition % CloudMeshPool.pointsPerMesh);
-		if (tail == 0)
-			tail = CloudMeshPool.pointsPerMesh;
-
-		binReader.SeekPoint(-tail , SeekOrigin.Current);
-		*/
+		Stream.SeekPoint(-tail , SeekOrigin.Current);
 	}
 
 }

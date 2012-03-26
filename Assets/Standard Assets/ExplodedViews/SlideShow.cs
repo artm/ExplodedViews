@@ -11,7 +11,6 @@ public class SlideShow : Inflatable
 	public Slice[] slices;
 	public bool applyScale = true;
 
-	CloudStream.Reader reader = null;
 	int currentSlide;
 	// how many of our boxes are touched by slide show trigger
 	int touchCount = 0;
@@ -19,7 +18,6 @@ public class SlideShow : Inflatable
 
 	// Awake is called before all Start()s
 	override public void Awake() {
-		reader = new CloudStream.Reader( new FileStream( Prefs.ImportedBin(name), FileMode.Open, FileAccess.Read ) );
 		lodManager = Helpers.FindSceneObjects<LodManager>()[0];
 		base.Awake();
 		ApplyScale();
@@ -29,7 +27,6 @@ public class SlideShow : Inflatable
 		gameObject.setLayer( "Clouds" );
 
 		currentSlide = -1;
-		NextSlide();
 	}
 
 	// Start is called after all Awake()s
@@ -60,21 +57,13 @@ public class SlideShow : Inflatable
 		scale = s;
 	}
 
-	public override CloudStream.Reader Stream
-	{
-		get
-		{
-			return reader;
-		}
-	}
-
 	public override int NextChunkSize
 	{
 		get {
 			return System.Math.Min(CloudMeshPool.pointsPerMesh,
 			                       slices[currentSlide].offset
 			                       + slices[currentSlide].size
-			                       - (int)reader.PointPosition);
+			                       - (int)Stream.PointPosition);
 		}
 	}
 
@@ -93,6 +82,8 @@ public class SlideShow : Inflatable
 		// what should we do here?
 	}
 
+	public override string BinPath { get { return Prefs.ImportedBin(name); } }
+
 	public bool StartSlideShow() {
 		return true;
 	}
@@ -107,17 +98,15 @@ public class SlideShow : Inflatable
 	public void NextSlide() {
 		int previousSlide = currentSlide;
 		do { currentSlide = Random.Range(0, slices.Length ); } while( currentSlide == previousSlide );
-
-		// FIXME debugging here
-		//currentSlide = 77;
-
-		reader.SeekPoint( slices[currentSlide].offset );
+		Stream.SeekPoint( slices[currentSlide].offset );
 		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]));
 	}
 
 
 	void TriggerEnter( CollisionNotify.CollisionInfo info )
 	{
+		if (!enabled) return;
+
 		if (info.other.CompareTag("SlideShowTrigger")) {
 			touchCount ++;
 			lodManager.MaybeStartSlideShow(this);

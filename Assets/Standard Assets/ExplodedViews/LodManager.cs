@@ -20,7 +20,7 @@ public class LodManager : MonoBehaviour {
 	public bool overrideLodBreaks = true;
 	public float[] lodBreakDistances = new float[] { 100, 90, 3};
 
-	public Material forcedBinMeshMaterial = null;
+	public Material forcedCompactCloudMaterial = null;
 
 	public float slideDelay = 3.0f;
 	public float rebalanceDistance = 20.0f;
@@ -29,7 +29,7 @@ public class LodManager : MonoBehaviour {
 	SlideShow slideShow = null;
 	float maxManagementDist;
 	
-	BinMesh[] allBinMeshes;
+	CompactCloud[] allCompacts;
 
 	#endregion
 	
@@ -38,7 +38,7 @@ public class LodManager : MonoBehaviour {
 		theCamera = transform.parent.Find("Camera");
 
 		/* find all inflatables */
-		allBinMeshes = GameObject.Find("Clouds").GetComponentsInChildren<BinMesh>();
+		allCompacts = GameObject.Find("Clouds").GetComponentsInChildren<CompactCloud>();
 
 		Time.maximumDeltaTime = 0.04f;
 	}
@@ -59,14 +59,14 @@ public class LodManager : MonoBehaviour {
 	void OnTriggerEnter(Collider other)
 	{
 		if (other.transform.parent == null) return;
-		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
+		CompactCloud bm = other.transform.parent.GetComponent<CompactCloud>();
 		if (bm == null) return;
 		bm.Managed = true;
 	}
 
 	void OnTriggerExit(Collider other)
 	{
-		BinMesh bm = other.transform.parent.GetComponent<BinMesh>();
+		CompactCloud bm = other.transform.parent.GetComponent<CompactCloud>();
 		if (bm == null) return;
 		bm.Managed = false;
 	}
@@ -115,20 +115,20 @@ public class LodManager : MonoBehaviour {
 		Logger.Plot("Point count", CloudMeshPool.LoadedPointsCount);
 	}
 	
-	IEnumerable<BinMesh> Managed
+	IEnumerable<CompactCloud> Managed
 	{
 		get 
 		{
-			foreach(BinMesh bm in allBinMeshes)
+			foreach(CompactCloud bm in allCompacts)
 				if (bm.Managed) 
-					yield return bm as BinMesh;
+					yield return bm as CompactCloud;
 		}
 	}
 
-	IEnumerable<Inflatable> BinMeshesToLoad
+	IEnumerable<Inflatable> CompactsToLoad
 	{
 		get {
-			foreach(BinMesh bm in allBinMeshes)
+			foreach(CompactCloud bm in allCompacts)
 				if (bm.Entitled > bm.DetailsCount)
 					yield return bm as Inflatable;
 		}
@@ -143,19 +143,19 @@ public class LodManager : MonoBehaviour {
 			#region distribute the rest of the pool
 			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ?slideShow.Entitled : 0);
 			float totalWeight = 0;
-			foreach(BinMesh bm in Managed) {
+			foreach(CompactCloud bm in Managed) {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
 				totalWeight += (bm.weight = 1.0f - Mathf.Pow( bm.distanceFromCamera / maxManagementDist, 0.5f));
 			}
 			
-			foreach(BinMesh bm in Managed) {
+			foreach(CompactCloud bm in Managed) {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
 				bm.weight /= totalWeight;
 			}
 			
-			foreach(BinMesh bm in Managed) {
+			foreach(CompactCloud bm in Managed) {
 				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
-				// how many meshes this BinMesh is entitled to?
+				// how many meshes this CompactCloud is entitled to?
 				bm.Entitled = Mathf.FloorToInt(bm.weight * buffersLeft);
 			}
 			#endregion
@@ -177,7 +177,7 @@ public class LodManager : MonoBehaviour {
 			
 			Vector3 rememberPos = transform.position;
 			
-			foreach(BinMesh bm in allBinMeshes) {
+			foreach(CompactCloud bm in allCompacts) {
 				while (bm.Entitled > bm.DetailsCount) {
 					if (CloudMeshPool.HasFreeMeshes)
 						yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
@@ -199,7 +199,7 @@ public class LodManager : MonoBehaviour {
 	{
 		while (true) 
 		{
-			foreach(BinMesh bm in allBinMeshes) {
+			foreach(CompactCloud bm in allCompacts) {
 				if (bm.Entitled < bm.DetailsCount) {
 					bm.ReturnDetails( 1 );
 				}

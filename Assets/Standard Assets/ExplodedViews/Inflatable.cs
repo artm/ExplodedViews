@@ -1,20 +1,23 @@
 using UnityEngine;
 using System.Collections;
+using System.IO;
 
 // Base class for objects that can be inflated / deflated (e.g. BinMesh, CamsList)
 public abstract class Inflatable : MonoBehaviour {
 	Transform detail;
 	bool managed = false;
 	int entitled = 0;
-	
 	static int managedCount = 0;
-	
 	public float weight = 0.0f;
 	protected float scale = 1.0f;
-	
+	CloudStream.Reader reader = null;
+
 	public virtual bool Managed {
 		get { return managed; }
-		set { 
+		set {
+			if (!enabled)
+				return;
+
 			if (managed = value)
 				managedCount++;
 			else {
@@ -36,6 +39,12 @@ public abstract class Inflatable : MonoBehaviour {
 		if (detail == null) {
 			detail = new GameObject("Detail").transform;
 			ProceduralUtils.InsertAtOrigin(detail, transform);
+		}
+
+		try {
+			reader = new CloudStream.Reader( new FileStream( BinPath, FileMode.Open, FileAccess.Read ) );
+		} catch (IOException) {
+			enabled = false;
 		}
 	}
 
@@ -67,7 +76,13 @@ public abstract class Inflatable : MonoBehaviour {
 		}
 	}
 
-	public abstract CloudStream.Reader Stream { get; }
+	public CloudStream.Reader Stream {
+		get {
+			return reader;
+		}
+	}
+
+	public abstract string BinPath { get; }
 	public abstract int NextChunkSize { get; }
 	public abstract void PreLoad(GameObject go);
 	public abstract void PostLoad(GameObject go);
