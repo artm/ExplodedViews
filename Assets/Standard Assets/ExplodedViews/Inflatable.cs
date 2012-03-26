@@ -13,11 +13,8 @@ public abstract class Inflatable : MonoBehaviour {
 	CloudStream.Reader reader = null;
 
 	public virtual bool Managed {
-		get { return managed; }
+		get { return enabled && managed; }
 		set {
-			if (!enabled)
-				return;
-
 			if (managed = value)
 				managedCount++;
 			else {
@@ -27,7 +24,19 @@ public abstract class Inflatable : MonoBehaviour {
 		}
 	}
 	public static int ManagedCount { get { return managedCount; } }
-	
+
+	void OnEnable() {
+		if (managed)
+			managedCount--;
+	}
+
+	void OnDisable() {
+		if (managed)
+			managedCount++;
+		entitled = 0;
+		ReturnDetails(DetailsCount);
+	}
+
 	public int Entitled {
 		get { return entitled; }
 		set { entitled = value; }

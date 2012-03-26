@@ -59,22 +59,23 @@ public class LodManager : MonoBehaviour {
 	void OnTriggerEnter(Collider other)
 	{
 		if (other.transform.parent == null) return;
-		CompactCloud bm = other.transform.parent.GetComponent<CompactCloud>();
-		if (bm == null) return;
-		bm.Managed = true;
+		CompactCloud compact = other.transform.parent.GetComponent<CompactCloud>();
+		if (compact == null) return;
+		compact.Managed = true;
 	}
 
 	void OnTriggerExit(Collider other)
 	{
-		CompactCloud bm = other.transform.parent.GetComponent<CompactCloud>();
-		if (bm == null) return;
-		bm.Managed = false;
+		CompactCloud compact = other.transform.parent.GetComponent<CompactCloud>();
+		if (compact == null) return;
+		compact.Managed = false;
 	}
 
 	// only start if this node isn't a slide show yet
 	public void MaybeStartSlideShow(SlideShow node) {
 		if (node != slideShow && node.StartSlideShow()) {
 			slideShow = node;
+			Debug.Log("Switched slide show on", node);
 		}
 	}
 
@@ -84,7 +85,7 @@ public class LodManager : MonoBehaviour {
 			slideShow.StopSlideShow();
 			slideShow.ReturnDetails(slideShow.DetailsCount);
 			slideShow = null;
-			Debug.Log("Switched slide show off");
+			Debug.Log("Switched slide show off", node);
 		}
 	}
 
@@ -119,18 +120,18 @@ public class LodManager : MonoBehaviour {
 	{
 		get 
 		{
-			foreach(CompactCloud bm in allCompacts)
-				if (bm.Managed) 
-					yield return bm as CompactCloud;
+			foreach(CompactCloud compact in allCompacts)
+				if (compact.Managed)
+					yield return compact as CompactCloud;
 		}
 	}
 
 	IEnumerable<Inflatable> CompactsToLoad
 	{
 		get {
-			foreach(CompactCloud bm in allCompacts)
-				if (bm.Entitled > bm.DetailsCount)
-					yield return bm as Inflatable;
+			foreach(CompactCloud compact in allCompacts)
+				if (compact.Entitled > compact.DetailsCount)
+					yield return compact as Inflatable;
 		}
 	}
 	
@@ -143,20 +144,20 @@ public class LodManager : MonoBehaviour {
 			#region distribute the rest of the pool
 			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ?slideShow.Entitled : 0);
 			float totalWeight = 0;
-			foreach(CompactCloud bm in Managed) {
-				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
-				totalWeight += (bm.weight = 1.0f - Mathf.Pow( bm.distanceFromCamera / maxManagementDist, 0.5f));
+			foreach(CompactCloud compact in Managed) {
+				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
+				totalWeight += (compact.weight = 1.0f - Mathf.Pow( compact.distanceFromCamera / maxManagementDist, 0.5f));
 			}
 			
-			foreach(CompactCloud bm in Managed) {
-				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
-				bm.weight /= totalWeight;
+			foreach(CompactCloud compact in Managed) {
+				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
+				compact.weight /= totalWeight;
 			}
 			
-			foreach(CompactCloud bm in Managed) {
-				if (slideShow != null && bm.transform.parent == slideShow.transform) continue;
+			foreach(CompactCloud compact in Managed) {
+				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
 				// how many meshes this CompactCloud is entitled to?
-				bm.Entitled = Mathf.FloorToInt(bm.weight * buffersLeft);
+				compact.Entitled = Mathf.FloorToInt(compact.weight * buffersLeft);
 			}
 			#endregion
 			
@@ -177,10 +178,10 @@ public class LodManager : MonoBehaviour {
 			
 			Vector3 rememberPos = transform.position;
 			
-			foreach(CompactCloud bm in allCompacts) {
-				while (bm.Entitled > bm.DetailsCount) {
+			foreach(CompactCloud compact in allCompacts) {
+				while (compact.Entitled > compact.DetailsCount) {
 					if (CloudMeshPool.HasFreeMeshes)
-						yield return StartCoroutine( bm.LoadOne( CloudMeshPool.Get() ) );
+						yield return StartCoroutine( compact.LoadOne( CloudMeshPool.Get() ) );
 					else
 						yield return null;
 					
@@ -199,9 +200,9 @@ public class LodManager : MonoBehaviour {
 	{
 		while (true) 
 		{
-			foreach(CompactCloud bm in allCompacts) {
-				if (bm.Entitled < bm.DetailsCount) {
-					bm.ReturnDetails( 1 );
+			foreach(CompactCloud compact in allCompacts) {
+				if (compact.Entitled < compact.DetailsCount) {
+					compact.ReturnDetails( 1 );
 				}
 			}
 			yield return null;

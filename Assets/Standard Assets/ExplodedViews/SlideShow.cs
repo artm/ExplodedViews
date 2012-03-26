@@ -18,7 +18,6 @@ public class SlideShow : Inflatable
 
 	// Awake is called before all Start()s
 	override public void Awake() {
-		lodManager = Helpers.FindSceneObjects<LodManager>()[0];
 		base.Awake();
 		ApplyScale();
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
@@ -31,6 +30,7 @@ public class SlideShow : Inflatable
 
 	// Start is called after all Awake()s
 	public void Start() {
+		lodManager = Helpers.FindSceneObjects<LodManager>()[0];
 	}
 
 	void FloorShadow(Transform shadow)
@@ -85,10 +85,18 @@ public class SlideShow : Inflatable
 	public override string BinPath { get { return Prefs.ImportedBin(name); } }
 
 	public bool StartSlideShow() {
+
+		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>())
+			cc.enabled = false;
+
 		return true;
 	}
 
 	public void StopSlideShow() {
+		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>()) {
+			if (cc.Stream != null)
+				cc.enabled = true;
+		}
 	}
 
 	public int CurrentSlideSize() {
