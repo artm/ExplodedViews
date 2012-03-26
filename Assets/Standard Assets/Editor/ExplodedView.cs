@@ -32,7 +32,6 @@ public class ExplodedView : EditorWindow {
 			if (GUILayout.Button("List compacts")) ListCompacts();
 			linkToPrefabs = GUILayout.Toggle(linkToPrefabs, "Link compacts to their prefabs");
 	
-			if (GUILayout.Button("Refresh compacts' cam lists")) RefreshCamLists();
 			GUILayout.Label("MinMesh size = A * log( B * volume ) + C");
 			logMultiplier = EditorGUILayout.FloatField("A", logMultiplier);
 			volumeMultiplier = EditorGUILayout.FloatField("B", volumeMultiplier);
@@ -40,13 +39,10 @@ public class ExplodedView : EditorWindow {
 			adjustMinMeshes = EditorGUILayout.Toggle("Adjust MinMeshes", adjustMinMeshes);
 			if (GUILayout.Button("Volumes => MinMesh sizes")) MinMeshesFromVolume();
 			if (GUILayout.Button("Restore min meshes")) ReconnectMinMeshes();
-			if (GUILayout.Button("Attach slide show handlers")) AttachSlideShowHandlers();
 		}
 
 		if (sceneFold = EditorGUILayout.Foldout(sceneFold, "Current scene")) {
 			if (GUILayout.Button("Add compacts to Clouds")) AddCompactsToClouds();
-			if (GUILayout.Button("List locations")) ListSceneLocations();
-			if (GUILayout.Button("Delete non-slide-showable locations")) DeleteNonSlideShowable();
 			if (GUILayout.Button("Revert locations to prefabs")) RevertSceneLocations();
 		}
 	}
@@ -121,36 +117,9 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
-	void ListSceneLocations() {
-		try {
-			int slideable_count = 0;
-			foreach(GameObject location in SceneLocations) {
-				CamsList cl = location.GetComponent<CamsList>();
-				if (cl != null && cl.SlideShowable) {
-					slideable_count++;
-					Debug.Log( string.Format("{0}", location.name), location );
-				} else {
-					Debug.LogWarning( string.Format("{0}, non-slide-showable", location.name), location );
-				}
-			}
-			Debug.Log(string.Format("Slide-showable count: {0}", slideable_count));
-		} catch (NoCloudsException) {
-			Debug.LogError("No 'Clouds' node in the current scene");
-		}
-	}
-
 	void RevertSceneLocations() {
 		foreach(GameObject location in SceneLocations) {
 			EditorUtility.ResetToPrefabState(location);
-		}
-		EditorApplication.SaveScene(EditorApplication.currentScene);
-	}
-
-	void DeleteNonSlideShowable()
-	{
-		foreach(GameObject go in SceneLocations.Where(
-		    x => ((x.GetComponent<CamsList>() == null) || !x.GetComponent<CamsList>().SlideShowable)).ToArray()) {
-			GameObject.DestroyImmediate(go);
 		}
 		EditorApplication.SaveScene(EditorApplication.currentScene);
 	}
@@ -175,21 +144,6 @@ public class ExplodedView : EditorWindow {
 			ProceduralUtils.InsertKeepingLocalTransform(go.transform, root);
 			// save so we can continue after crash
 			EditorApplication.SaveScene(EditorApplication.currentScene);
-		}
-	}
-
-	void RefreshCamLists() {
-		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Refreshing cam lists")) {
-			CamsList camsList = prefab.GetComponent<CamsList>();
-			if (camsList == null)
-				camsList = prefab.AddComponent<CamsList>();
-			if (camsList.cams == null)
-				camsList.FindCams();
-			if (camsList.cams == null) {
-				GameObject.DestroyImmediate(camsList,true);
-			} else {
-				camsList.FindSlices();
-			}
 		}
 	}
 
@@ -271,13 +225,5 @@ public class ExplodedView : EditorWindow {
 		}
 	}
 
-	void AttachSlideShowHandlers()
-	{
-		foreach(GameObject prefab in CompactPrefabsWithProgressbar("Attaching slide show handlers")) {
-			foreach(BoxCollider box in prefab.GetComponentsInChildren<BoxCollider>(true)) {
-				box.gameObject.AddComponent<SlideShowHandler>();
-			}
-		}
-	}
 }
 
