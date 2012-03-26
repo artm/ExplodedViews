@@ -161,11 +161,14 @@ public class CloudStream
 			long startPos = PointPosition;
 
 			// decode the buffer into arrays
-			pointCount = Math.Min( pointCount, (int)(PointCount - PointPosition) );
+			pointCount = (int)Math.Min( pointCount, Mathf.FloorToInt((float)(PointCount - PointPosition) / stride ));
 			pointCount = Math.Min( pointCount, v.Length - offset );
-
+			
 			for(int i = 0; i<pointCount; i++) {
 				int seekPos = Mathf.FloorToInt(startPos + stride * i);
+				if (seekPos >= PointCount) {
+					Debug.LogError(string.Format("Will read past end of file: point #{0}, seekPos: {1}, stride: {2}", i, seekPos, stride));
+				}
 				if (BaseStream.Position != seekPos)
 					SeekPoint(seekPos, SeekOrigin.Begin);
 				ReadPointRef(ref v[offset], ref c[offset]);
