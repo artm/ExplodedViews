@@ -25,6 +25,9 @@ public class BinMesh : Inflatable
 	public float distanceFromCamera = 0;
 	public int lod = 0;
 
+	public override string BinPath { get { return ExplodedPrefs.BoxBin(name); } }
+
+
 	public float Scale {
 		get { return scale; }
 		set {
@@ -121,11 +124,6 @@ public class BinMesh : Inflatable
 		}
 	}
 
-	void OnApplicationQuit()
-	{
-		Managed = false; // will close file if open
-	}
-
 	public void Update()
 	{
 		// update distance to camera
@@ -167,13 +165,6 @@ public class BinMesh : Inflatable
 		UpdateMaterial();
 	}
 
-	public override CloudStream.Reader Stream
-	{
-		get
-		{
-			return binReader;
-		}
-	}
 
 	public override int NextChunkSize
 	{
