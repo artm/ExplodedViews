@@ -41,6 +41,8 @@ public abstract class Inflatable : MonoBehaviour {
 			ProceduralUtils.InsertAtOrigin(detail, transform);
 		}
 
+		gameObject.AddComponent<AnimeController>();
+
 		try {
 			reader = new CloudStream.Reader( new FileStream( BinPath, FileMode.Open, FileAccess.Read ) );
 		} catch (IOException) {
