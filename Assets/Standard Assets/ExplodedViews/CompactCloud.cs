@@ -58,11 +58,17 @@ public class CompactCloud : Inflatable
 	}
 	public override void PostUnload()
 	{
+		if (Stream.PointPosition == 0)
+			return;
+		
 		 // if last loaded chunk was smaller than pointsPerMesh ...
 		int tail = (int)(Stream.PointPosition % CloudMeshPool.pointsPerMesh);
 		// ... else
 		if (tail == 0) tail = CloudMeshPool.pointsPerMesh;
-
+		
+		if (tail > Stream.PointPosition)
+			tail = (int)Stream.PointPosition;
+		
 		Stream.SeekPoint(-tail , SeekOrigin.Current);
 	}
 
