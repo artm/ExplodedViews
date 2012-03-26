@@ -26,7 +26,7 @@ public class SlideShow : Inflatable
 
 		gameObject.setLayer( "Clouds" );
 
-		currentSlide = -1;
+		currentSlide = 0;
 	}
 
 	// Start is called after all Awake()s
