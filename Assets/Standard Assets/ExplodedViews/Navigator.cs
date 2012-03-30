@@ -12,8 +12,8 @@ public class Navigator : MonoBehaviour {
 
 	public float gravity = -10;
 
-	public AnimationCurve speedCurve = new AnimationCurve();
-	public AnimationCurve walkToTurnDeceleration = new AnimationCurve();
+	public AnimationCurve speedCurve;
+	public AnimationCurve walkToTurnDeceleration;
 
 	CharacterController pill;
 	float fallSpeed = 0;
