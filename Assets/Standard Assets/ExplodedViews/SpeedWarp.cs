@@ -16,6 +16,14 @@ public class SpeedWarp : MonoBehaviour {
 	public float fovOpenSpeed = 5;
 	public float fovCloseSpeed = 15;
 
+	[System.Serializable]
+	public class SoundControl {
+		public AnimationCurve speedToVolume;
+		public AnimationCurve speedToPitch;
+	}
+	[SerializeField]
+	public SoundControl sound;
+
 	float normalFOV;
 	float stamp = -1;
 	
@@ -48,6 +56,11 @@ public class SpeedWarp : MonoBehaviour {
 		camera.fov = Mathf.MoveTowardsAngle(camera.fov, 
 			warping ? warpFOV : normalFOV, 
 			Time.deltaTime * (warping ? fovOpenSpeed : fovCloseSpeed));
+
+		// speed to sound
+		float abs_speed = Mathf.Abs(speed);
+		audio.volume = sound.speedToVolume.Evaluate(abs_speed);
+		audio.pitch = sound.speedToPitch.Evaluate(abs_speed);
 		
 	}
 }
