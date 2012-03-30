@@ -14,6 +14,7 @@ public class ExplodedPrefs : ScriptableObject
 	[SerializeField] int maxCompactSize = 500000;
 	[SerializeField] float minSoundDistanceDefault = 5;
 	[SerializeField] float maxSoundDistanceDefault = 25;
+	[SerializeField] float shadowPriority = 0.2f;
 
 	// less interesting
     string prefabsPath = "Assets/CloudPrefabs";
@@ -84,6 +85,7 @@ public class ExplodedPrefs : ScriptableObject
 
 	public static float MinSoundDistance { get { return Instance.minSoundDistanceDefault; } }
 	public static float MaxSoundDistance { get { return Instance.maxSoundDistanceDefault; } }
+	public static float ShadowPriority { get { return Instance.shadowPriority; } }
 
 	// returns old instance!
 	public static ExplodedPrefs ReplaceInstance(string assetPrefix, string binPrefix) {

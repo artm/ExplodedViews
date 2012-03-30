@@ -27,6 +27,7 @@ public class ExplodedPrefsInspector : Editor
 		
 		EditorGUILayout.PropertyField( metaTarget.FindProperty("minSoundDistanceDefault") );
 		EditorGUILayout.PropertyField( metaTarget.FindProperty("maxSoundDistanceDefault") );
+		EditorGUILayout.PropertyField( metaTarget.FindProperty("shadowPriority") );
 		metaTarget.ApplyModifiedProperties();
 	}
 

@@ -42,6 +42,11 @@ public class SlideShow : Inflatable
 		Vector3 pos = shadow.position;
 		pos.y = 0;
 		shadow.position = pos;
+
+		// also lower their priority...
+		foreach(CompactCloud shadow_compact in shadow.GetComponentsInChildren<CompactCloud>()) {
+			shadow_compact.priority = Prefs.ShadowPriority;
+		}
 	}
 
 	void ApplyScale() {
