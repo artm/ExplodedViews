@@ -32,8 +32,13 @@ namespace UnityEngineExt {
 			t.localScale = t.localScale * scale;
 		}
 
-		public static void setLayer( this GameObject go, string name ) {
+		public static void setLayer( this GameObject go, string name, bool recursive ) {
 			go.layer = LayerMask.NameToLayer( name );
+			if (recursive) {
+				foreach( Transform child in go.transform ) {
+					child.gameObject.setLayer(name, true);
+				}
+			}
 		}
 	}
 }

@@ -23,7 +23,7 @@ public class SlideShow : Inflatable
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
 		FloorShadow(transform.Find("Objects/Shadow"));
 
-		gameObject.setLayer( "Clouds" );
+		gameObject.setLayer( "Clouds", true ); // recursive
 
 		currentSlide = 0;
 	}
@@ -97,6 +97,7 @@ public class SlideShow : Inflatable
 			if (cc.Stream != null)
 				cc.enabled = true;
 		}
+		ReturnDetails(DetailsCount);
 	}
 
 	public int CurrentSlideSize() {
