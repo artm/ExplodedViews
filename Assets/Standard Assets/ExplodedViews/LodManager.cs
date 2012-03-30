@@ -74,6 +74,8 @@ public class LodManager : MonoBehaviour {
 	// only start if this node isn't a slide show yet
 	public void MaybeStartSlideShow(SlideShow node) {
 		if (node != slideShow && node.StartSlideShow()) {
+			if (slideShow != null)
+				slideShow.StopSlideShow();
 			slideShow = node;
 			Debug.Log("Switched slide show on", node);
 		}
@@ -83,7 +85,6 @@ public class LodManager : MonoBehaviour {
 	public void MaybeStopSlideShow(SlideShow node) {
 		if (node == slideShow) {
 			slideShow.StopSlideShow();
-			slideShow.ReturnDetails(slideShow.DetailsCount);
 			slideShow = null;
 			Debug.Log("Switched slide show off", node);
 		}
@@ -93,15 +94,21 @@ public class LodManager : MonoBehaviour {
 	{
 		while(true) {
 			while(slideShow) {
+				// make it well known that we're at the next slide
+				BroadcastMessage("OnEvent", "NextSlide",SendMessageOptions.DontRequireReceiver);
+
 				slideShow.ReturnDetails( slideShow.DetailsCount );
 				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), CloudMeshPool.Capacity / 2 );
 				SlideShow tmp = slideShow;
 				// FIXME must it be here?
 				Balance();
+				// Wait for the slide to show up
 				while(slideShow == tmp && slideShow.DetailsCount < slideShow.Entitled)
 					yield return null;
+				// Wait for a slide delay
 				if (slideShow == tmp)
 					yield return new WaitForSeconds(slideDelay);
+				// go to next slide
 				if (slideShow == tmp)
 					slideShow.NextSlide();
 			}
