@@ -153,7 +153,7 @@ public class LodManager : MonoBehaviour {
 			float totalWeight = 0;
 			foreach(CompactCloud compact in Managed) {
 				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
-				totalWeight += (compact.weight = 1.0f - Mathf.Pow( compact.distanceFromCamera / maxManagementDist, 0.5f));
+				totalWeight += (compact.weight = compact.priority * (1.0f - Mathf.Pow( compact.distanceFromCamera / maxManagementDist, 0.5f)));
 			}
 			
 			foreach(CompactCloud compact in Managed) {

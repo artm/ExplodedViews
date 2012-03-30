@@ -15,6 +15,9 @@ public class CompactCloud : Inflatable
 	Transform mainCameraTransform;
 	public float distanceFromCamera = 0.0f;
 
+	// mesh pool allocation bias
+	public float priority = 1.0f;
+
 	public override void Awake() {
 		box = transform.Find("Box").collider;
 		box.gameObject.AddComponent(typeof(CollisionNotify));
