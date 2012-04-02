@@ -44,5 +44,14 @@ namespace UnityEngineExt {
 				}
 			}
 		}
+
+		public static bool AddComponentIfMissing<T>( this GameObject go ) where T : Component {
+			if (go.GetComponent<T>() == null) {
+				go.AddComponent<T>();
+				return true;
+			} else
+				return false;
+
+		}
 	}
 }

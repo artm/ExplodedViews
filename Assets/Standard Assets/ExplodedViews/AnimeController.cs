@@ -26,10 +26,10 @@ public class AnimeController : MonoBehaviour {
 	void TriggerEnter( CollisionNotify.CollisionInfo info )
 	{
 		if (info.other.CompareTag("AnimationTrigger") && animation != null) {
-			//Debug.Log("Start animation");
 			animation.Rewind();
-			if (!animation.isPlaying)
+			if (!animation.isPlaying) {
 				animation.Play();
+			}
 		}
 	}
 
