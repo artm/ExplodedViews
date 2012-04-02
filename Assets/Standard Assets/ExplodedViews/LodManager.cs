@@ -20,8 +20,6 @@ public class LodManager : MonoBehaviour {
 	public bool overrideLodBreaks = true;
 	public float[] lodBreakDistances = new float[] { 100, 90, 3};
 
-	public Material forcedCompactCloudMaterial = null;
-
 	public float slideDelay = 3.0f;
 	public float rebalanceDistance = 20.0f;
 	

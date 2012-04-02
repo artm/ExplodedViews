@@ -50,8 +50,6 @@ public abstract class Inflatable : MonoBehaviour {
 			ProceduralUtils.InsertAtOrigin(detail, transform);
 		}
 
-		gameObject.AddComponent<AnimeController>();
-
 		try {
 			reader = new CloudStream.Reader( new FileStream( BinPath, FileMode.Open, FileAccess.Read ) );
 		} catch (IOException) {
@@ -75,6 +73,8 @@ public abstract class Inflatable : MonoBehaviour {
 		yield return StartCoroutine(CloudMeshPool.ReadFrom(Stream, go, stride, NextChunkSize, scale));
 		ProceduralUtils.InsertAtOrigin(go.transform, detail);
 		go.active = true;
+		if (renderer != null)
+			go.renderer.sharedMaterial = renderer.sharedMaterial;
 		PostLoad(go);
 	}
 
