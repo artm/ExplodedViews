@@ -11,8 +11,12 @@ namespace UnityEngineExt {
 	}
 
 	public static class Helpers {
-		public static T[] FindSceneObjects<T>() {
+		public static T[] FindSceneObjects<T>() where T: class {
 			return Object.FindSceneObjectsOfType(typeof(T)) as T[];
+		}
+
+		public static T LoadResource<T>(string path) where T: class {
+			return Resources.Load(path,typeof(T)) as T;
 		}
 	}
 
