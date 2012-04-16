@@ -113,7 +113,9 @@ public class SlideShow : Inflatable
 		int previousSlide = currentSlide;
 		do { currentSlide = Random.Range(0, slices.Length ); } while( currentSlide == previousSlide );
 		Stream.SeekPoint( slices[currentSlide].offset );
-		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]));
+		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]), this);
+		
+		
 	}
 
 
