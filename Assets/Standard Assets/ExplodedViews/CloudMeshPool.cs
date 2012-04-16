@@ -69,6 +69,7 @@ public class CloudMeshPool : MonoBehaviour {
 	                                   float stride = 1f, int amount = -1, float scale = 1f) {
 		singleton.generator.Offset = 0;
 		yield return singleton.StartCoroutine(reader.ReadPointsAsync( singleton.generator, stride, amount ));
+		singleton.generator.ClearAfterOffset();
 		singleton.generator.Convert(go.GetComponent<MeshFilter>().sharedMesh, scale);
 	}
 
