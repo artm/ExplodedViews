@@ -23,7 +23,7 @@ public class SlideShow : Inflatable
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
 		FloorShadow(transform.Find("Objects/Shadow"));
 
-		gameObject.setLayer( "Clouds" );
+		gameObject.setLayer( "Clouds", true ); // recursive
 
 		currentSlide = 0;
 	}
@@ -42,6 +42,11 @@ public class SlideShow : Inflatable
 		Vector3 pos = shadow.position;
 		pos.y = 0;
 		shadow.position = pos;
+
+		// also lower their priority...
+		foreach(CompactCloud shadow_compact in shadow.GetComponentsInChildren<CompactCloud>()) {
+			shadow_compact.priority = Prefs.ShadowPriority;
+		}
 	}
 
 	void ApplyScale() {
@@ -97,6 +102,7 @@ public class SlideShow : Inflatable
 			if (cc.Stream != null)
 				cc.enabled = true;
 		}
+		ReturnDetails(DetailsCount);
 	}
 
 	public int CurrentSlideSize() {
@@ -107,7 +113,9 @@ public class SlideShow : Inflatable
 		int previousSlide = currentSlide;
 		do { currentSlide = Random.Range(0, slices.Length ); } while( currentSlide == previousSlide );
 		Stream.SeekPoint( slices[currentSlide].offset );
-		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]));
+		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]), this);
+		
+		
 	}
 
 

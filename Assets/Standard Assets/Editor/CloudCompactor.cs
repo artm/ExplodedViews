@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEngineExt;
 using UnityEditorExt;
 using System.IO;
 using System.Collections.Generic;
@@ -24,6 +25,17 @@ public class CloudCompactor
 		foreach(GameObject compact in EditorHelpers.ProcessPrefabList<GameObject>( Prefs.CompactPrefab("*") )) {
 			using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(compact)) {
 				if (SetupSound( tmp.Instance as GameObject )) {
+					tmp.Commit();
+				}
+			}
+		}
+	}
+
+	[MenuItem ("Exploded Views/Upgrade Compacts")]
+	public static void UpgradeCompacts() {
+		foreach(GameObject compact in EditorHelpers.ProcessPrefabList<GameObject>( Prefs.CompactPrefab("*") )) {
+			using(TemporaryPrefabInstance tmp = new TemporaryPrefabInstance(compact)) {
+				if (SetupAnimation( tmp.Instance as GameObject )) {
 					tmp.Commit();
 				}
 			}
@@ -79,6 +91,17 @@ public class CloudCompactor
 		audio.dopplerLevel = 0.0f;
 		audio.minDistance = Prefs.MinSoundDistance;
 		audio.maxDistance = Prefs.MaxSoundDistance;
+	}
+
+	static bool SetupAnimation(GameObject root) {
+		bool changed = root.AddComponentIfMissing<Animation>();
+		if (changed) {
+			root.animation.clip = AssetDatabaseExt.LoadAssetAtPath<AnimationClip>("Assets/Animations/Turbulator.anim");
+			root.animation.playAutomatically = false;
+		}
+		changed = root.AddComponentIfMissing<MeshRenderer>() || changed;
+		changed = root.AddComponentIfMissing<AnimeController>() || changed;
+		return changed;
 	}
 	#endregion
 
@@ -320,6 +343,7 @@ public class CloudCompactor
 			ProceduralUtils.InsertAtOrigin(preview, root_go);
 
 			SetupSound(root_go);
+			SetupAnimation(root_go);
 
 			IOExt.Directory.EnsureExists(Prefs.CompactPrefabsPath);
 			Object prefab = EditorUtility.CreateEmptyPrefab(Prefs.CompactPrefab( root_go.name ));
