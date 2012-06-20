@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System;
+using SubLevelSupport;
 
 /* 
  * Rigidbody is necessary to receive OnTrigger* events, setting it to 'kinematic' 
@@ -34,15 +34,15 @@ public class LodManager : MonoBehaviour {
 	void Awake()
 	{
 		theCamera = transform.parent.Find("Camera");
-
-		/* find all inflatables */
-		allCompacts = GameObject.Find("Clouds").GetComponentsInChildren<CompactCloud>();
-
 		Time.maximumDeltaTime = 0.04f;
 	}
 	
-	void Start()
-	{
+	void PostponedAwake() {
+		/* find all inflatables */
+		allCompacts = Object.FindObjectsOfType(typeof(CompactCloud)) as CompactCloud[];
+	}
+
+	void PostponedStart() {
 		SphereCollider ball = collider as SphereCollider;
 		Vector3 center = ball.center;
 		center.z = theCamera.camera.farClipPlane * relativeCenterOffset;
@@ -53,7 +53,12 @@ public class LodManager : MonoBehaviour {
 		StartCoroutine( ProcessUnloadQueue() );
 		StartCoroutine( RunSlideShow() );
 	}
-	
+
+	void Start() {
+		StartCoroutine( this.PostponeStart() );
+	}
+
+
 	void OnTriggerEnter(Collider other)
 	{
 		if (other.transform.parent == null) return;

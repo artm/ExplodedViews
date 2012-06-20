@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.IO;
 using UnityEngineExt;
+using SubLevelSupport;
 
 using Prefs = ExplodedPrefs;
 
@@ -21,9 +22,16 @@ public class CompactCloud : Inflatable
 	public override void Awake() {
 		box = transform.Find("Box").collider;
 		box.gameObject.AddComponent(typeof(CollisionNotify));
+		base.Awake();
+	}
+
+	void PostponedAwake() {
 		mainCameraTransform =
 			GameObject.FindWithTag("MainCamera").transform;
-		base.Awake();
+	}
+
+	void Start() {
+		StartCoroutine( this.PostponeStart() );
 	}
 
 	void Update() {

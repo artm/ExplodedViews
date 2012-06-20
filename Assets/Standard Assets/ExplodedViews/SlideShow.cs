@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngineExt;
 using System.Collections;
+using SubLevelSupport;
 
 using Slice = ImportedCloud.Slice;
 using System.IO;
@@ -22,15 +23,16 @@ public class SlideShow : Inflatable
 		ApplyScale();
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
 		FloorShadow(transform.Find("Objects/Shadow"));
-
 		gameObject.setLayer( "Clouds", true ); // recursive
-
 		currentSlide = 0;
 	}
 
-	// Start is called after all Awake()s
-	public void Start() {
+	void PostponedStart() {
 		lodManager = Helpers.FindSceneObjects<LodManager>()[0];
+	}
+
+	void Start() {
+		StartCoroutine( this.PostponeStart() );
 	}
 
 	void FloorShadow(Transform shadow)
