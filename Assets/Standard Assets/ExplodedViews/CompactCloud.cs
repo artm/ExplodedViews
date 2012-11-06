@@ -19,7 +19,13 @@ public class CompactCloud : Inflatable
 	// mesh pool allocation bias
 	public float priority = 1.0f;
 
+	Transform location = null;
+
 	public override void Awake() {
+		if (transform.parent.name == "Objects") {
+			Debug.Log(name + " detected location");
+			location = transform.parent.parent;
+		}
 		box = transform.Find("Box").collider;
 		box.gameObject.AddComponent(typeof(CollisionNotify));
 		base.Awake();
@@ -83,5 +89,18 @@ public class CompactCloud : Inflatable
 		Stream.SeekPoint(-tail , SeekOrigin.Current);
 	}
 
+	public void OnBecameVisible()
+	{
+		if (location != null) {
+			//location.gameObject.SetActiveRecursively(true);
+		}
+	}
+
+	public void OnBecameInvisible()
+	{
+		if (location != null) {
+			//location.gameObject.SetActiveRecursively(false);
+		}
+	}
 }
 

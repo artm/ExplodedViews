@@ -17,11 +17,13 @@ public class LodManager : MonoBehaviour {
 	public float relativeCenterOffset = 0.4f;
 	public float radiusScale = 0.3f;
 
-	public bool overrideLodBreaks = true;
-	public float[] lodBreakDistances = new float[] { 100, 90, 3};
+	//public bool overrideLodBreaks = true;
+	//public float[] lodBreakDistances = new float[] { 100, 90, 3};
 
 	public float slideDelay = 3.0f;
 	public float rebalanceDistance = 20.0f;
+	
+	public float slideShowPoolRatio = 0.25f;
 	
 	Transform theCamera;
 	SlideShow slideShow = null;
@@ -29,11 +31,14 @@ public class LodManager : MonoBehaviour {
 	
 	CompactCloud[] allCompacts;
 
+	SpeedWarp warper = null;
+
 	#endregion
 	
 	void Awake()
 	{
 		theCamera = transform.parent.Find("Camera");
+		warper = theCamera.GetComponent<SpeedWarp>();
 		Time.maximumDeltaTime = 0.04f;
 	}
 	
@@ -101,7 +106,7 @@ public class LodManager : MonoBehaviour {
 				BroadcastMessage("OnEvent", "NextSlide",SendMessageOptions.DontRequireReceiver);
 
 				slideShow.ReturnDetails( slideShow.DetailsCount );
-				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), CloudMeshPool.Capacity / 2 );
+				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), Mathf.FloorToInt( CloudMeshPool.Capacity * slideShowPoolRatio ));
 				SlideShow tmp = slideShow;
 				// FIXME must it be here?
 				Balance();
@@ -150,22 +155,25 @@ public class LodManager : MonoBehaviour {
 		while (true) {
 			
 		ReBalance:
+			while (dontBalanceOnWarp && warper.Warping)
+				yield return null;
 			
 			#region distribute the rest of the pool
-			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ?slideShow.Entitled : 0);
+			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ? Mathf.FloorToInt( CloudMeshPool.Capacity * slideShowPoolRatio ) : 0);
 			float totalWeight = 0;
 			foreach(CompactCloud compact in Managed) {
-				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
+				
+				//if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
 				totalWeight += (compact.weight = compact.priority * (1.0f - Mathf.Pow( compact.distanceFromCamera / maxManagementDist, 0.5f)));
 			}
 			
 			foreach(CompactCloud compact in Managed) {
-				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
+				//if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
 				compact.weight /= totalWeight;
 			}
 			
 			foreach(CompactCloud compact in Managed) {
-				if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
+				//if (slideShow != null && compact.transform.parent == slideShow.transform) continue;
 				// how many meshes this CompactCloud is entitled to?
 				compact.Entitled = Mathf.FloorToInt(compact.weight * buffersLeft);
 			}
@@ -203,6 +211,7 @@ public class LodManager : MonoBehaviour {
 			#endregion
 
 			yield return null;
+			
 		}
 	}
 

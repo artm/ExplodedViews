@@ -26,13 +26,15 @@ public abstract class Inflatable : MonoBehaviour {
 	public static int ManagedCount { get { return managedCount; } }
 
 	void OnEnable() {
+		//Logger.Log("{0} enabled", name);
 		if (managed)
-			managedCount--;
+			managedCount++;
 	}
 
 	void OnDisable() {
+		//Logger.Log("{0} disabled", name);
 		if (managed)
-			managedCount++;
+			managedCount--;
 		entitled = 0;
 		ReturnDetails(DetailsCount);
 	}

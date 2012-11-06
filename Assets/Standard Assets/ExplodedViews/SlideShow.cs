@@ -92,18 +92,21 @@ public class SlideShow : Inflatable
 	public override string BinPath { get { return Prefs.ImportedBin(name); } }
 
 	public bool StartSlideShow() {
-
+		/*
 		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>())
 			cc.enabled = false;
+		*/
 
 		return true;
 	}
 
 	public void StopSlideShow() {
+		/*
 		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>()) {
 			if (cc.Stream != null)
 				cc.enabled = true;
 		}
+		*/
 		ReturnDetails(DetailsCount);
 	}
 

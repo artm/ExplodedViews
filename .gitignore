@@ -18,6 +18,9 @@ Temp
 *_data
 cams.txt
 *.jpg
+*.tif
+*.tiff
+*.wav
 
 Assets/sounds
 *.png
@@ -25,3 +28,8 @@ continent_plys
 Test Data
 Assets/Test Assets
 Bin*
+Crash_*
+/*.exe
+/*.lnk
+/sysinfo.txt
+/output_log.txt
