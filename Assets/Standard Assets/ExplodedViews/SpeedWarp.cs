@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using SubLevelSupport;
 
 /* when navigator is in warp mode - bend the field of view */
 
@@ -8,14 +9,16 @@ public class SpeedWarp : MonoBehaviour {
 	bool warping;
 	public bool Warping { get {return warping; } }
 	
-	// running faster then threshold for longer then timeout switched the warp mode on
+	// running faster then threshold for longer then timeout switches the warp mode on
 	public float speedThreshold = 3, timeout = 3;
 	
 	public float warpFOV = 30;
 	// degrees per second
 	public float fovOpenSpeed = 5;
 	public float fovCloseSpeed = 15;
-
+	
+	public float warpFarClippingBy = 1.0f;
+	
 	[System.Serializable]
 	public class SoundControl {
 		public AnimationCurve speedToVolume;
@@ -25,11 +28,23 @@ public class SpeedWarp : MonoBehaviour {
 	public SoundControl sound;
 
 	float normalFOV;
+	float normalFar;
 	float stamp = -1;
+	AnimeController[] animes;
 	
-	void Start()
+	void Start() {
+		StartCoroutine( this.PostponeStart() );
+	}	
+	
+	void PostponedAwake()
+	{
+		animes = GameObject.FindObjectsOfType(typeof(AnimeController)) as AnimeController[];
+	}
+	
+	void PostponedStart()
 	{
 		normalFOV = camera.fov;
+		normalFar = camera.farClipPlane;
 	}
 	
 	void VelocityChanged(Vector3 velocity)
@@ -56,6 +71,16 @@ public class SpeedWarp : MonoBehaviour {
 		camera.fov = Mathf.MoveTowardsAngle(camera.fov, 
 			warping ? warpFOV : normalFOV, 
 			Time.deltaTime * (warping ? fovOpenSpeed : fovCloseSpeed));
+		
+		Logger.Plot("FOV", camera.fov, "{0}");
+		
+		float warpFactor = (camera.fov - normalFOV) / (warpFOV - normalFOV);
+		float farClipFactor = Mathf.Lerp( 1.0f, warpFarClippingBy, warpFactor );
+		camera.farClipPlane = normalFar * farClipFactor;
+		foreach(AnimeController ac in animes) {
+			ac.SendMessage("SetFarClipPlane", camera.farClipPlane);
+			ac.SendMessage("SetWarpFactor", warpFactor);
+		}
 
 		// speed to sound
 		float abs_speed = Mathf.Abs(speed);
