@@ -10,12 +10,19 @@ using System.Collections;
  */
 public class AnimeController : MonoBehaviour {
 	Material animatedMaterial;
+	
+	float tunnelDDef, tunnelRDef;
+	float tunnelDWarp, tunnelRWarp;
 
 	void Awake()
 	{
 		// make a private material
 		animatedMaterial = Object.Instantiate(Helpers.LoadResource<Material>("TrillingFastPoint")) as Material;
 		animatedMaterial.name = animatedMaterial.name.Replace("(Clone)", "");
+		tunnelDDef = animatedMaterial.GetFloat("_TunnelD");
+		tunnelDWarp = animatedMaterial.GetFloat("_TunnelDMax");
+		tunnelRDef = animatedMaterial.GetFloat("_TunnelRadius");
+		tunnelRWarp = animatedMaterial.GetFloat("_TunnelRadiusMax");
 
 		if (renderer != null)
 			renderer.sharedMaterial = animatedMaterial;
@@ -36,6 +43,28 @@ public class AnimeController : MonoBehaviour {
 	// "Broadcast animation", the technique is borrowed from
 	// http://forum.unity3d.com/threads/82742-Animate-Animation-API-a-shared-material-on-a-character
 	void Update() {
-		if (renderer != null) animatedMaterial.CopyPropertiesFromMaterial(renderer.sharedMaterial);
+		if (renderer != null && renderer.isVisible) {
+			Material m = renderer.sharedMaterial;
+			animatedMaterial.SetFloat( "_TurbulenceAmplitude", m.GetFloat("_TurbulenceAmplitude") );
+			animatedMaterial.SetFloat( "_TurbulenceFrequency", m.GetFloat("_TurbulenceFrequency") );
+			animatedMaterial.SetFloat( "_TurbulenceCurliness", m.GetFloat("_TurbulenceCurliness") );
+			animatedMaterial.SetFloat( "fogEnd", m.GetFloat("fogEnd") );
+			animatedMaterial.SetFloat( "_TunnelD", m.GetFloat("_TunnelD") );
+			animatedMaterial.SetFloat( "_TunnelRadius", m.GetFloat("_TunnelRadius") );
+		}
 	}
+	
+	void SetFarClipPlane(float far) {
+		if (renderer != null) {
+			renderer.sharedMaterial.SetFloat("fogEnd", far);
+		}
+	}
+	
+	void SetWarpFactor(float factor) {
+		if (renderer != null) {
+			renderer.sharedMaterial.SetFloat("_TunnelD", Mathf.Lerp( tunnelDDef, tunnelDWarp, factor ));
+			renderer.sharedMaterial.SetFloat("_TunnelRadius", Mathf.Lerp( tunnelRDef, tunnelRWarp, factor ));
+		}
+	}
+	
 }
