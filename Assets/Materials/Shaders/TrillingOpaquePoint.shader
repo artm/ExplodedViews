@@ -5,10 +5,13 @@ Shader "Exploded Views/Trilling Opaque Point" {
 		_TurbulenceCurliness( "Turbulence curliness", float ) = 1.0
 		
 		fogColor("Fog color", Color) = (0,0,0,1)
-		fogDensity("Fog density", float) = 0.005
+		fogStart("Fog start", float) = 50
+		fogEnd("Fog end", float) = 75
 		
 		_TunnelD ("Tunnel Distance", float) = 1.0
+		_TunnelDMax ("Tunnel Distance Max", float) = 50.0
 		_TunnelRadius("Tunnel Radius", float) = 0.75
+		_TunnelRadiusMax("Tunnel Radius Max", float) = 50.0
 		_TunnelAspect("Tunnel Aspect", float) = 1.33
 
 		minSize ("Min. Point Size", float) = 1
@@ -16,8 +19,6 @@ Shader "Exploded Views/Trilling Opaque Point" {
 		attA ("Quad. size attenuation", float) = 0
 		attB ("Lin. size attenuation", float) = 0
 		attC ("Const. size attenuation", float) = 0
-
-		_SubLod ( "SubLod", Range(0,1) ) = 0
 	}
 	
 	// Levels of detail:
@@ -43,12 +44,11 @@ CGPROGRAM
 #include "noise3d.cginc"
 
 uniform float _TurbulenceAmplitude, _TurbulenceCurliness, _TurbulenceFrequency;
-uniform float _SubLod;
-uniform float _TunnelD, _TunnelRadius, _TunnelAspect;
+uniform float _TunnelD, _TunnelDMax, _TunnelRadius, _TunnelRadiusMax, _TunnelAspect;
 uniform float attA, attB, attC;
 uniform float minSize, maxSize;
 uniform float4 fogColor;
-uniform float fogDensity;
+uniform float fogStart, fogEnd;
 
 PointV2F vert (PointVIn v)
 {
@@ -70,8 +70,8 @@ PointV2F vert (PointVIn v)
 	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
-    o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
-
+  	o.color = lerp( v.color, fogColor, clamp((o.pos.z - fogStart)/(fogEnd-fogStart), 0, 1) );
+	
  	return o;
 }
 
@@ -107,7 +107,7 @@ uniform float _TurbulenceAmplitude, _TurbulenceCurliness, _TurbulenceFrequency;
 uniform float attA, attB, attC;
 uniform float minSize, maxSize;
 uniform float4 fogColor;
-uniform float fogDensity;
+uniform float fogStart, fogEnd;
 
 PointV2F vert (PointVIn v)
 {
@@ -121,7 +121,7 @@ PointV2F vert (PointVIn v)
 	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
-    o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
+  	o.color = lerp( v.color, fogColor, clamp((o.pos.z - fogStart)/(fogEnd-fogStart), 0, 1) );
 
  	return o;
 }
@@ -148,7 +148,7 @@ CGPROGRAM
 uniform float attA, attB, attC;
 uniform float minSize, maxSize;
 uniform float4 fogColor;
-uniform float fogDensity;
+uniform float fogStart, fogEnd;
 
 PointV2F vert (PointVIn v)
 {
@@ -159,7 +159,7 @@ PointV2F vert (PointVIn v)
 	Billboard( o.pos, v.texcoord.xy, AttenuatedSize(o.pos, attA, attB, attC, minSize, maxSize) );
 
     // vertex color + fog
-    o.color = lerp( v.color, fogColor, 1 - exp2( fogDensity * o.pos.z ));
+  	o.color = lerp( v.color, fogColor, clamp((o.pos.z - fogStart)/(fogEnd-fogStart), 0, 1) );
 
  	return o;
 }
