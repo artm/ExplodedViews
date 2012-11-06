@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngineExt;
 using System.Collections;
+using SubLevelSupport;
 
 using Slice = ImportedCloud.Slice;
 using System.IO;
@@ -22,15 +23,16 @@ public class SlideShow : Inflatable
 		ApplyScale();
 		transform.Find("Full Cloud Preview").gameObject.SetActiveRecursively(false);
 		FloorShadow(transform.Find("Objects/Shadow"));
-
 		gameObject.setLayer( "Clouds", true ); // recursive
-
 		currentSlide = 0;
 	}
 
-	// Start is called after all Awake()s
-	public void Start() {
+	void PostponedStart() {
 		lodManager = Helpers.FindSceneObjects<LodManager>()[0];
+	}
+
+	void Start() {
+		StartCoroutine( this.PostponeStart() );
 	}
 
 	void FloorShadow(Transform shadow)
@@ -90,18 +92,21 @@ public class SlideShow : Inflatable
 	public override string BinPath { get { return Prefs.ImportedBin(name); } }
 
 	public bool StartSlideShow() {
-
+		/*
 		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>())
 			cc.enabled = false;
+		*/
 
 		return true;
 	}
 
 	public void StopSlideShow() {
+		/*
 		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>()) {
 			if (cc.Stream != null)
 				cc.enabled = true;
 		}
+		*/
 		ReturnDetails(DetailsCount);
 	}
 
