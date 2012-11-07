@@ -53,7 +53,7 @@ public class SpeedWarp : MonoBehaviour {
 			return;
 		
 		Vector3 localVelocity = transform.InverseTransformDirection(velocity);
-		float speed = localVelocity.z;
+		float speed = localVelocity.magnitude;
 		
 		// decide if we should be warping
 		if (speed > speedThreshold) {

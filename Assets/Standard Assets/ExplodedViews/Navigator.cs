@@ -81,11 +81,8 @@ public class Navigator : MonoBehaviour {
 			fallSpeed += gravity * delta;
 		direction.y += fallSpeed;
 		
-		//Vector3 newVelocity = direction;
-		//if ( newVelocity != velocity ) {
-			velocity = direction;
-			BroadcastMessage("VelocityChanged", velocity, SendMessageOptions.DontRequireReceiver);
-		//}
+		velocity = direction;
+		BroadcastMessage("VelocityChanged", 1.0f / walkSpeed * velocity, SendMessageOptions.DontRequireReceiver);
 
 		pill.Move( direction * delta );
 	}
