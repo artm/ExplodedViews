@@ -93,21 +93,21 @@ public class SlideShow : Inflatable
 
 	public bool StartSlideShow() {
 		/*
-		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>())
-			cc.enabled = false;
-		*/
+		 * we used to disable streaming the compacts when slide show were switched on
+		 * 
+ 		 */
+		Logger.Log( "Start slide show: {0}", name );
 
 		return true;
 	}
 
 	public void StopSlideShow() {
 		/*
-		foreach(CompactCloud cc in GetComponentsInChildren<CompactCloud>()) {
-			if (cc.Stream != null)
-				cc.enabled = true;
-		}
-		*/
+		 * we used to re-enable streaming the compacts when slide show were switched off
+		 * 
+		 */
 		ReturnDetails(DetailsCount);
+		Logger.Log( "Stop slide show: {0}", name );
 	}
 
 	public int CurrentSlideSize() {
