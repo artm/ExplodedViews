@@ -43,7 +43,7 @@ public class AnimeController : MonoBehaviour {
 	// "Broadcast animation", the technique is borrowed from
 	// http://forum.unity3d.com/threads/82742-Animate-Animation-API-a-shared-material-on-a-character
 	void Update() {
-		if (renderer != null && renderer.isVisible) {
+		if (renderer != null) {
 			Material m = renderer.sharedMaterial;
 			animatedMaterial.SetFloat( "_TurbulenceAmplitude", m.GetFloat("_TurbulenceAmplitude") );
 			animatedMaterial.SetFloat( "_TurbulenceFrequency", m.GetFloat("_TurbulenceFrequency") );
