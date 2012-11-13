@@ -17,7 +17,8 @@ public class SpeedWarp : MonoBehaviour {
 	public float fovOpenSpeed = 5;
 	public float fovCloseSpeed = 15;
 	
-	public float warpFarClippingBy = 1.0f;
+	public float warpFarClippingBy = 1.0f;	
+	public float warpWormholeScale = 0.5f;
 	
 	[System.Serializable]
 	public class SoundControl {
@@ -72,14 +73,12 @@ public class SpeedWarp : MonoBehaviour {
 			warping ? warpFOV : normalFOV, 
 			Time.deltaTime * (warping ? fovOpenSpeed : fovCloseSpeed));
 		
-		Logger.Plot("FOV", camera.fov, "{0}");
-		
 		float warpFactor = (camera.fov - normalFOV) / (warpFOV - normalFOV);
 		float farClipFactor = Mathf.Lerp( 1.0f, warpFarClippingBy, warpFactor );
 		camera.farClipPlane = normalFar * farClipFactor;
 		foreach(AnimeController ac in animes) {
 			ac.SendMessage("SetFarClipPlane", camera.farClipPlane);
-			ac.SendMessage("SetWarpFactor", warpFactor);
+			ac.SendMessage("SetWarpFactor", warpWormholeScale * warpFactor);
 		}
 
 		// speed to sound
