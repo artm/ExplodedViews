@@ -9,6 +9,7 @@ public class Logger : MonoBehaviour {
 	int waterMark = 0;
 	bool filled = false;
 	Dictionary<string, RingBufferPlot> plots = new Dictionary<string, RingBufferPlot>();
+	Dictionary<string, string> states = new Dictionary<string, string>();
 
 	public bool on = false;
 	public GUIStyle style;
@@ -130,7 +131,14 @@ public class Logger : MonoBehaviour {
 		}
 		plots[label].Write(val);
 	}
-
+	
+	void _State(string label, string state) {
+		if (state != null)
+			states[label] = state;
+		else
+			states.Remove(label);
+	}
+	
 	public string Text { get { return logAsText.ToString(); } }
 
 	Rect[] wrect = new Rect[1];
@@ -145,6 +153,13 @@ public class Logger : MonoBehaviour {
 		// Log
 		GUILayout.Label( Text, style );
 		GUILayout.BeginVertical();
+		// States
+		foreach(string label in states.Keys) {
+			GUILayout.BeginHorizontal();
+			GUILayout.Label( label, style );
+			GUILayout.Label( states[label], style );
+			GUILayout.EndHorizontal();
+		}
 		// Stats
 		foreach(RingBufferPlot plot in plots.Values) {
 			plot.Draw(style);
@@ -182,5 +197,9 @@ public class Logger : MonoBehaviour {
 	public static void Plot(string label, float val, params string[] fmt)
 	{
 		singleton._Plot(label, val, fmt);
+	}
+	
+	public static void State(string label, string state) {
+		singleton._State(label, state);
 	}
 }

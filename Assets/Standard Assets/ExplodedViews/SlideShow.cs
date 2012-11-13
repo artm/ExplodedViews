@@ -97,7 +97,7 @@ public class SlideShow : Inflatable
 		 * 
  		 */
 		Logger.Log( "Start slide show: {0}", name );
-
+		NextSlide();
 		return true;
 	}
 
@@ -118,9 +118,7 @@ public class SlideShow : Inflatable
 		int previousSlide = currentSlide;
 		do { currentSlide = Random.Range(0, slices.Length ); } while( currentSlide == previousSlide );
 		Stream.SeekPoint( slices[currentSlide].offset );
-		Debug.Log(string.Format("Next slide #{0}: {1}", currentSlide, slices[currentSlide]), this);
-		
-		
+		Logger.Log( "New slide #{0}: {1}", currentSlide, slices[currentSlide] );
 	}
 
 

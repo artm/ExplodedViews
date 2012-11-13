@@ -81,11 +81,11 @@ public class LodManager : MonoBehaviour {
 
 	// only start if this node isn't a slide show yet
 	public void MaybeStartSlideShow(SlideShow node) {
-		if (node != slideShow && node.StartSlideShow()) {
+		if (node != slideShow) {
 			if (slideShow != null)
 				slideShow.StopSlideShow();
 			slideShow = node;
-			Debug.Log("Switched slide show on", node);
+			slideShow.StartSlideShow();
 		}
 	}
 
@@ -94,7 +94,6 @@ public class LodManager : MonoBehaviour {
 		if (node == slideShow) {
 			slideShow.StopSlideShow();
 			slideShow = null;
-			Debug.Log("Switched slide show off", node);
 		}
 	}
 
@@ -157,7 +156,9 @@ public class LodManager : MonoBehaviour {
 		ReBalance:
 			while (dontBalanceOnWarp && warper.Warping)
 				yield return null;
-			
+
+			Logger.State("LODManager","redistributing chunks");
+						
 			#region distribute the rest of the pool
 			int buffersLeft = CloudMeshPool.Capacity - ((slideShow != null) ? Mathf.FloorToInt( CloudMeshPool.Capacity * slideShowPoolRatio ) : 0);
 			float totalWeight = 0;
@@ -180,13 +181,17 @@ public class LodManager : MonoBehaviour {
 			#endregion
 			
 			#region Load buffers
+			Logger.State("LODManager","slide show");
 			Inflatable rememberSlideShow = slideShow;
 			
 			while (slideShow != null && slideShow.Entitled > slideShow.DetailsCount) {
 				if (CloudMeshPool.HasFreeMeshes)
 					yield return StartCoroutine( slideShow.LoadOne( CloudMeshPool.Get() ) );
-				else
+				else {
+					Logger.State("LODManager","waiting for chunks");
 					yield return null;
+					Logger.State("LODManager","slide show");
+				}
 				
 				if (slideShow != rememberSlideShow) {
 					rememberSlideShow.ReturnDetails( rememberSlideShow.DetailsCount );
@@ -196,12 +201,16 @@ public class LodManager : MonoBehaviour {
 			
 			Vector3 rememberPos = transform.position;
 			
+			Logger.State("LODManager","streaming");
 			foreach(CompactCloud compact in allCompacts) {
 				while (compact.Entitled > compact.DetailsCount) {
 					if (CloudMeshPool.HasFreeMeshes)
 						yield return StartCoroutine( compact.LoadOne( CloudMeshPool.Get() ) );
-					else
+					else {
+						Logger.State("LODManager","waiting for chunks");
 						yield return null;
+						Logger.State("LODManager","streaming");
+					}
 					
 					if (Vector3.Distance(rememberPos, transform.position) > rebalanceDistance ||
 					    slideShow != rememberSlideShow)
@@ -210,8 +219,8 @@ public class LodManager : MonoBehaviour {
 			}
 			#endregion
 
+			Logger.State("LODManager","idle");			
 			yield return null;
-			
 		}
 	}
 
