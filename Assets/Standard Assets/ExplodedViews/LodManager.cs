@@ -66,6 +66,7 @@ public class LodManager : MonoBehaviour {
 
 	void OnTriggerEnter(Collider other)
 	{
+		if (!ShouldBalance) return;
 		if (other.transform.parent == null) return;
 		CompactCloud compact = other.transform.parent.GetComponent<CompactCloud>();
 		if (compact == null) return;
@@ -81,6 +82,8 @@ public class LodManager : MonoBehaviour {
 
 	// only start if this node isn't a slide show yet
 	public void MaybeStartSlideShow(SlideShow node) {
+		if (!ShouldBalance) return;
+
 		if (node != slideShow) {
 			if (slideShow != null)
 				slideShow.StopSlideShow();
@@ -148,13 +151,19 @@ public class LodManager : MonoBehaviour {
 					yield return compact as Inflatable;
 		}
 	}
+
+	bool ShouldBalance {
+		get {
+			return !(dontBalanceOnWarp && warper.Warping);
+		}
+	}
 	
 	IEnumerator Balance()
 	{
 		while (true) {
 			
 		ReBalance:
-			while (dontBalanceOnWarp && warper.Warping)
+			while (!ShouldBalance)
 				yield return null;
 
 			Logger.State("LODManager","redistributing chunks");
