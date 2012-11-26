@@ -15,11 +15,12 @@ public abstract class Inflatable : MonoBehaviour {
 	public virtual bool Managed {
 		get { return enabled && managed; }
 		set {
-			if (managed = value)
-				managedCount++;
-			else {
-				managedCount--;
-				entitled = 0;
+			if (managed != value)
+				if (managed = value)
+					managedCount++;
+				else {
+					managedCount--;
+					entitled = 0;
 			}
 		}
 	}

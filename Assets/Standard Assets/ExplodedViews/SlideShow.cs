@@ -91,13 +91,14 @@ public class SlideShow : Inflatable
 
 	public override string BinPath { get { return Prefs.ImportedBin(name); } }
 
-	public bool StartSlideShow() {
+	public bool StartSlideShow(bool nextSlideRightNow = true) {
 		/*
 		 * we used to disable streaming the compacts when slide show were switched on
 		 * 
  		 */
 		Logger.Log( "Start slide show: {0}", name );
-		NextSlide();
+		if (nextSlideRightNow)
+			NextSlide();
 		return true;
 	}
 

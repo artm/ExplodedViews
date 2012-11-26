@@ -57,6 +57,7 @@ public class SpeedWarp : MonoBehaviour {
 		float speed = localVelocity.magnitude;
 		
 		// decide if we should be warping
+		bool wasWarping = warping;
 		if (speed > speedThreshold) {
 			if (stamp < 0) {
 				stamp = Time.time;
@@ -67,6 +68,9 @@ public class SpeedWarp : MonoBehaviour {
 			stamp = -1;
 			warping = false;
 		}
+		if (wasWarping != warping)
+			transform.parent.BroadcastMessage("OnWarpingChange", warping, 
+			                                  SendMessageOptions.DontRequireReceiver);
 		
 		// adjust FOV if necessary
 		camera.fov = Mathf.MoveTowardsAngle(camera.fov, 

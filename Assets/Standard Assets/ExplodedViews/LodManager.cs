@@ -17,9 +17,6 @@ public class LodManager : MonoBehaviour {
 	public float relativeCenterOffset = 0.4f;
 	public float radiusScale = 0.3f;
 
-	//public bool overrideLodBreaks = true;
-	//public float[] lodBreakDistances = new float[] { 100, 90, 3};
-
 	public float slideDelay = 3.0f;
 	public float rebalanceDistance = 20.0f;
 	
@@ -82,13 +79,11 @@ public class LodManager : MonoBehaviour {
 
 	// only start if this node isn't a slide show yet
 	public void MaybeStartSlideShow(SlideShow node) {
-		if (!ShouldBalance) return;
-
 		if (node != slideShow) {
 			if (slideShow != null)
 				slideShow.StopSlideShow();
 			slideShow = node;
-			slideShow.StartSlideShow();
+			slideShow.StartSlideShow( ShouldBalance );
 		}
 	}
 
@@ -104,8 +99,6 @@ public class LodManager : MonoBehaviour {
 	{
 		while(true) {
 			while(slideShow) {
-				// make it well known that we're at the next slide
-				BroadcastMessage("OnEvent", "NextSlide",SendMessageOptions.DontRequireReceiver);
 
 				slideShow.ReturnDetails( slideShow.DetailsCount );
 				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), Mathf.FloorToInt( CloudMeshPool.Capacity * slideShowPoolRatio ));
@@ -119,8 +112,11 @@ public class LodManager : MonoBehaviour {
 				if (slideShow == tmp)
 					yield return new WaitForSeconds(slideDelay);
 				// go to next slide
-				if (slideShow == tmp)
+				if (slideShow == tmp && ShouldBalance) {
+					// make it well known that we're at the next slide
+					BroadcastMessage("OnEvent", "NextSlide",SendMessageOptions.DontRequireReceiver);
 					slideShow.NextSlide();
+				}
 			}
 	
 			while(!slideShow)
@@ -152,20 +148,24 @@ public class LodManager : MonoBehaviour {
 		}
 	}
 
-	bool ShouldBalance {
+	public bool ShouldBalance {
 		get {
 			return !(dontBalanceOnWarp && warper.Warping);
 		}
 	}
 	
+	void OnWarpingChange(bool warping)
+	{
+		/*
+		if (!warping && slideShow != null) {
+			MaybeStopSlideShow(slideShow);
+		}
+		*/
+	}
+	
 	IEnumerator Balance()
 	{
-		while (true) {
-			
-		ReBalance:
-			while (!ShouldBalance)
-				yield return null;
-
+		while (true) {			
 			Logger.State("LODManager","redistributing chunks");
 						
 			#region distribute the rest of the pool
@@ -189,6 +189,11 @@ public class LodManager : MonoBehaviour {
 			}
 			#endregion
 			
+			if (!ShouldBalance) {
+				yield return null;
+				continue;
+			}
+			
 			#region Load buffers
 			Logger.State("LODManager","slide show");
 			Inflatable rememberSlideShow = slideShow;
@@ -204,7 +209,7 @@ public class LodManager : MonoBehaviour {
 				
 				if (slideShow != rememberSlideShow) {
 					rememberSlideShow.ReturnDetails( rememberSlideShow.DetailsCount );
-					goto ReBalance;
+					continue;
 				}
 			}
 			
@@ -223,7 +228,7 @@ public class LodManager : MonoBehaviour {
 					
 					if (Vector3.Distance(rememberPos, transform.position) > rebalanceDistance ||
 					    slideShow != rememberSlideShow)
-						goto ReBalance;
+						continue;
 				}
 			}
 			#endregion
