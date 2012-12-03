@@ -98,13 +98,15 @@ public class CloudStream
 			Color[] c = buffer.cBuffer;
         	int bytesize = PrepareToRead (v, c, buffer.Offset, stride, ref amount);
    
-			System.IAsyncResult asyncRes = BaseStream.BeginRead (chbuffer, 0, bytesize, null, null);
-        	// wait for the read to finish, but let the engine go
-        	while (!asyncRes.IsCompleted)
-        		yield return null;
-			
-			BaseStream.EndRead(asyncRes);
-			mem.DecodePoints(buffer, bytesize/pointRecSize, stride);
+			if (bytesize > 0) {
+				System.IAsyncResult asyncRes = BaseStream.BeginRead (chbuffer, 0, bytesize, null, null);
+	        	// wait for the read to finish, but let the engine go
+	        	while (!asyncRes.IsCompleted)
+	        		yield return null;
+				
+				BaseStream.EndRead(asyncRes);
+				mem.DecodePoints(buffer, bytesize/pointRecSize, stride);
+			}
         }
 
 		// try to convert no more then pointCount points from this to output
@@ -130,6 +132,11 @@ public class CloudStream
 			if (amount < 0) {
 				// until the end of the buffer
 				amount = v.Length - offset;
+			}
+			
+			if (BaseStream.Length < BaseStream.Position) {
+				// how can this be???
+				return 0;
 			}
 			
 			int bytesize = (int)Math.Min((long)Mathf.CeilToInt(stride * (amount - 1) + 1) * pointRecSize,
