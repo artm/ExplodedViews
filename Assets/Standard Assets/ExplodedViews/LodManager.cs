@@ -101,8 +101,6 @@ public class LodManager : MonoBehaviour {
 	{
 		while(true) {
 			while(slideShow) {
-				// make it well known that we're at the next slide
-				BroadcastMessage("OnEvent", "NextSlide",SendMessageOptions.DontRequireReceiver);
 
 				slideShow.ReturnDetails( slideShow.DetailsCount );
 				slideShow.Entitled = System.Math.Min( slideShow.CurrentSlideSize(), Mathf.FloorToInt( CloudMeshPool.Capacity * slideShowPoolRatio ));
@@ -116,8 +114,11 @@ public class LodManager : MonoBehaviour {
 				if (slideShow == tmp)
 					yield return new WaitForSeconds(slideDelay);
 				// go to next slide
-				if (slideShow == tmp)
+				if (slideShow == tmp && MayBalance) {
+					// make it well known that we're at the next slide
+					BroadcastMessage("OnEvent", "NextSlide",SendMessageOptions.DontRequireReceiver);
 					slideShow.NextSlide();
+				}
 			}
 	
 			while(!slideShow)
@@ -149,12 +150,18 @@ public class LodManager : MonoBehaviour {
 		}
 	}
 	
+	bool MayBalance {
+		get {
+			return !(dontBalanceOnWarp && warper.Warping);
+		}
+	}
+	
 	IEnumerator Balance()
 	{
 		while (true) {
 			
 		ReBalance:
-			while (dontBalanceOnWarp && warper.Warping)
+			while (!MayBalance)
 				yield return null;
 
 			Logger.State("LODManager","redistributing chunks");
