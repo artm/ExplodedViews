@@ -23,7 +23,6 @@ public class CompactCloud : Inflatable
 
 	public override void Awake() {
 		if (transform.parent.name == "Objects") {
-			Debug.Log(name + " detected location");
 			location = transform.parent.parent;
 		}
 		box = transform.Find("Box").collider;
