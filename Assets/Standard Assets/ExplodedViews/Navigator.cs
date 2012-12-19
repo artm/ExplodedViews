@@ -10,6 +10,10 @@ public class Navigator : MonoBehaviour {
 	public float CogForwardScaling = 0.001f; /* to meters */
 	public float CogSidewaysScaling = 0.001f; /* to meters */
 
+	public float scannerReturnTimeout = 5.0f;
+	public float scannerReturnDuration = 3.0f;
+	float lastScanTime = 0.0f;
+	
 	public float gravity = -10;
 
 	public AnimationCurve speedCurve;
@@ -91,11 +95,26 @@ public class Navigator : MonoBehaviour {
 	
 	void Update()
 	{
-		UpdateWithCog(theCog);
+		float timeSinceLastScan = Time.time - lastScanTime;
+		float returnT = 
+			Mathf.Min(1.0f, 
+		    	      (timeSinceLastScan - scannerReturnTimeout) / scannerReturnDuration);
+		
+		Vector3 cog = theCog;
+		
+		if ( returnT > 0 ) {
+			
+			cog = Vector3.Lerp(theCog, Vector3.zero, returnT);
+			
+		}
+		
+		
+		UpdateWithCog(cog);
 	}
 	
 	void BlobsCenterOfGravity(Vector3 cog)
 	{
 		theCog = cog;
+		lastScanTime = Time.time;
 	}
 }
