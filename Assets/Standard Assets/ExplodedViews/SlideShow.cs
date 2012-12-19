@@ -62,6 +62,9 @@ public class SlideShow : Inflatable
 
 	void SetScale(float s) {
 		scale = s;
+
+		Transform snd = transform.Find("Sound");
+		if (snd != null) { snd.AdjustScale(s); }
 	}
 
 	public override int NextChunkSize
